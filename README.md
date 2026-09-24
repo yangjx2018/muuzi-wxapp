@@ -1,18 +1,21 @@
-# MuuziWx
+# muuzi-wxapp（MuuziWx）
 
 MuuZi **登录态**微信小程序：Tab「连接 / 消息 / 我」+ 微信登录。  
 与 `MuuziGit/miniapp`（只读 D9）分离；后端与手机 App 同节点 / 同 Platform。
+
+仓库：https://github.com/yangjx2018/muuzi-wxapp
 
 ## 状态
 
 - **P0**：工程骨架、配置、安全存储、启动会话路由、域名清单 — 本目录已落地。
 - **M0+**：契约 A（GuDuu-OS）微信登录、UI 1:1、Matrix、支付等，见 `docs/`。
+- **企业主页**：与 App 对等的编辑/发布、成员与邀请、开通企业版、员工链接加入，见 `docs/ENTERPRISE_HOME_WX_PARITY.md`。
 
 ## 本地打开
 
 1. 安装[微信开发者工具](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html)
 2. 导入本仓库根目录（`project.config.json`）
-3. `npm run check`
+3. `npm run check` / `npm test`
 
 正式 AppId 由负责人配置；勿提交 AppSecret。
 
@@ -44,3 +47,4 @@ docs/                       # PRD / SDD / 契约 A / 域名清单
 - Matrix token 只存本机，不上报 `www.muuzi.co`
 - 节点选择仅 `NODE_WHITELIST`（首期 `im.muuzi.co`）
 - 不依赖 `GuDuuOS-Team`；不实现 openid 中央存储
+- 勿提交 `.e2e-local-credentials.json` / `config.local.js` / `project.private.config.json`

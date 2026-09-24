@@ -1,0 +1,252 @@
+<status-pad />
+<view class="me">
+  <view class="me-identity">
+    <view class="me-avatar-ring" bindtap="goEditProfile" aria-label="编辑头像与个人资料">
+      <image wx:if="{{portrait}}" class="me-avatar" src="{{portrait}}" mode="aspectFill" />
+      <view wx:else class="me-avatar me-avatar-fallback">{{portraitLetter}}</view>
+      <view class="me-avatar-edit" aria-hidden="true">
+        <image
+          class="me-pencil-img"
+          src="/assets/icon-ui-pencil-white.png"
+          mode="aspectFit"
+        />
+      </view>
+    </view>
+    <view class="me-identity-text">
+      <view class="me-name-row">
+        <text class="me-name">{{displayName}}</text>
+        <text wx:if="{{verified}}" class="me-verified">认证</text>
+        <view
+          class="me-account-toggle"
+          bindtap="openAccounts"
+          aria-label="切换账号"
+        >
+          <image class="me-chevron" src="/assets/icon-ui-chevron-ink.png" mode="aspectFit" />
+        </view>
+      </view>
+      <text class="me-handle">{{nodeLabel}}</text>
+    </view>
+    <view class="me-share-btn" bindtap="openShare" aria-label="分享主页">
+      <image
+        class="me-share-ico"
+        src="/assets/icon-ui-share-ink.png"
+        mode="aspectFit"
+        aria-hidden="true"
+      />
+    </view>
+  </view>
+
+  <view class="me-address">{{addressLabel}}</view>
+
+  <view class="me-tools" aria-label="主页管理">
+    <button class="me-tool" bindtap="goShop">
+      <image
+        class="me-tool-ico"
+        src="/assets/icon-ui-nav-people-accent.png"
+        mode="aspectFit"
+        aria-hidden="true"
+      />
+      <text>商品</text>
+    </button>
+    <button class="me-tool" bindtap="goDesign">
+      <image
+        class="me-tool-ico"
+        src="/assets/icon-ui-list-tool-accent.png"
+        mode="aspectFit"
+        aria-hidden="true"
+      />
+      <text>设计</text>
+    </button>
+    <button class="me-tool" bindtap="goSettings">
+      <image
+        class="me-tool-ico"
+        src="/assets/icon-ui-gear-accent.png"
+        mode="aspectFit"
+        aria-hidden="true"
+      />
+      <text>设置</text>
+    </button>
+  </view>
+
+  <view class="me-editors" aria-label="主页与商铺编辑">
+    <view class="me-editor-card" bindtap="goLinks">
+      <view class="me-links-preview">
+        <image
+          class="me-card-badge"
+          src="/assets/icon-ui-link-ink.png"
+          mode="aspectFit"
+          aria-hidden="true"
+        />
+        <image
+          wx:if="{{portrait}}"
+          class="me-preview-avatar"
+          src="{{portrait}}"
+          mode="aspectFill"
+        />
+        <view wx:else class="me-preview-avatar me-avatar-fallback">{{portraitLetter}}</view>
+        <text class="me-preview-strong">{{displayName}}</text>
+        <text class="me-preview-sub">个人主页与链接</text>
+      </view>
+      <view class="me-editor-caption">
+        <text class="me-editor-title">Links</text>
+        <view class="me-editor-action">
+          <text>编辑</text>
+          <image
+            class="me-editor-chevron-img"
+            src="/assets/icon-ui-chevron-muted.png"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
+        </view>
+      </view>
+      <text class="me-editor-desc">社交账号、链接卡片与主页设计</text>
+    </view>
+
+    <view class="me-editor-card" bindtap="goShop">
+      <view class="me-shop-preview">
+        <image
+          class="me-bag-img"
+          src="/assets/icon-ui-bag-ink.png"
+          mode="aspectFit"
+          aria-hidden="true"
+        />
+        <text class="me-preview-strong">我的商铺</text>
+        <text class="me-preview-sub">展示商品与服务</text>
+      </view>
+      <view class="me-editor-caption">
+        <text class="me-editor-title">Shop</text>
+        <view class="me-editor-action">
+          <text>编辑</text>
+          <image
+            class="me-editor-chevron-img"
+            src="/assets/icon-ui-chevron-muted.png"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
+        </view>
+      </view>
+      <text class="me-editor-desc">商品图片、价格与购买链接</text>
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="me-status" role="status">正在连接平台…</view>
+  <view wx:elif="{{platformError}}" class="me-status" role="alert">{{platformError}}</view>
+
+  <!-- 账号切换 -->
+  <view wx:if="{{accountsOpen}}" class="me-overlay" catchtouchmove="noop" bindtap="closeAccounts">
+    <view class="me-sheet" catchtap="noop">
+      <view class="me-sheet-handle"></view>
+      <view class="me-sheet-header">
+        <text class="me-sheet-title">切换账号</text>
+        <view class="me-sheet-close" bindtap="closeAccounts" aria-label="关闭">
+          <view class="me-ico-close"></view>
+        </view>
+      </view>
+      <view class="me-current-account">
+        <image wx:if="{{portrait}}" class="me-sheet-avatar" src="{{portrait}}" mode="aspectFill" />
+        <view wx:else class="me-sheet-avatar me-avatar-fallback">{{portraitLetter}}</view>
+        <view class="me-current-meta">
+          <text class="me-current-name">{{displayName}}</text>
+          <text class="me-current-sub">{{nodeLabel}}</text>
+          <text class="me-current-sub">{{userId}}</text>
+        </view>
+      </view>
+      <view class="me-sheet-hint">当前设备仅保留一个登录账号，切换后需登录其他账号。</view>
+      <view wx:if="{{switchError}}" class="me-status" role="alert">{{switchError}}</view>
+      <button
+        class="me-switch-btn"
+        disabled="{{switchBusy}}"
+        bindtap="switchAccount"
+      >{{switchBusy ? '正在退出…' : '退出并登录其他账号'}}</button>
+    </view>
+  </view>
+
+  <!-- 分享主页 -->
+  <view wx:if="{{shareOpen}}" class="me-overlay" catchtouchmove="noop" bindtap="closeShare">
+    <view class="me-sheet me-share-sheet" catchtap="noop">
+      <view class="me-sheet-handle"></view>
+      <view class="me-sheet-header">
+        <text class="me-sheet-title">分享我的 MuuZi</text>
+        <view class="me-sheet-close" bindtap="closeShare" aria-label="关闭">
+          <text class="me-sheet-close-x">×</text>
+        </view>
+      </view>
+      <view class="me-share-identity">
+        <image wx:if="{{portrait}}" class="me-sheet-avatar" src="{{portrait}}" mode="aspectFill" />
+        <view wx:else class="me-sheet-avatar me-avatar-fallback">{{portraitLetter}}</view>
+        <text class="me-current-name">{{displayName}}</text>
+        <text class="me-current-sub">MuuZi · 让更多人遇见你</text>
+      </view>
+      <button class="me-copy-address" bindtap="copyShareUrl">
+        <text class="me-copy-address-text">{{shareUrl || '主页地址暂不可用'}}</text>
+        <image
+          class="me-share-row-ico"
+          src="/assets/icon-ui-link-accent.png"
+          mode="aspectFit"
+          aria-hidden="true"
+        />
+      </button>
+      <view wx:if="{{!shareUrl && !shareMissing}}" class="me-sheet-hint" role="status">{{shareAvailability}}</view>
+      <view wx:if="{{shareNote}}" class="me-sheet-hint" role="status">{{shareNote}}</view>
+
+      <button class="me-share-option" bindtap="toggleBio">
+        <image class="me-share-row-ico" src="/assets/icon-ui-list-accent.png" mode="aspectFit" aria-hidden="true" />
+        <text class="me-share-option-label">添加到社交简介</text>
+        <image class="me-share-chevron" src="/assets/icon-ui-chevron-muted.png" mode="aspectFit" aria-hidden="true" />
+      </button>
+      <view wx:if="{{showBio}}" class="me-bio-editor">
+        <textarea class="me-bio-input" maxlength="300" value="{{bio}}" bindinput="onBio" />
+        <view class="me-sheet-hint">{{shareUrl || '发布后可附带主页链接'}}</view>
+        <button class="me-mini-btn" bindtap="copyBio">复制简介</button>
+      </view>
+
+      <view wx:if="{{shareMissing && !shareUrl}}" class="me-bio-editor" role="status">
+        <view class="me-sheet-hint">{{shareAvailability}}</view>
+        <button class="me-mini-btn" bindtap="goDesign">查看主页草稿</button>
+        <button class="me-mini-btn" bindtap="dismissMissing">知道了</button>
+      </view>
+
+      <button class="me-share-option" bindtap="toggleQr">
+        <image class="me-share-row-ico" src="/assets/icon-ui-expand-accent.png" mode="aspectFit" aria-hidden="true" />
+        <text class="me-share-option-label">主页二维码</text>
+        <image class="me-share-chevron" src="/assets/icon-ui-chevron-muted.png" mode="aspectFit" aria-hidden="true" />
+      </button>
+      <view wx:if="{{showQr}}" class="me-share-qr">
+        <image wx:if="{{qrImage}}" class="me-qr-img" src="{{qrImage}}" mode="aspectFit" />
+        <view wx:else class="me-sheet-hint">正在生成二维码…</view>
+        <view class="me-sheet-hint">扫码打开你的 MuuZi 主页</view>
+      </view>
+
+      <button class="me-share-option" bindtap="toggleShareCard">
+        <image class="me-share-row-ico" src="/assets/icon-ui-person-accent.png" mode="aspectFit" aria-hidden="true" />
+        <text class="me-share-option-label">数字名片</text>
+        <image class="me-share-chevron" src="/assets/icon-ui-chevron-muted.png" mode="aspectFit" aria-hidden="true" />
+      </button>
+      <view wx:if="{{showShareCard}}" class="me-share-card">
+        <text class="me-share-card-name">{{displayName || slug || '我的主页'}}</text>
+        <text class="me-share-card-url">{{shareUrl || '主页地址待发布'}}</text>
+        <text class="me-share-card-action" bindtap="copyShareCard">保存联系人名片</text>
+        <text class="me-share-card-hint">名片包含昵称{{shareUrl ? '和主页链接' : ''}}。</text>
+      </view>
+
+      <button
+        class="me-share-option"
+        open-type="{{shareUrl ? 'share' : ''}}"
+        bindtap="shareToOthers"
+        disabled="{{shareBusy}}"
+      >
+        <image class="me-share-row-ico" src="/assets/icon-ui-share-accent.png" mode="aspectFit" aria-hidden="true" />
+        <text class="me-share-option-label">{{shareBusy ? '正在打开分享…' : '分享到…'}}</text>
+        <image class="me-share-chevron" src="/assets/icon-ui-chevron-muted.png" mode="aspectFit" aria-hidden="true" />
+      </button>
+
+      <button class="me-share-option" bindtap="openSharePage">
+        <image class="me-share-row-ico" src="/assets/icon-ui-link-accent.png" mode="aspectFit" aria-hidden="true" />
+        <text class="me-share-option-label">打开主页</text>
+        <image class="me-share-arrow" src="/assets/icon-ui-arrow-right-accent.png" mode="aspectFit" aria-hidden="true" />
+      </button>
+    </view>
+  </view>
+
+  <canvas canvas-id="meShareQr" class="me-qr-canvas" style="width:{{280}}px;height:{{280}}px;"></canvas>
+</view>

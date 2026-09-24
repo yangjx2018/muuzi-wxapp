@@ -1,0 +1,125 @@
+<app-banner section="发布" show-back fallback-url="/pages/me/index" fallback-tab="{{true}}" />
+<view class="mp">
+  
+
+
+  <view wx:if="{{loading}}" class="mp-state">正在连接平台…</view>
+  <block wx:else>
+    <view wx:if="{{error}}" class="mp-error" role="alert">{{error}}</view>
+    <view wx:if="{{owner}}" class="mp-lead">以所选主体发布，关联的图片或作品将公开展示。</view>
+    <view class="mp-lead">{{kindHint}}</view>
+
+    <view class="mp-card">
+      <view class="cp-kinds">
+        <view
+          wx:for="{{kinds}}"
+          wx:key="id"
+          class="cp-kind {{kind === item.id ? 'cp-kind-on' : ''}}"
+          data-id="{{item.id}}"
+          bindtap="onKind"
+        >{{item.label}}</view>
+      </view>
+
+      <view class="mp-field">
+        <text class="mp-label">标题</text>
+        <input class="mp-input" maxlength="120" value="{{title}}" placeholder="一句话说明" bindinput="onTitle" />
+      </view>
+      <view class="mp-field">
+        <text class="mp-label">正文</text>
+        <textarea class="mp-textarea" maxlength="4000" value="{{body}}" placeholder="补充细节" bindinput="onBody" />
+      </view>
+      <view class="mp-field">
+        <text class="mp-label">标签（逗号分隔，便于匹配）</text>
+        <input class="mp-input" maxlength="200" value="{{tags}}" placeholder="设计, 前端…" bindinput="onTags" />
+      </view>
+      <view class="mp-field">
+        <text class="mp-label">可见范围</text>
+        <picker mode="selector" range="{{visibilityLabels}}" value="{{visibilityIndex}}" bindchange="onVisibility">
+          <view class="mp-input">{{visibilityLabels[visibilityIndex]}} ›</view>
+        </picker>
+      </view>
+
+      <block wx:if="{{kind === 'need' || kind === 'offer'}}">
+        <view class="mp-field">
+          <text class="mp-label">{{kind === 'need' ? '预算（元，可空）' : '报价（元，可空）'}}</text>
+          <input class="mp-input" type="digit" value="{{budget}}" bindinput="onBudget" />
+        </view>
+      </block>
+      <view wx:if="{{kind === 'need'}}" class="mp-field">
+        <text class="mp-label">截止日期（可空，YYYY-MM-DD）</text>
+        <input class="mp-input" value="{{deadline}}" placeholder="2026-12-31" bindinput="onDeadline" />
+      </view>
+      <view wx:if="{{kind === 'need' || kind === 'offer'}}" class="mp-field">
+        <text class="mp-label">地点（可空）</text>
+        <input class="mp-input" maxlength="80" value="{{location}}" bindinput="onLocation" />
+      </view>
+      <view wx:if="{{kind === 'offer' || kind === 'intro'}}" class="mp-field">
+        <text class="mp-label">相关链接（可空）</text>
+        <input class="mp-input" value="{{link}}" placeholder="https://" bindinput="onLink" />
+      </view>
+    </view>
+
+    <view class="mp-card">
+      <view class="mp-h2">挂载作品</view>
+      <view class="mp-lead">可选；上传图片会先存为私有作品再挂到帖子。</view>
+      <button class="mp-btn mp-btn-ghost" bindtap="toggleWorks" disabled="{{busy}}">
+        {{showWorks ? '收起作品库' : '从作品库选择'}}
+      </button>
+      <button class="mp-btn mp-btn-ghost" bindtap="uploadImage" disabled="{{busy || uploading}}">
+        {{uploading ? '上传中…' : '上传图片'}}
+      </button>
+      <view wx:if="{{pickerError}}" class="mp-error">{{pickerError}}</view>
+      <view wx:for="{{selectedWorks}}" wx:key="id" class="cp-work cp-work-on">
+        <text>{{item.title || item.kind}}</text>
+        <text class="mp-link" data-id="{{item.id}}" bindtap="removeWork">移除</text>
+      </view>
+      <block wx:if="{{showWorks}}">
+        <view wx:for="{{works}}" wx:key="id" class="cp-work" data-id="{{item.id}}" bindtap="pickWork">
+          <text>{{item.title || item.kind}} · {{item.visibility === 'public' ? '公开' : '私有'}}</text>
+          <text class="mp-link">选用</text>
+        </view>
+        <view wx:if="{{!works.length}}" class="mp-lead">作品库为空</view>
+      </block>
+    </view>
+
+    <view wx:if="{{kind === 'offer'}}" class="mp-card">
+      <view class="mp-h2">商城商品</view>
+      <view class="mp-lead">供给可贴一件中央商城 Agent / 技能；节点未开通时会诚实说明。</view>
+      <block wx:if="{{selectedProduct}}">
+        <view class="cp-work cp-work-on">
+          <text>{{selectedProduct.name}} · {{selectedProduct.kindLabel}}</text>
+          <text class="mp-link" bindtap="clearProduct">移除</text>
+        </view>
+      </block>
+      <button
+        wx:else
+        class="mp-btn mp-btn-ghost"
+        bindtap="toggleMarket"
+        disabled="{{busy}}"
+      >{{showMarket ? '收起商城' : '从商城选择'}}</button>
+      <view wx:if="{{marketError}}" class="mp-error">{{marketError}}</view>
+      <block wx:if="{{showMarket && !selectedProduct}}">
+        <view
+          wx:for="{{marketItems}}"
+          wx:key="product_id"
+          class="cp-work"
+          data-id="{{item.product_id}}"
+          bindtap="pickProduct"
+        >
+          <text>{{item.name}} · {{item.kindLabel}}</text>
+          <text class="mp-link">选用</text>
+        </view>
+        <view wx:if="{{!marketItems.length && !marketError}}" class="mp-lead">暂无可挂商品</view>
+      </block>
+    </view>
+
+    <view wx:if="{{existingPost}}" class="mp-card">
+      <view class="mp-lead">已有进行中的同类供给。可先关闭旧动态再发布。</view>
+      <button class="mp-btn mp-btn-ghost" bindtap="closeExisting" disabled="{{busy}}">关闭旧动态</button>
+    </view>
+
+    <button class="mp-btn mp-btn-primary" bindtap="submit" disabled="{{busy || uploading || !title}}">
+      {{busy ? '正在发布…' : '发布'}}
+    </button>
+  </block>
+</view>

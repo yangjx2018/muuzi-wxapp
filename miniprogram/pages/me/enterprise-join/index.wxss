@@ -1,0 +1,18 @@
+@import "../_page.wxss";
+
+.mp-brand {
+  font-size: 28rpx;
+  margin-bottom: 8rpx;
+}
+
+.mp-brand-accent {
+  color: var(--app-accent);
+}
+
+.mp-steps {
+  margin: 16rpx 0 24rpx;
+}
+
+.mp-step {
+  margin-bottom: 20rpx;
+}

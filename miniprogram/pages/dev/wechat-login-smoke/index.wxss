@@ -1,0 +1,5 @@
+.wrap { padding: 40rpx; }
+.title { font-size: 32rpx; font-weight: 600; margin-bottom: 24rpx; }
+.line { font-size: 24rpx; color: #333; margin-top: 12rpx; word-break: break-all; }
+.ok { margin-top: 32rpx; color: #2a7d51; }
+.fail { margin-top: 32rpx; color: #c0173a; }

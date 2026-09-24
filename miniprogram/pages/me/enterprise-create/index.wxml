@@ -1,0 +1,86 @@
+<app-banner section="开通企业版" show-back fallback-url="/pages/me/spaces/index" />
+<view class="mp">
+  <button class="mp-btn mp-btn-ghost" bindtap="goBack">← 返回我的空间</button>
+
+  <view class="mp-card">
+    <view class="mp-brand">MuuZi <text class="mp-brand-accent">企业空间</text></view>
+    <view class="mp-h2">创建企业账号</view>
+    <view class="mp-lead">让企业主页、团队成员和员工展示在同一个空间协作。</view>
+
+    <view class="mp-field">
+      <text class="mp-label">当前登录节点</text>
+      <view class="mp-input">{{nodeDomain}}</view>
+      <view class="mp-item-meta">节点 {{instanceId}} · 使用当前账号建立组织，个人空间保留。</view>
+    </view>
+
+    <view class="mp-steps">
+      <view class="mp-step">
+        <view><text style="font-weight:600">01 · 建立节点组织</text></view>
+        <view class="mp-lead">{{organization ? orgReadyLabel : '直接在当前 GuDuu OS 节点创建；已有本人组织会继续使用。'}}</view>
+      </view>
+      <view class="mp-step">
+        <view><text style="font-weight:600">02 · 配置企业主页</text></view>
+        <view class="mp-lead">企业名称、独立地址与企业配色，单独订阅。</view>
+      </view>
+      <view class="mp-step">
+        <view><text style="font-weight:600">03 · 邀请员工</text></view>
+        <view class="mp-lead">根据企业套餐席位邀请员工，设置角色及员工主页展示。</view>
+      </view>
+    </view>
+
+    <view wx:if="{{error}}" class="mp-error" role="alert">{{error}}</view>
+
+    <block wx:if="{{!organization}}">
+      <view class="mp-field">
+        <text class="mp-label">企业名称</text>
+        <input
+          class="mp-input"
+          value="{{name}}"
+          maxlength="120"
+          placeholder="填写企业或团队名称"
+          disabled="{{busy}}"
+          bindinput="onNameInput"
+        />
+        <view class="mp-item-meta">此名称用于当前节点的企业组织。</view>
+      </view>
+      <button
+        class="mp-btn mp-btn-primary"
+        bindtap="create"
+        disabled="{{busy}}"
+      >{{busy ? '正在节点建立并核对组织…' : '在当前节点建立企业组织'}}</button>
+    </block>
+
+    <block wx:else>
+      <view class="mp-note" role="status">
+        <text style="font-weight:600">{{linked ? '企业主页已关联节点组织' : '节点组织已就绪，继续创建企业主页'}}</text>
+      </view>
+
+      <block wx:if="{{linked && linkedOrgId}}">
+        <view class="mp-lead">企业空间已开通，默认是企业免费版：可以编辑并发布企业主页；邀请员工需要升级企业 Pro。</view>
+        <button class="mp-btn mp-btn-primary" bindtap="goEditHome">编辑企业主页 →</button>
+        <button class="mp-btn mp-btn-ghost" bindtap="goMembers">邀请员工 →</button>
+      </block>
+
+      <block wx:elif="{{!linked}}">
+        <view class="mp-field">
+          <text class="mp-label">企业主页地址</text>
+          <input
+            class="mp-input"
+            value="{{slug}}"
+            placeholder="your-company"
+            disabled="{{busy}}"
+            bindinput="onSlugInput"
+          />
+          <view class="mp-item-meta">muuzi.co/{{slug || 'your-company'}}</view>
+        </view>
+        <button
+          class="mp-btn mp-btn-primary"
+          bindtap="link"
+          disabled="{{busy}}"
+        >{{busy ? '正在核验并关联…' : '核验组织并创建企业主页'}}</button>
+      </block>
+    </block>
+
+    <view class="mp-lead">建立组织不等于企业认证，认证与会员权益分别开通。</view>
+  </view>
+</view>

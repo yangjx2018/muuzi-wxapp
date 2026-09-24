@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "代理权限与人设",
+  "usingComponents": {
+    "app-banner": "/components/app-banner/index"
+  },
+  "navigationStyle": "custom"
+}

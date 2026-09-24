@@ -1,0 +1,38 @@
+<app-banner section="账号安全" show-back fallback-url="/pages/me/index" fallback-tab="{{true}}" />
+<view class="mp">
+  
+  <view class="mp-lead">{{nodeLabel}} · {{userId}}</view>
+  <view class="mp-lead">输入当前密码验证身份。修改成功后其他设备将退出，本机也需使用新密码重新登录。</view>
+
+  <view wx:if="{{available === null && !error}}" class="mp-state">正在检查节点是否支持密码修改…</view>
+  <view wx:if="{{available === false}}" class="mp-note">该节点未开放密码修改，请联系节点管理员。</view>
+
+  <view class="mp-card">
+    <view class="mp-field">
+      <text class="mp-label">当前密码</text>
+      <input class="mp-input" password value="{{oldPassword}}" disabled="{{busy || available !== true}}" bindinput="onOld" />
+    </view>
+    <view class="mp-field">
+      <text class="mp-label">新密码</text>
+      <input class="mp-input" password value="{{password}}" disabled="{{busy || available !== true}}" bindinput="onPassword" />
+    </view>
+    <view class="mp-field">
+      <text class="mp-label">确认新密码</text>
+      <input class="mp-input" password value="{{confirmation}}" disabled="{{busy || available !== true}}" bindinput="onConfirm" />
+    </view>
+  </view>
+
+  <view wx:if="{{error}}" class="mp-error" role="alert">{{error}}</view>
+  <button
+    class="mp-btn mp-btn-primary"
+    bindtap="submit"
+    disabled="{{!ready}}"
+  >{{busy ? '正在修改…' : '修改密码并重新登录'}}</button>
+  <button
+    wx:if="{{available === null && error}}"
+    class="mp-btn mp-btn-secondary"
+    bindtap="probe"
+  >重新检测</button>
+  <button class="mp-btn mp-btn-ghost" bindtap="goRecover">忘记当前密码？通过绑定邮箱找回</button>
+  <view class="mp-lead">找回密码需要账号在当前节点绑定过邮箱；未绑定时请联系节点管理员。</view>
+</view>

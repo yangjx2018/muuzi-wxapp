@@ -1,0 +1,6 @@
+<app-banner section="主 AI" show-back fallback-url="/pages/me/index" fallback-tab="{{true}}" />
+<view class="me-stub">
+  <view class="me-stub-kicker">{{slice}}</view>
+  <view class="me-stub-title">{{title}}</view>
+  <view class="me-stub-lead">{{lead}}</view>
+</view>

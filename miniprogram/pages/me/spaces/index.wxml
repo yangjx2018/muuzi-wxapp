@@ -1,0 +1,47 @@
+<app-banner section="切换空间" show-back fallback-url="/pages/me/index" fallback-tab="{{true}}" />
+<view class="mp">
+  
+  <view class="mp-lead">个人创作和企业协作分别管理。切换空间无需重新登录。</view>
+
+  <view wx:if="{{phase === 'loading'}}" class="mp-state">正在读取你的空间…</view>
+  <view wx:elif="{{phase === 'error'}}" class="mp-state">
+    <view class="mp-error">{{error}}</view>
+    <button class="mp-btn mp-btn-secondary" bindtap="load">重试</button>
+  </view>
+  <block wx:else>
+    <view class="mp-card">
+      <view class="mp-field">
+        <text class="mp-label">当前空间</text>
+        <picker mode="selector" range="{{orgNames}}" value="{{selectedIndex}}" bindchange="onPick">
+          <view class="mp-input">{{orgNames[selectedIndex]}} ›</view>
+        </picker>
+      </view>
+      <view class="mp-h2">{{title}}</view>
+      <view class="mp-note">{{subtitle}}</view>
+      <block wx:if="{{!isOrg}}">
+        <button class="mp-btn mp-btn-ghost" bindtap="goEditHome">编辑个人主页</button>
+        <button class="mp-btn mp-btn-ghost" bindtap="goMembership">个人订阅</button>
+        <button class="mp-btn mp-btn-ghost" bindtap="goAddress">个人主页地址</button>
+      </block>
+      <block wx:if="{{isOrg && canManage}}">
+        <button class="mp-btn mp-btn-ghost" bindtap="goOrgEditHome">编辑企业主页</button>
+        <button class="mp-btn mp-btn-ghost" bindtap="goOrgMembers">成员与邀请{{orgMembersHint}}</button>
+      </block>
+      <block wx:if="{{canManage}}">
+        <button class="mp-btn mp-btn-ghost" bindtap="goCompose">发布动态</button>
+        <button class="mp-btn mp-btn-ghost" bindtap="goContacts">留言收件箱</button>
+        <button class="mp-btn mp-btn-ghost" bindtap="goSharing">邀请与分享</button>
+        <button class="mp-btn mp-btn-ghost" bindtap="goAgentAccess">代理权限与人设</button>
+        <button class="mp-btn mp-btn-ghost" bindtap="copyStudio">{{isOrg ? '复制企业 Studio' : '复制 Studio'}}</button>
+      </block>
+      <view wx:if="{{isOrg && !canManage}}" class="mp-lead">你以成员身份加入。企业内容和套餐由所有者或管理员管理。</view>
+    </view>
+    <view class="mp-card">
+      <view class="mp-h2">需要企业空间？</view>
+      <view class="mp-lead">开通后默认是企业免费版：企业主页和个人主页一样编辑、发布，由所有者和管理员管理。邀请员工、按账号添加员工需要企业 Pro（目前在网页版 Studio 购买）。</view>
+      <button class="mp-btn mp-btn-ghost" bindtap="goEnterpriseCreate">开通企业版</button>
+      <button class="mp-btn mp-btn-ghost" bindtap="goEnterpriseInvitations">查看企业邀请</button>
+      <button class="mp-btn mp-btn-ghost" bindtap="copyStudio">复制 Studio 链接</button>
+    </view>
+  </block>
+</view>

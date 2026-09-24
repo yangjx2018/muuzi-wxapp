@@ -1,0 +1,170 @@
+<app-banner
+  section="成员与邀请"
+  show-back
+  auto-back="{{false}}"
+  bind:back="goBack"
+  fallback-url="{{spacesUrl}}"
+  fallback-tab="{{false}}"
+/>
+<view class="mp">
+  <button class="mp-btn mp-btn-ghost" bindtap="goSpaces">‹ 返回企业空间</button>
+
+  <view wx:if="{{phase === 'loading'}}" class="mp-state">正在读取企业成员…</view>
+
+  <view wx:elif="{{phase === 'error'}}" class="mp-state">
+    <view class="mp-error">{{error}}</view>
+    <button class="mp-btn mp-btn-secondary" bindtap="load">重试</button>
+  </view>
+
+  <view wx:elif="{{phase === 'denied'}}" class="mp-card">
+    <view class="mp-h2">无法管理成员</view>
+    <view class="mp-lead">{{deniedHasOrg ? '只有企业所有者和管理员可以邀请或移除成员。' : '你已不在这个企业，或企业已停用。'}}</view>
+  </view>
+
+  <block wx:elif="{{phase === 'ready'}}">
+    <view class="mp-card">
+      <view class="mp-h2">{{orgName}}</view>
+      <view class="mp-note">{{planName}} · {{seatsLabel}}</view>
+      <view wx:if="{{upgradeHint}}" class="mp-lead">{{upgradeHint}}</view>
+      <button
+        wx:if="{{upgradeHint}}"
+        class="mp-btn mp-btn-ghost"
+        bindtap="copyStudio"
+      >{{hasOrgMembersFeature ? '复制 Studio 增购席位' : '复制 Studio 升级企业 Pro'}}</button>
+    </view>
+
+    <view wx:if="{{nodeManaged}}" class="mp-card">
+      <view class="mp-h2">员工邀请链接</view>
+      <view class="mp-lead">生成后发给员工，对方在 MuuZi 里打开并确认加入即可。链接一次性使用、7 天有效，生成时先占住一个席位，没用掉可以撤销。</view>
+      <button
+        wx:if="{{canInvite}}"
+        class="mp-btn mp-btn-primary"
+        bindtap="createSeatLink"
+        disabled="{{busy}}"
+      >生成邀请链接</button>
+      <view wx:for="{{seatLinks}}" wx:key="id" class="mp-list-item">
+        <view class="mp-link-text">{{item.url}}</view>
+        <view class="mp-item-meta">{{item.expiresLabel}}</view>
+        <view class="mp-actions">
+          <button
+            class="mp-btn mp-btn-ghost"
+            data-url="{{item.url}}"
+            bindtap="copySeatLink"
+            disabled="{{busy}}"
+          >复制</button>
+          <button
+            class="mp-btn mp-btn-ghost"
+            data-id="{{item.id}}"
+            bindtap="revokeSeatLink"
+            disabled="{{busy}}"
+          >撤销</button>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{canInvite && nodeManaged}}" class="mp-card">
+      <view class="mp-h2">按账号邀请</view>
+      <view class="mp-field">
+        <text class="mp-label">搜索已公开主页的人（名字或主页地址）</text>
+        <input
+          class="mp-input"
+          value="{{query}}"
+          maxlength="40"
+          placeholder="例如：林设计"
+          bindinput="onQueryInput"
+        />
+      </view>
+      <view wx:if="{{searching}}" class="mp-note" role="status">正在搜索…</view>
+      <block wx:if="{{candidates && !searching}}">
+        <view wx:if="{{!candidates.length}}" class="mp-lead">没有找到。对方还没公开主页时，可以在下面直接填账号。</view>
+        <view wx:for="{{candidates}}" wx:key="matrix_user_id" class="mp-list-item">
+          <view class="mp-item-body"><text style="font-weight:600">{{item.display_name}}</text></view>
+          <view class="mp-item-meta">{{item.slug}}</view>
+          <button
+            wx:if="{{item.canInvite}}"
+            class="mp-btn mp-btn-ghost"
+            data-id="{{item.matrix_user_id}}"
+            bindtap="inviteFromSearch"
+            disabled="{{busy}}"
+          >邀请</button>
+          <text wx:else class="mp-badge">{{item.statusLabel}}</text>
+        </view>
+      </block>
+      <view class="mp-field">
+        <text class="mp-label">或直接填对方账号</text>
+        <input
+          class="mp-input"
+          value="{{account}}"
+          placeholder="name 或 @name:节点域名"
+          bindinput="onAccountInput"
+        />
+      </view>
+      <view wx:if="{{targetPreview}}" class="mp-note">{{targetPreview}}</view>
+      <button
+        class="mp-btn mp-btn-primary"
+        bindtap="inviteFromAccount"
+        disabled="{{busy || !targetValid}}"
+      >发出邀请</button>
+      <view class="mp-lead">员工只能来自同一节点。对方在 MuuZi 的「企业邀请」里接受后才会加入并占用席位。</view>
+    </view>
+
+    <view wx:if="{{canInvite && !nodeManaged}}" class="mp-card">
+      <view class="mp-h2">邀请员工</view>
+      <view class="mp-lead">生成一次性邀请码（7 天有效），发给员工在 Studio 的企业页面输入加入。</view>
+      <button
+        class="mp-btn mp-btn-primary"
+        bindtap="createInviteCode"
+        disabled="{{busy}}"
+      >生成邀请码</button>
+    </view>
+
+    <view wx:if="{{notice}}" class="mp-note" role="status">{{notice}}</view>
+
+    <view wx:if="{{invites.length}}" class="mp-card">
+      <view class="mp-h2">待接受的邀请</view>
+      <view wx:for="{{invites}}" wx:key="code" class="mp-list-item">
+        <view class="mp-item-body"><text style="font-weight:600">{{item.label}}</text></view>
+        <view class="mp-item-meta">{{item.expiresLabel}}</view>
+        <button
+          class="mp-btn mp-btn-ghost"
+          data-code="{{item.code}}"
+          bindtap="voidInvite"
+          disabled="{{busy}}"
+        >作废</button>
+      </view>
+    </view>
+
+    <view class="mp-card">
+      <view class="mp-h2">成员</view>
+      <view wx:for="{{members}}" wx:key="account_id" class="mp-list-item">
+        <view class="mp-item-body">
+          <text style="font-weight:600">{{item.display_name}} · {{item.roleLabel}}</text>
+        </view>
+        <view wx:if="{{item.meta}}" class="mp-item-meta">{{item.meta}}</view>
+        <button
+          wx:if="{{item.canRelease}}"
+          class="mp-btn mp-btn-ghost"
+          data-seat="{{item.seat_id}}"
+          data-name="{{item.display_name}}"
+          bindtap="releaseSeat"
+          disabled="{{busy}}"
+        >释放席位</button>
+        <button
+          wx:elif="{{item.canInviteSeat && canInvite}}"
+          class="mp-btn mp-btn-ghost"
+          data-id="{{item.matrix_user_id}}"
+          bindtap="inviteMemberSeat"
+          disabled="{{busy}}"
+        >邀请占席位</button>
+        <button
+          wx:elif="{{item.canRemove}}"
+          class="mp-btn mp-btn-ghost"
+          data-id="{{item.account_id}}"
+          data-name="{{item.display_name}}"
+          bindtap="removeMember"
+          disabled="{{busy}}"
+        >移除</button>
+      </view>
+    </view>
+  </block>
+</view>

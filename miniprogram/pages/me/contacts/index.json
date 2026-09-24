@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "留言收件箱",
+  "usingComponents": {
+    "app-banner": "/components/app-banner/index"
+  },
+  "navigationStyle": "custom"
+}

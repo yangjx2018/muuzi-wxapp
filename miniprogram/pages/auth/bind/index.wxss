@@ -1,0 +1,28 @@
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 36rpx;
+  font-size: 22rpx;
+  letter-spacing: 0.04em;
+}
+.progress-done { color: #2a7d51; }
+.progress-sep { color: var(--app-faint); }
+.progress-now { color: var(--app-accent); font-weight: 600; }
+
+.bind-card {
+  background: var(--app-card);
+  border: 1rpx solid var(--app-line);
+  border-radius: 24rpx;
+  padding: 24rpx 28rpx;
+  margin-bottom: 36rpx;
+}
+.bind-card-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 24rpx;
+  padding: 8rpx 0;
+  font-size: 26rpx;
+}
+.bind-card-k { color: var(--app-muted); }
+.bind-card-v { color: var(--app-ink); font-weight: 500; }

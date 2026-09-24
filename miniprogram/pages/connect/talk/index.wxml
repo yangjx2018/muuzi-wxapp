@@ -1,0 +1,275 @@
+<app-banner
+  section="面对面交流"
+  show-back
+  back-label="返回连接"
+  fallback-url="/pages/connect/index"
+  fallback-tab="{{true}}"
+/>
+<view class="fc-talk-page">
+  <view class="fc fc-talk">
+    <view class="fc-topic-bar">
+      <view>
+        <text class="fc-kicker">FACE TO FACE</text>
+        <view class="fc-talk-title">面对面交流</view>
+      </view>
+      <text class="fc-save">{{saveBadge}}</text>
+    </view>
+
+    <view class="fc-modes" role="group" aria-label="交流方式">
+      <button
+        class="fc-mode {{!scan ? 'selected' : ''}}"
+        aria-pressed="{{!scan}}"
+        disabled="{{busy || translating || scanPrepared}}"
+        bindtap="setModeFace"
+      >面对面</button>
+      <button
+        class="fc-mode {{scan ? 'selected' : ''}}"
+        aria-pressed="{{scan}}"
+        disabled="{{busy || translating}}"
+        bindtap="setModeScan"
+      >扫码交流</button>
+    </view>
+
+    <block wx:if="{{scan}}">
+      <view wx:if="{{scanPrepared}}" class="fc-availability">
+        本次使用扫码交流。要开始单手机交流，请返回连接创建新话题。
+      </view>
+      <field-host-invite
+        room-id="{{savedRoom}}"
+        allow-create="{{true}}"
+        bind:prepared="onScanPrepared"
+      />
+    </block>
+
+    <block wx:elif="{{!topicAccess && !recoveryError}}">
+      <view class="fc-scan-card">
+        <view class="fc-availability" role="status">正在创建本次话题…建好后立刻可以开始交流。</view>
+        <button class="fc-link-btn" bindtap="setModeScan">不等了，先用扫码交流</button>
+      </view>
+    </block>
+
+    <block wx:else>
+      <button class="fc-card-refresh" bindtap="toggleFace">
+        {{faceFlipped ? '对方区域转向我' : '对方区域转向客户'}}
+      </button>
+      <view class="fc-availability">每轮文字确认后保存到当前节点的私有现场话题；未确认的输入离开后清除。</view>
+
+      <block wx:if="{{speechLoaded && speechAvailable}}">
+        <button
+          wx:if="{{consent}}"
+          class="fc-link-btn"
+          disabled="{{busy || translating}}"
+          bindtap="disableConsent"
+        >关闭语音</button>
+        <view wx:else class="fc-voice-gate">
+          <view class="fc-voice-gate-p">语音识别、跨语种翻译和朗读由 Google Cloud 处理；录音处理后清理，原始音频不保存。开启前请先告知对方。</view>
+          <button class="fc-primary" disabled="{{busy || translating}}" bindtap="enableConsent">我已告知对方，开启语音</button>
+        </view>
+      </block>
+
+      <view class="fc-availability fc-talk-status" role="status">{{statusText}}</view>
+      <view wx:if="{{sameLanguage}}" class="fc-availability">双方使用同一语言：文字无需翻译，可直接确认并保存；使用录音识别或朗读仍由 Google 处理。</view>
+      <view wx:if="{{recoveryError}}" class="fc-availability fc-alert" role="alert">{{recoveryError}}</view>
+
+      <!-- 对方 -->
+      <view class="fc-speaker fc-guest {{faceFlipped ? 'fc-flipped' : ''}}">
+        <view class="fc-speaker-head">
+          <text>对方</text>
+          <picker
+            mode="selector"
+            range="{{langOptions}}"
+            range-key="label"
+            value="{{guestIndex}}"
+            disabled="{{busy || translating || recoveryError}}"
+            bindchange="onGuestLang"
+          >
+            <view class="fc-lang-pick">
+              <text>{{guestLabel}}</text>
+              <view class="fc-lang-caret" aria-hidden="true">
+                <view class="fc-lang-caret-up"></view>
+                <view class="fc-lang-caret-down"></view>
+              </view>
+            </view>
+          </picker>
+        </view>
+        <view class="fc-utterance {{utteranceHeld ? 'fc-held' : ''}}">
+          <block wx:if="{{shownTurn && shownTurn.recognized && shownTurn.speaker === 'guest'}}">
+            <text class="fc-utt-label">原文 · 可输入或更正</text>
+            <textarea
+              class="fc-utt-input"
+              value="{{shownTurn.original}}"
+              maxlength="1500"
+              disabled="{{busy || translating || recoveryError || phase === 'starting' || phase === 'recording' || phase === 'recognizing'}}"
+              bindinput="onOriginalInput"
+            />
+            <button
+              class="fc-link-btn"
+              disabled="{{busy || translating || recoveryError || !shownTurn.original || phase === 'starting' || phase === 'recording' || phase === 'recognizing'}}"
+              bindtap="confirmOrTranslate"
+            >{{shownTurn.source === shownTurn.target ? '确认并保存文字' : '翻译并保存'}}</button>
+          </block>
+          <block wx:elif="{{shownTurn && shownTurn.recognized && shownTurn.speaker === 'mine'}}">
+            <text class="fc-utt-label">{{shownTurn.source === shownTurn.target ? '同语种原文' : '自动翻译'}}</text>
+            <view class="fc-utt-text">{{shownTurn.translated || (phase === 'translating' ? '翻译中…' : '等待翻译')}}</view>
+            <button
+              wx:if="{{canPlayVoice && !utteranceHeld}}"
+              class="fc-link-btn"
+              disabled="{{busy || translating}}"
+              bindtap="playSynthesis"
+            >准备朗读</button>
+          </block>
+          <block wx:else>
+            <text class="fc-utt-label">{{sameLanguage ? '交流文字' : '给对方看的译文'}}</text>
+            <view class="fc-utt-text">{{phase === 'recognizing' && turn && turn.speaker === 'guest' ? '识别中…' : '等待发言'}}</view>
+          </block>
+        </view>
+        <view
+          class="fc-speak fc-speak-guest {{holdingSpeaker === 'guest' ? 'fc-speak-active' : ''}} {{speakGuestDisabled ? 'fc-speak-disabled' : ''}}"
+          hover-class="none"
+          data-speaker="guest"
+          catchtouchstart="onHoldStart"
+          catchtouchend="onHoldEnd"
+          catchtouchcancel="onHoldEnd"
+        >{{speakGuestLabel}}</view>
+        <view
+          class="fc-voice-meter {{showVoiceMeter && turn && turn.speaker === 'guest' ? 'fc-voice-meter-on' : ''}}"
+          aria-hidden="true"
+        >
+          <view class="fc-voice-meter-fill" style="width: {{voiceMeter * 100}}%;"></view>
+        </view>
+        <view class="fc-voice-elapsed">{{showVoiceMeter && turn && turn.speaker === 'guest' ? voiceElapsed : ''}}</view>
+        <button
+          class="fc-card-refresh"
+          disabled="{{busy || translating || recoveryError || phase === 'starting' || phase === 'recording'}}"
+          data-speaker="guest"
+          bindtap="enterText"
+        >输入文字</button>
+      </view>
+
+      <!-- 我 -->
+      <view class="fc-speaker">
+        <view class="fc-speaker-head">
+          <text>我</text>
+          <picker
+            mode="selector"
+            range="{{langOptions}}"
+            range-key="label"
+            value="{{mineIndex}}"
+            disabled="{{busy || translating || recoveryError || phase === 'starting' || phase === 'recording'}}"
+            bindchange="onMineLang"
+          >
+            <view class="fc-lang-pick">
+              <text>{{mineLabel}}</text>
+              <view class="fc-lang-caret" aria-hidden="true">
+                <view class="fc-lang-caret-up"></view>
+                <view class="fc-lang-caret-down"></view>
+              </view>
+            </view>
+          </picker>
+        </view>
+        <view class="fc-utterance {{utteranceHeld ? 'fc-held' : ''}}">
+          <block wx:if="{{shownTurn && shownTurn.recognized && shownTurn.speaker === 'mine'}}">
+            <text class="fc-utt-label">原文 · 可输入或更正</text>
+            <textarea
+              class="fc-utt-input"
+              value="{{shownTurn.original}}"
+              maxlength="1500"
+              disabled="{{busy || translating || recoveryError || phase === 'starting' || phase === 'recording' || phase === 'recognizing'}}"
+              bindinput="onOriginalInput"
+            />
+            <button
+              class="fc-link-btn"
+              disabled="{{busy || translating || recoveryError || !shownTurn.original || phase === 'starting' || phase === 'recording' || phase === 'recognizing'}}"
+              bindtap="confirmOrTranslate"
+            >{{shownTurn.source === shownTurn.target ? '确认并保存文字' : '翻译并保存'}}</button>
+          </block>
+          <block wx:elif="{{shownTurn && shownTurn.recognized && shownTurn.speaker === 'guest'}}">
+            <text class="fc-utt-label">{{shownTurn.source === shownTurn.target ? '同语种原文' : '自动翻译'}}</text>
+            <view class="fc-utt-text">{{shownTurn.translated || (phase === 'translating' ? '翻译中…' : '等待翻译')}}</view>
+            <button
+              wx:if="{{canPlayVoice && !utteranceHeld}}"
+              class="fc-link-btn"
+              disabled="{{busy || translating}}"
+              bindtap="playSynthesis"
+            >准备朗读</button>
+          </block>
+          <block wx:else>
+            <text class="fc-utt-label">{{sameLanguage ? '交流文字' : '给我看的译文'}}</text>
+            <view class="fc-utt-text">{{phase === 'recognizing' && turn && turn.speaker === 'mine' ? '识别中…' : '等待发言'}}</view>
+          </block>
+        </view>
+        <view
+          class="fc-speak {{holdingSpeaker === 'mine' ? 'fc-speak-active' : ''}} {{speakMineDisabled ? 'fc-speak-disabled' : ''}}"
+          hover-class="none"
+          data-speaker="mine"
+          catchtouchstart="onHoldStart"
+          catchtouchend="onHoldEnd"
+          catchtouchcancel="onHoldEnd"
+        >{{speakMineLabel}}</view>
+        <view
+          class="fc-voice-meter {{showVoiceMeter && turn && turn.speaker === 'mine' ? 'fc-voice-meter-on' : ''}}"
+          aria-hidden="true"
+        >
+          <view class="fc-voice-meter-fill" style="width: {{voiceMeter * 100}}%;"></view>
+        </view>
+        <view class="fc-voice-elapsed">{{showVoiceMeter && turn && turn.speaker === 'mine' ? voiceElapsed : ''}}</view>
+        <button
+          class="fc-card-refresh"
+          disabled="{{busy || translating || recoveryError || phase === 'starting' || phase === 'recording'}}"
+          data-speaker="mine"
+          bindtap="enterText"
+        >输入文字</button>
+      </view>
+    </block>
+
+    <view class="fc-talk-footer">
+      <button
+        wx:if="{{savedRoom}}"
+        class="fc-link-btn"
+        bindtap="openFieldRoom"
+      >查看现场频道</button>
+      <!-- 对齐 App FieldTalk：voiceUrl + <audio controls>，可暂停/继续 -->
+      <audio
+        wx:if="{{voiceSrc}}"
+        class="fc-audio"
+        src="{{voiceSrc}}"
+        controls
+        autoplay
+        name="播放译文"
+        binderror="onVoiceError"
+        bindended="onVoiceEnded"
+      ></audio>
+      <button
+        class="fc-card-refresh"
+        disabled="{{busy || translating}}"
+        bindtap="openEndDialog"
+      >结束交流</button>
+    </view>
+
+    <button
+      wx:if="{{busy || translating}}"
+      class="fc-card-refresh"
+      bindtap="cancelBusyOp"
+    >取消本次操作</button>
+    <button
+      wx:if="{{!topicAccess && matrixReady && !recoveryError}}"
+      class="fc-card-refresh"
+      bindtap="retryTopicPrep"
+    >重试准备话题</button>
+
+    <view wx:if="{{note}}" class="fc-availability" role="alert">{{note}}</view>
+
+    <!-- 结束对话框 -->
+    <view wx:if="{{ending}}" class="fc-end-mask" catchtouchmove="noop">
+      <view class="fc-end-dialog" role="dialog" aria-labelledby="field-end-title">
+        <view class="fc-end-title" id="field-end-title">结束这次现场交流？</view>
+        <view class="fc-hero-p">已保存的交流会留在现场话题中，之后仍可查看。</view>
+        <view wx:if="{{hasDraft}}" class="fc-hero-p fc-alert" role="alert">当前还有未确认的文字，离开后不会保存。需要保留请先返回确认。</view>
+        <view class="fc-hero-p">你可以选择自己的个人或企业主页，让对方扫码查看。不会自动加好友或分享聊天记录。</view>
+        <button class="fc-primary" bindtap="endToCard">结束并选择主页</button>
+        <button class="fc-card-refresh" bindtap="endToConnect">结束并返回连接</button>
+        <button class="fc-card-refresh" bindtap="continueTalk">继续交流</button>
+      </view>
+    </view>
+  </view>
+</view>

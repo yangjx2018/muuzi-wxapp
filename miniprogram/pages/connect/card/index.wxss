@@ -1,0 +1,120 @@
+@import "../index.wxss";
+
+.fc-namecard {
+  padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
+}
+
+.fc-card-top {
+  padding-bottom: 24rpx;
+}
+
+.fc-card-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+  font-size: 26rpx;
+}
+
+.fc-card-selector-label {
+  color: var(--app-muted);
+}
+
+.fc-card-selector-value {
+  min-height: 88rpx;
+  padding: 20rpx 24rpx;
+  border: 1rpx solid var(--app-line);
+  border-radius: 24rpx;
+  background: var(--app-card);
+  color: var(--app-ink);
+  box-sizing: border-box;
+  line-height: 1.4;
+}
+
+.fc-card-refresh {
+  margin: 8rpx 0 16rpx;
+  padding: 20rpx 0;
+  background: transparent;
+  color: var(--app-accent);
+  font-size: 26rpx;
+  border: none;
+  text-align: left;
+}
+
+.fc-card-refresh::after {
+  border: none;
+}
+
+.fc-card-refresh[disabled] {
+  opacity: 0.5;
+}
+
+.fc-alert {
+  color: #b42318;
+}
+
+.fc-card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.fc-card-portrait {
+  width: 144rpx;
+  height: 144rpx;
+  border-radius: 999rpx;
+  background: var(--app-bg);
+  margin-bottom: 20rpx;
+}
+
+.fc-card-body .fc-tag {
+  margin-bottom: 16rpx;
+}
+
+.fc-card-name {
+  font-size: 44rpx;
+  font-weight: 550;
+  letter-spacing: -0.6px;
+  color: var(--app-ink);
+  margin: 8rpx 0 12rpx;
+  word-break: break-word;
+}
+
+.fc-card-qr {
+  width: 560rpx;
+  height: 560rpx;
+  margin: 24rpx 0 12rpx;
+  border-radius: 24rpx;
+  background: #ffffff;
+}
+
+.fc-card-address {
+  display: block;
+  width: 100%;
+  margin: 16rpx 0 28rpx;
+  font-size: 22rpx;
+  color: var(--app-muted);
+  word-break: break-all;
+  user-select: text;
+}
+
+.fc-card-links {
+  display: flex;
+  justify-content: space-between;
+  gap: 32rpx;
+  margin-top: 24rpx;
+  font-size: 26rpx;
+}
+
+.fc-card-link {
+  color: var(--app-accent);
+}
+
+.fc-qr-canvas {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 280px;
+  height: 280px;
+}

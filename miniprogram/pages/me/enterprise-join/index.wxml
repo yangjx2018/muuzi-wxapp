@@ -1,0 +1,57 @@
+<app-banner section="企业邀请" show-back fallback-url="/pages/me/index" fallback-tab="{{true}}" />
+<view class="mp">
+  <button class="mp-btn mp-btn-ghost" bindtap="goBack">← 返回我的账号</button>
+
+  <view class="mp-card">
+    <view class="mp-brand">MuuZi <text class="mp-brand-accent">企业邀请</text></view>
+
+    <view wx:if="{{phase === 'loading'}}" class="mp-lead" role="status">正在核对邀请链接…</view>
+
+    <block wx:elif="{{phase === 'error'}}">
+      <view class="mp-h2">链接不可用</view>
+      <view class="mp-error" role="alert">{{error}}</view>
+      <view class="mp-lead">链接可能已被使用、撤销或过期，请向企业管理者要一条新的。</view>
+    </block>
+
+    <block wx:elif="{{phase === 'ready'}}">
+      <view class="mp-h2">加入 {{enterpriseName}}</view>
+      <view class="mp-lead">确认后你会成为这家企业的员工，占用一个企业席位。链接一次性使用。</view>
+
+      <view class="mp-field">
+        <text class="mp-label">当前账号</text>
+        <view class="mp-input">{{matrixUserId}}</view>
+        <view class="mp-item-meta">节点 {{nodeDomain}} · 只有同一节点的账号可以加入</view>
+      </view>
+
+      <view class="mp-steps">
+        <view class="mp-step">
+          <view><text style="font-weight:600">01 · 加入企业</text></view>
+          <view class="mp-lead">企业成员关系记在所在的 GuDuu OS 节点上，由你本人确认。</view>
+        </view>
+        <view class="mp-step">
+          <view><text style="font-weight:600">02 · 是否展示</text></view>
+          <view class="mp-lead">默认不在企业主页展示你的主页；需要展示时，在「企业邀请」里自行开启。</view>
+        </view>
+        <view class="mp-step">
+          <view><text style="font-weight:600">03 · 个人空间不变</text></view>
+          <view class="mp-lead">个人主页、订阅和内容仍属于你自己，企业无法代管。</view>
+        </view>
+      </view>
+
+      <view wx:if="{{error}}" class="mp-error" role="alert">{{error}}</view>
+      <button
+        class="mp-btn mp-btn-primary"
+        bindtap="join"
+        disabled="{{busy}}"
+      >{{busy ? '正在加入…' : '确认加入企业'}}</button>
+      <view wx:if="{{expiresLabel}}" class="mp-lead">有效期至 {{expiresLabel}}。</view>
+    </block>
+
+    <block wx:elif="{{phase === 'joined'}}">
+      <view class="mp-h2">已加入 {{enterpriseName}}</view>
+      <view class="mp-lead">你已成为这家企业的员工。是否在企业主页展示你的主页，由你在「企业邀请」里决定。</view>
+      <button class="mp-btn mp-btn-primary" bindtap="goInvitations">企业与邀请 →</button>
+      <button class="mp-btn mp-btn-ghost" bindtap="goSpaces">切换到企业空间 →</button>
+    </block>
+  </view>
+</view>

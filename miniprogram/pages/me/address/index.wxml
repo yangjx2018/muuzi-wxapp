@@ -1,0 +1,38 @@
+<app-banner section="主页地址" show-back fallback-url="/pages/me/index" fallback-tab="{{true}}" />
+<view class="mp">
+  
+  <view class="mp-lead">免费账号自动获得唯一地址。有效付费订阅可自定义，每次成功修改后需间隔 30 天。</view>
+
+  <view wx:if="{{loading}}" class="mp-state">正在读取…</view>
+  <block wx:else>
+    <view class="mp-card">
+      <view class="mp-h2">你的主页地址</view>
+      <view class="mp-note">当前：{{currentLabel}}</view>
+      <view wx:if="{{!canCustomize}}" class="mp-lead">
+        订阅到期后保留原地址，恢复订阅后可继续管理。
+        <text class="mp-link" bindtap="goMembership">查看订阅权益</text>
+      </view>
+      <view wx:if="{{nextChangeAt}}" class="mp-note">下次可修改：{{nextChangeAt}}</view>
+      <view class="mp-field">
+        <text class="mp-label">自定义地址 · 3–30 个字符</text>
+        <input
+          class="mp-input"
+          value="{{slug}}"
+          maxlength="30"
+          disabled="{{busy || !canChange}}"
+          placeholder="your-name"
+          bindinput="onSlug"
+        />
+      </view>
+      <view class="mp-lead">小写字母、数字和连字符；不能全是数字或使用系统保留字。</view>
+    </view>
+    <view wx:if="{{error}}" class="mp-error" role="alert">{{error}}</view>
+    <view wx:if="{{note}}" class="mp-note" role="status">{{note}}</view>
+    <button
+      class="mp-btn mp-btn-primary"
+      bindtap="save"
+      disabled="{{busy || !canChange || !slug || slug === currentLabel.replace('muuzi.co/', '')}}"
+    >{{busy ? '正在保存…' : '保存主页地址'}}</button>
+    <text class="mp-link" bindtap="copyStudio">复制 Studio 链接</text>
+  </block>
+</view>

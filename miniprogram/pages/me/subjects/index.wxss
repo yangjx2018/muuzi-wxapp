@@ -1,0 +1,38 @@
+@import "../_page.wxss";
+
+.mp-product {
+  display: flex;
+  gap: 16rpx;
+  align-items: flex-start;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid var(--app-line);
+}
+
+.mp-product:last-child {
+  border-bottom: none;
+}
+
+.mp-product-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.mp-product-name {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--app-ink);
+}
+
+.mp-muted {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: var(--app-muted);
+}
+
+.mp-row-actions {
+  display: flex;
+  gap: 28rpx;
+  margin-top: 12rpx;
+}

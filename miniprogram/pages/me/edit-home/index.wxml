@@ -1,0 +1,980 @@
+<app-banner
+  section="{{isOrg ? '编辑企业主页' : '编辑主页'}}"
+  show-back
+  auto-back="{{false}}"
+  bind:back="goBack"
+  fallback-url="{{bannerFallbackUrl}}"
+  fallback-tab="{{!isOrg}}"
+/>
+<view class="eh {{linksOnly ? 'eh-links-mode' : ''}}">
+  <!-- linksOnly：系统导航栏提供返回与标题；分享钮对齐胶囊下方 -->
+  <view wx:if="{{linksOnly}}" class="eh-links-share-bar" style="padding-right: {{sharePadRight}}px;">
+    <view class="eh-links-share-btn" bindtap="openLinksShare" aria-label="分享主页">
+      <image
+        class="eh-share-img"
+        src="/assets/icon-ui-share-ink.png"
+        mode="aspectFit"
+        aria-hidden="true"
+      />
+    </view>
+  </view>
+
+  <view wx:if="{{phase === 'connecting'}}" class="eh-state" role="status">正在连接平台…</view>
+
+  <view wx:elif="{{phase === 'error'}}" class="eh-state" role="alert">
+    <text>{{error}}</text>
+    <button class="eh-btn eh-btn-secondary" bindtap="bootstrap">重试</button>
+  </view>
+
+  <view wx:elif="{{phase === 'slug'}}" class="eh-slug">
+    <view class="eh-kicker">先选定主页地址</view>
+    <view class="eh-lead">地址确认后即可编辑并发布。公开页与 App / Studio 共用同一份草稿。</view>
+    <view class="eh-field">
+      <text class="eh-label">主页短码</text>
+      <input
+        class="eh-input"
+        value="{{slugInput}}"
+        maxlength="40"
+        placeholder="your-name"
+        bindinput="onSlugInput"
+      />
+    </view>
+    <view wx:if="{{error}}" class="eh-error" role="alert">{{error}}</view>
+    <button class="eh-btn eh-btn-primary" bindtap="submitSlug" disabled="{{busy}}">
+      {{busy ? '注册中…' : '确认地址'}}
+    </button>
+  </view>
+
+  <!-- ========== linksOnly：主页内容编辑壳（对齐 App） ========== -->
+  <block wx:elif="{{phase === 'editing' && linksOnly}}">
+    <view class="eh-links-identity">
+      <view class="eh-links-bio" bindtap="toggleLinksProfile">
+        <text class="eh-links-name">{{draft.display_name || slug || '我的主页'}}</text>
+        <text class="eh-links-sub">{{draft.headline || draft.bio || '添加简介'}}</text>
+      </view>
+      <view class="eh-links-avatar" bindtap="toggleLinksProfile" aria-label="编辑个人资料">
+        <image
+          wx:if="{{draft.portrait_url}}"
+          class="eh-links-avatar-img"
+          src="{{draft.portrait_url}}"
+          mode="aspectFill"
+        />
+        <view wx:else class="eh-links-avatar-img eh-portrait-fallback">{{portraitLetter}}</view>
+      </view>
+      <view class="eh-social-row" aria-label="社交链接">
+        <view
+          wx:for="{{socialShortcuts}}"
+          wx:key="kind"
+          class="eh-social-chip {{item.configured ? 'eh-social-on' : ''}} eh-social-{{item.iconKind}}"
+          data-kind="{{item.kind}}"
+          bindtap="editSocialShortcut"
+        >
+          <view class="eh-social-icon-wrap">
+            <image
+              class="eh-social-icon"
+              src="{{item.iconSrc}}"
+              mode="aspectFit"
+              aria-hidden="true"
+            />
+          </view>
+          <text wx:if="{{!item.configured}}" class="eh-social-plus">+</text>
+        </view>
+        <view class="eh-social-chip eh-social-add" bindtap="addSocialShortcut" aria-label="添加社交链接">
+          <image
+            class="eh-social-icon"
+            src="/assets/social-plus.png"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{linksPanel === 'profile'}}" class="eh-links-panel">
+      <view class="eh-section-label">PROFILE · 资料</view>
+      <view class="eh-portrait-block">
+        <view class="eh-portrait-ring" bindtap="pickPortrait" aria-label="更换头像">
+          <image
+            wx:if="{{draft.portrait_url}}"
+            class="eh-portrait"
+            src="{{draft.portrait_url}}"
+            mode="aspectFill"
+          />
+          <view wx:else class="eh-portrait eh-portrait-fallback">{{portraitLetter}}</view>
+          <view class="eh-portrait-badge">{{uploadBusy ? '…' : '换'}}</view>
+        </view>
+        <view class="eh-portrait-meta">
+          <text class="eh-portrait-title">头像与基本资料</text>
+          <text class="eh-portrait-hint">上传后写入公开主页草稿。</text>
+        </view>
+      </view>
+      <view class="eh-card">
+        <view class="eh-field">
+          <text class="eh-label">昵称（1–40 字）</text>
+          <input
+            class="eh-input"
+            value="{{draft.display_name}}"
+            maxlength="40"
+            placeholder="怎么称呼你"
+            bindinput="onNameInput"
+          />
+        </view>
+        <view class="eh-field">
+          <text class="eh-label">一句话介绍</text>
+          <input
+            class="eh-input"
+            value="{{draft.headline}}"
+            maxlength="80"
+            placeholder="你在做什么"
+            bindinput="onHeadlineInput"
+          />
+        </view>
+        <view class="eh-field eh-field-last">
+          <text class="eh-label">简介</text>
+          <textarea
+            class="eh-textarea"
+            value="{{draft.bio}}"
+            maxlength="500"
+            placeholder="让大家多了解一点你"
+            auto-height
+            bindinput="onBioInput"
+          />
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{linksPanel === 'design'}}" class="eh-links-panel">
+      <view class="eh-section-label">主页配色</view>
+      <view class="eh-skins">
+        <view
+          wx:for="{{skinOptions}}"
+          wx:key="id"
+          class="eh-skin {{item.selected ? 'eh-skin-on' : ''}}"
+          data-id="{{item.id}}"
+          bindtap="pickSkin"
+        >
+          <view class="eh-skin-dot" style="background: {{item.swatch}}"></view>
+          <text>{{item.label}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="eh-links-actions">
+      <button class="eh-btn eh-btn-primary eh-add-content" bindtap="openAddContent" disabled="{{busy}}">
+        ＋ 添加内容
+      </button>
+      <view class="eh-links-actions-row">
+        <button class="eh-btn eh-btn-secondary eh-btn-inline" bindtap="addCollection" disabled="{{busy}}">
+          ▤ 添加合集
+        </button>
+        <text class="eh-links-count">{{draft.sections.length}} / 8 · {{statusCopy}}</text>
+      </view>
+    </view>
+
+    <view wx:if="{{saveError}}" class="eh-error eh-links-error" role="alert">{{saveError}}</view>
+
+    <view class="eh-section-label">主页内容</view>
+
+    <view
+      wx:if="{{!draft.topLevelSectionCount}}"
+      class="eh-links-empty"
+    >
+      <view class="eh-links-empty-icon" aria-hidden="true">
+        <image class="eh-links-empty-img" src="/assets/icon-link.png" mode="aspectFit" />
+      </view>
+      <text class="eh-links-empty-title">让世界认识你</text>
+      <text class="eh-links-empty-desc">添加第一个链接，让你的主页从这里开始。</text>
+    </view>
+
+    <block wx:for="{{draft.sections}}" wx:key="id" wx:for-item="section" wx:for-index="sIndex">
+      <view wx:if="{{!section.isCollectionChild}}" class="eh-card eh-section-card">
+        <view class="eh-section-head">
+          <text class="eh-section-type">{{section.typeLabel}}</text>
+          <input
+            class="eh-input eh-section-title"
+            value="{{section.title}}"
+            placeholder="区块标题"
+            data-sindex="{{sIndex}}"
+            bindinput="onSectionTitle"
+          />
+          <switch
+            checked="{{section.visible !== false}}"
+            color="#2f6df4"
+            data-sindex="{{sIndex}}"
+            bindchange="toggleSectionVisible"
+          />
+        </view>
+        <view class="eh-section-tools">
+          <text data-sindex="{{sIndex}}" data-delta="-1" bindtap="moveSection">上移</text>
+          <text data-sindex="{{sIndex}}" data-delta="1" bindtap="moveSection">下移</text>
+          <text class="eh-remove" data-sindex="{{sIndex}}" bindtap="removeSection">删除这个区块</text>
+        </view>
+        <view
+          wx:for="{{section.items}}"
+          wx:key="index"
+          wx:for-item="item"
+          wx:for-index="iIndex"
+          class="eh-item"
+        >
+          <block wx:for="{{item.fieldRows}}" wx:key="key" wx:for-item="field">
+            <text class="eh-item-field-label">{{field.label}}</text>
+            <textarea
+              wx:if="{{field.isMultiline}}"
+              class="eh-textarea eh-item-field"
+              value="{{field.value}}"
+              placeholder="{{field.placeholder}}"
+              auto-height
+              data-sindex="{{sIndex}}"
+              data-iindex="{{iIndex}}"
+              data-key="{{field.key}}"
+              bindinput="onItemField"
+            />
+            <input
+              wx:elif="{{field.isText || field.isColor}}"
+              class="eh-input"
+              value="{{field.value}}"
+              placeholder="{{field.placeholder || (field.isColor ? '配色：rose / sky…' : '')}}"
+              data-sindex="{{sIndex}}"
+              data-iindex="{{iIndex}}"
+              data-key="{{field.key}}"
+              bindinput="onItemField"
+            />
+          </block>
+          <text
+            class="eh-remove"
+            data-sindex="{{sIndex}}"
+            data-iindex="{{iIndex}}"
+            bindtap="removeLinkItem"
+          >删除条目</text>
+        </view>
+        <button
+          class="eh-btn eh-btn-ghost"
+          data-sindex="{{sIndex}}"
+          bindtap="addLinkItem"
+        >＋ 添加一条</button>
+      </view>
+    </block>
+
+    <view class="eh-brand-card">
+      <view class="eh-brand-text">
+        <text class="eh-brand-title">显示 MuuZi 品牌</text>
+        <text class="eh-brand-desc">当前方案保留 MuuZi 品牌展示。</text>
+      </view>
+      <switch
+        checked="{{draft.show_branding !== false}}"
+        color="#2f6df4"
+        bindchange="toggleBranding"
+        aria-label="显示 MuuZi 品牌"
+      />
+    </view>
+
+    <view class="eh-links-footnote">草稿自动保存 · 发布后访客可见</view>
+
+    <!-- 底栏：添加 / 预览 / 设计 / 发布 -->
+    <view class="eh-links-toolbar" aria-label="主页编辑工具">
+      <view class="eh-toolbar-btn" bindtap="openAddContent">
+        <image class="eh-tb-ico" src="/assets/icon-ui-plus-ink.png" mode="aspectFit" aria-hidden="true" />
+        <text>添加</text>
+      </view>
+      <view class="eh-toolbar-btn" bindtap="openPreview">
+        <image class="eh-tb-ico" src="/assets/icon-ui-eye-ink.png" mode="aspectFit" aria-hidden="true" />
+        <text>预览</text>
+      </view>
+      <view class="eh-toolbar-btn {{linksPanel === 'design' ? 'eh-toolbar-on' : ''}}" bindtap="toggleLinksDesign">
+        <image class="eh-tb-ico" src="/assets/icon-ui-list-ink.png" mode="aspectFit" aria-hidden="true" />
+        <text>设计</text>
+      </view>
+      <view class="eh-toolbar-btn eh-toolbar-on" bindtap="publish">
+        <image class="eh-tb-ico" src="/assets/icon-ui-share-ink.png" mode="aspectFit" aria-hidden="true" />
+        <text>{{busy ? '处理中' : '发布'}}</text>
+      </view>
+    </view>
+
+    <!-- 预览：顶栏与主页内容一致（左 < · 标题 · 胶囊下分享） -->
+    <view wx:if="{{previewOpen}}" class="eh-preview-full" catchtouchmove="noop">
+      <view class="eh-preview-nav-wrap">
+        <view
+          class="eh-preview-nav"
+          style="padding-top: {{navPadTop}}px; padding-right: {{navPadRight}}px;"
+        >
+          <view class="eh-preview-nav-inner" style="height: {{navHeight}}px;">
+            <view class="eh-links-header-btn" bindtap="closePreview" aria-label="返回">
+              <image
+                class="eh-ico-back-img"
+                src="/assets/icon-ui-back-ink.png"
+                mode="aspectFit"
+                aria-hidden="true"
+              />
+            </view>
+            <view class="eh-preview-nav-titles">
+              <text class="eh-preview-nav-title">主页预览</text>
+            </view>
+            <view class="eh-links-header-btn eh-links-nav-spacer" aria-hidden="true"></view>
+          </view>
+        </view>
+        <view class="eh-links-share-bar" style="padding-right: {{sharePadRight}}px;">
+          <view class="eh-links-share-btn" bindtap="openLinksShare" aria-label="分享主页">
+            <image
+              class="eh-share-img"
+              src="/assets/icon-ui-share-ink.png"
+              mode="aspectFit"
+              aria-hidden="true"
+            />
+          </view>
+        </view>
+        <text class="eh-preview-nav-sub">草稿效果 · 尚未发布的修改仅自己可见</text>
+      </view>
+
+      <view wx:if="{{previewBusy}}" class="eh-state">正在载入预览…</view>
+      <scroll-view wx:else scroll-y class="eh-preview-scroll">
+        <view wx:if="{{previewError}}" class="eh-error eh-preview-warn" role="alert">{{previewError}}</view>
+        <view class="eh-preview-page">
+          <view class="eh-preview-tools">
+            <view class="eh-preview-brand" aria-hidden="true">
+              <text class="eh-preview-brand-m">M</text>
+            </view>
+            <view class="eh-draft-badge">DRAFT · 仅你可见</view>
+            <view class="eh-preview-share-mini" bindtap="openLinksShare" aria-label="分享">
+              <image
+                class="eh-share-img-sm"
+                src="/assets/icon-ui-share-accent.png"
+                mode="aspectFit"
+                aria-hidden="true"
+              />
+            </view>
+          </view>
+
+          <view class="eh-preview-cover" aria-hidden="true">
+            <view class="eh-preview-panel eh-preview-panel-a"></view>
+            <view class="eh-preview-panel eh-preview-panel-b"></view>
+            <view class="eh-preview-panel eh-preview-panel-c"></view>
+          </view>
+
+          <view class="eh-preview-hero">
+            <view class="eh-preview-avatar">
+              <image
+                wx:if="{{draft.portrait_url}}"
+                class="eh-preview-avatar-img"
+                src="{{draft.portrait_url}}"
+                mode="aspectFill"
+              />
+              <view wx:else class="eh-preview-avatar-img eh-portrait-fallback">{{portraitLetter}}</view>
+            </view>
+            <text class="eh-preview-name">{{draft.display_name || slug || '我的主页'}}</text>
+            <text wx:if="{{draft.headline || draft.bio}}" class="eh-preview-bio">{{draft.headline || draft.bio}}</text>
+            <view class="eh-preview-cta">在 MuuZi 上加入 {{draft.display_name || slug || '我'}}</view>
+          </view>
+
+          <block wx:for="{{draft.sections}}" wx:key="id" wx:for-item="section">
+            <view wx:if="{{section.visible !== false && section.items && section.items.length}}" class="eh-preview-section">
+              <text wx:if="{{section.title}}" class="eh-preview-section-title">{{section.title}}</text>
+              <view
+                wx:for="{{section.items}}"
+                wx:key="index"
+                wx:for-item="item"
+                class="eh-preview-link-card"
+              >
+                <view class="eh-preview-link-text">
+                  <text class="eh-preview-link-label">{{item.label || item.title || item.name || '链接'}}</text>
+                  <text wx:if="{{item.note || item.body}}" class="eh-preview-link-note">{{item.note || item.body}}</text>
+                </view>
+                <text class="eh-preview-link-arrow">↗</text>
+              </view>
+            </view>
+          </block>
+
+          <view wx:if="{{draft.show_branding !== false}}" class="eh-preview-brand-foot">
+            <text class="eh-preview-legal">条款 · 举报 · 隐私</text>
+            <text class="eh-preview-more">来自 MuuZi 的更多内容</text>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <!-- 添加内容：对齐 App AddContentSheet / ContentCatalogPicker -->
+    <view wx:if="{{addContentOpen}}" class="eh-overlay eh-overlay-sheet" catchtouchmove="noop" bindtap="closeAddContent">
+      <view class="eh-acs" catchtap="noop">
+        <view class="eh-acs-head">
+          <text class="eh-acs-title">{{addFormOpen ? addFormTitle : '添加内容'}}</text>
+          <view class="eh-acs-close" bindtap="closeAddContent" aria-label="关闭">×</view>
+        </view>
+
+        <block wx:if="{{!addFormOpen}}">
+          <view class="eh-acs-search">
+            <input
+              class="eh-acs-search-input"
+              value="{{catalogQuery}}"
+              placeholder="粘贴或搜索链接"
+              confirm-type="search"
+              bindinput="onCatalogQuery"
+              bindconfirm="submitCatalogPaste"
+            />
+            <button
+              wx:if="{{catalogPasteUrl}}"
+              class="eh-acs-paste-btn"
+              bindtap="submitCatalogPaste"
+            >添加链接</button>
+          </view>
+
+          <scroll-view scroll-x class="eh-acs-pills" enable-flex>
+            <view
+              wx:for="{{catalogPills}}"
+              wx:key="id"
+              class="eh-acs-pill {{catalogCategory === item.id ? 'eh-acs-pill-on' : ''}}"
+              data-id="{{item.id}}"
+              bindtap="pickCatalogCategory"
+            >{{item.label}}</view>
+          </scroll-view>
+
+          <view class="eh-acs-works" bindtap="copyStudio">
+            <text>使用已上传的素材</text>
+            <text class="eh-acs-works-link">素材库 ↗</text>
+          </view>
+
+          <view wx:if="{{catalogBusy}}" class="eh-state">正在加载可用内容…</view>
+          <view wx:elif="{{catalogError}}" class="eh-acs-error" role="alert">
+            <text>{{catalogError}}</text>
+            <button class="eh-acs-retry" bindtap="reloadCatalog">重新加载</button>
+          </view>
+          <scroll-view wx:else scroll-y class="eh-acs-list">
+            <block wx:for="{{catalogVisible}}" wx:key="id">
+              <view wx:if="{{item.isGroup}}" class="eh-acs-group">{{item.groupTitle}}</view>
+              <view
+                wx:else
+                class="eh-acs-row"
+                data-id="{{item.id}}"
+                bindtap="pickCatalogEntry"
+              >
+                <view class="eh-acs-icon {{item.brandClass}}" aria-hidden="true">
+                  <image
+                    class="eh-acs-ico-img"
+                    src="{{item.iconSrc}}"
+                    mode="aspectFit"
+                  />
+                </view>
+                <view class="eh-acs-row-text">
+                  <text class="eh-acs-row-title">{{item.title}}</text>
+                  <text class="eh-acs-row-desc">{{item.description}}</text>
+                </view>
+                <image
+                  class="eh-acs-chevron-img"
+                  src="/assets/icon-ui-chevron-muted.png"
+                  mode="aspectFit"
+                  aria-hidden="true"
+                />
+              </view>
+            </block>
+            <view wx:if="{{!catalogVisible.length}}" class="eh-state">{{catalogEmptyCopy || '没有匹配的内容入口'}}</view>
+          </scroll-view>
+        </block>
+
+        <block wx:else>
+          <scroll-view scroll-y class="eh-acs-form">
+            <view wx:for="{{addFormFields}}" wx:key="key" class="eh-field {{item.isMultiline ? '' : ''}}">
+              <text class="eh-label">{{item.label}}</text>
+              <textarea
+                wx:if="{{item.isMultiline}}"
+                class="eh-input eh-textarea"
+                value="{{item.value}}"
+                maxlength="400"
+                placeholder="{{item.placeholder}}"
+                auto-height
+                data-key="{{item.key}}"
+                bindinput="onAddFormField"
+              />
+              <picker
+                wx:elif="{{item.isColor}}"
+                mode="selector"
+                range="{{colorOptions}}"
+                range-key="label"
+                data-key="{{item.key}}"
+                bindchange="onAddFormColor"
+              >
+                <view class="eh-input eh-color-pick">
+                  {{item.colorLabel}} ›
+                </view>
+              </picker>
+              <input
+                wx:else
+                class="eh-input"
+                value="{{item.value}}"
+                maxlength="120"
+                placeholder="{{item.placeholder}}"
+                data-key="{{item.key}}"
+                bindinput="onAddFormField"
+              />
+            </view>
+            <view wx:if="{{addFormError}}" class="eh-error" role="alert">{{addFormError}}</view>
+            <text class="eh-portrait-hint">保存到主页草稿，发布后访客可见。</text>
+            <button class="eh-btn eh-btn-primary" bindtap="submitAddForm" disabled="{{addFormBusy}}">
+              {{addFormBusy ? '处理中…' : '保存内容'}}
+            </button>
+            <button class="eh-btn eh-btn-ghost" bindtap="closeAddForm">返回目录</button>
+          </scroll-view>
+        </block>
+      </view>
+    </view>
+
+    <!-- 社交快捷编辑 -->
+    <view wx:if="{{editingSocial}}" class="eh-overlay" catchtouchmove="noop" bindtap="closeSocialEditor">
+      <view class="eh-sheet" catchtap="noop">
+        <view class="eh-sheet-title">{{editingSocialLabel}}</view>
+        <view class="eh-field">
+          <text class="eh-label">链接</text>
+          <input
+            class="eh-input"
+            value="{{editingSocialUrl}}"
+            placeholder="https://"
+            bindinput="onEditingSocialUrl"
+          />
+        </view>
+        <button class="eh-btn eh-btn-primary" bindtap="saveSocialShortcut">保存</button>
+        <button class="eh-btn eh-btn-ghost" bindtap="closeSocialEditor">取消</button>
+      </view>
+    </view>
+
+    <!-- 分享：对齐 App ProfileShareSheet -->
+    <view wx:if="{{shareOpen}}" class="eh-overlay eh-overlay-sheet" catchtouchmove="noop" bindtap="closeLinksShare">
+      <view class="eh-share-sheet" catchtap="noop">
+        <view class="eh-sheet-handle"></view>
+        <view class="eh-share-head">
+          <text class="eh-share-title">分享我的 MuuZi</text>
+          <view class="eh-share-close" bindtap="closeLinksShare" aria-label="关闭">×</view>
+        </view>
+
+        <view class="eh-share-identity">
+          <image
+            wx:if="{{draft.portrait_url}}"
+            class="eh-share-avatar"
+            src="{{draft.portrait_url}}"
+            mode="aspectFill"
+          />
+          <view wx:else class="eh-share-avatar eh-portrait-fallback">{{portraitLetter}}</view>
+          <text class="eh-share-name">{{draft.display_name || slug || '我的主页'}}</text>
+          <text class="eh-share-tag">MuuZi · 让更多人遇见你</text>
+        </view>
+
+        <view class="eh-share-address" bindtap="copyShareUrl">
+          <text class="eh-share-address-text">{{shareUrl || '主页地址暂不可用'}}</text>
+          <image
+            class="eh-share-ico"
+            src="/assets/icon-ui-link-accent.png"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
+        </view>
+
+        <view wx:if="{{!shareUrl && !shareMissing}}" class="eh-share-hint" role="status">{{shareAvailability}}</view>
+        <view wx:if="{{shareNote}}" class="eh-share-hint" role="status">{{shareNote}}</view>
+
+        <view class="eh-share-option" bindtap="toggleShareBio">
+          <image
+            class="eh-share-ico"
+            src="/assets/icon-ui-list-accent.png"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
+          <text class="eh-share-option-label">添加到社交简介</text>
+          <image
+            class="eh-share-chevron-img"
+            src="/assets/icon-ui-chevron-muted.png"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
+        </view>
+        <view wx:if="{{showShareBio}}" class="eh-share-expand">
+          <text class="eh-label">社交简介</text>
+          <textarea
+            class="eh-share-bio"
+            maxlength="300"
+            value="{{shareBio}}"
+            bindinput="onShareBioInput"
+          />
+          <text class="eh-share-hint">{{shareUrl || '发布后可附带主页链接'}}</text>
+          <button class="eh-btn eh-btn-secondary eh-btn-inline" bindtap="copyShareBio">复制简介</button>
+        </view>
+
+        <view wx:if="{{shareMissing && !shareUrl}}" class="eh-share-expand" role="status">
+          <text class="eh-share-hint">{{shareAvailability}}</text>
+          <button class="eh-btn eh-btn-ghost" bindtap="closeLinksShare">知道了</button>
+        </view>
+
+        <view class="eh-share-option" bindtap="toggleShareQr">
+          <image
+            class="eh-share-ico"
+            src="/assets/icon-ui-expand-accent.png"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
+          <text class="eh-share-option-label">主页二维码</text>
+          <image
+            class="eh-share-chevron-img"
+            src="/assets/icon-ui-chevron-muted.png"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
+        </view>
+        <view wx:if="{{showShareQr}}" class="eh-share-expand eh-share-qr-box">
+          <image wx:if="{{shareQrImage}}" class="eh-share-qr" src="{{shareQrImage}}" mode="aspectFit" />
+          <text wx:else class="eh-share-hint">正在生成二维码…</text>
+          <text class="eh-share-hint">扫码打开你的 MuuZi 主页</text>
+        </view>
+
+        <view class="eh-share-option" bindtap="toggleShareCard">
+          <image
+            class="eh-share-ico"
+            src="/assets/icon-ui-person-accent.png"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
+          <text class="eh-share-option-label">数字名片</text>
+          <image
+            class="eh-share-chevron-img"
+            src="/assets/icon-ui-chevron-muted.png"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
+        </view>
+        <view wx:if="{{showShareCard}}" class="eh-share-card">
+          <text class="eh-share-card-name">{{draft.display_name || slug || '我的主页'}}</text>
+          <text class="eh-share-card-url">{{shareUrl || '主页地址待发布'}}</text>
+          <text class="eh-share-card-action" bindtap="copyShareCard">保存联系人名片</text>
+          <text class="eh-share-card-hint">名片包含昵称{{shareUrl ? '和主页链接' : ''}}。</text>
+        </view>
+
+        <button
+          class="eh-share-option"
+          open-type="{{shareUrl ? 'share' : ''}}"
+          bindtap="shareToOthers"
+          disabled="{{shareBusy}}"
+        >
+          <image
+            class="eh-share-ico"
+            src="/assets/icon-ui-share-accent.png"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
+          <text class="eh-share-option-label">{{shareBusy ? '正在打开分享…' : '分享到…'}}</text>
+          <image
+            class="eh-share-chevron-img"
+            src="/assets/icon-ui-chevron-muted.png"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
+        </button>
+
+        <button class="eh-share-option" bindtap="openSharePage">
+          <image
+            class="eh-share-ico"
+            src="/assets/icon-ui-link-accent.png"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
+          <text class="eh-share-option-label">打开主页</text>
+          <image
+            class="eh-share-arrow-img"
+            src="/assets/icon-ui-arrow-right-accent.png"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
+        </button>
+      </view>
+    </view>
+
+    <canvas canvas-id="ehShareQr" class="eh-qr-canvas" style="width:280px;height:280px;"></canvas>
+  </block>
+
+  <!-- ========== 完整编辑 / 个人资料（设计入口、profile 模式） ========== -->
+  <block wx:elif="{{phase === 'editing'}}">
+    <view class="eh-portrait-block">
+      <view class="eh-portrait-ring" bindtap="pickPortrait" aria-label="更换头像">
+        <image
+          wx:if="{{draft.portrait_url}}"
+          class="eh-portrait"
+          src="{{draft.portrait_url}}"
+          mode="aspectFill"
+        />
+        <view wx:else class="eh-portrait eh-portrait-fallback">{{portraitLetter}}</view>
+        <view class="eh-portrait-badge">{{uploadBusy ? '…' : '换'}}</view>
+      </view>
+      <view class="eh-portrait-meta">
+        <text class="eh-portrait-title">头像与基本资料</text>
+        <text class="eh-portrait-hint">上传后写入公开主页草稿；聊天头像同步待消息模块。</text>
+      </view>
+    </view>
+
+    <view class="eh-card">
+      <view class="eh-field">
+        <text class="eh-label">昵称（1–40 字）</text>
+        <input
+          class="eh-input"
+          value="{{draft.display_name}}"
+          maxlength="40"
+          placeholder="怎么称呼你"
+          bindinput="onNameInput"
+        />
+      </view>
+      <view class="eh-field">
+        <text class="eh-label">一句话介绍</text>
+        <input
+          class="eh-input"
+          value="{{draft.headline}}"
+          maxlength="80"
+          placeholder="你在做什么"
+          bindinput="onHeadlineInput"
+        />
+      </view>
+      <view class="eh-field eh-field-last">
+        <text class="eh-label">简介</text>
+        <textarea
+          class="eh-textarea"
+          value="{{draft.bio}}"
+          maxlength="500"
+          placeholder="让大家多了解一点你"
+          auto-height
+          bindinput="onBioInput"
+        />
+      </view>
+    </view>
+
+    <block wx:if="{{!profileOnly}}">
+      <view class="eh-section-label">主页配色</view>
+      <view class="eh-skins">
+        <view
+          wx:for="{{skinOptions}}"
+          wx:key="id"
+          class="eh-skin {{item.selected ? 'eh-skin-on' : ''}}"
+          data-id="{{item.id}}"
+          bindtap="pickSkin"
+        >
+          <view class="eh-skin-dot" style="background: {{item.swatch}}"></view>
+          <text>{{item.label}}</text>
+        </view>
+      </view>
+
+      <view class="eh-section-label">社交账号</view>
+      <view class="eh-card">
+        <view
+          wx:for="{{draft.socials}}"
+          wx:key="index"
+          class="eh-social"
+        >
+          <picker
+            mode="selector"
+            range="{{socialKinds}}"
+            range-key="label"
+            data-index="{{index}}"
+            bindchange="onSocialKind"
+          >
+            <view class="eh-social-kind">{{item.label || item.kind}} ›</view>
+          </picker>
+          <input
+            wx:if="{{item.kind === 'wechat'}}"
+            class="eh-input eh-social-url"
+            value="{{item.wechat_id}}"
+            placeholder="微信号"
+            data-index="{{index}}"
+            bindinput="onSocialWechat"
+          />
+          <input
+            wx:else
+            class="eh-input eh-social-url"
+            value="{{item.url}}"
+            placeholder="https://"
+            data-index="{{index}}"
+            bindinput="onSocialUrl"
+          />
+          <text class="eh-remove" data-index="{{index}}" bindtap="removeSocial">删</text>
+        </view>
+        <button class="eh-btn eh-btn-ghost" bindtap="addSocial">＋ 添加社交账号</button>
+      </view>
+
+      <view class="eh-section-label">主页内容</view>
+      <block wx:for="{{draft.sections}}" wx:key="id" wx:for-item="section" wx:for-index="sIndex">
+        <view wx:if="{{!section.isCollectionChild}}" class="eh-card eh-section-card">
+          <view class="eh-section-head">
+            <text class="eh-section-type">{{section.typeLabel}}</text>
+            <input
+              class="eh-input eh-section-title"
+              value="{{section.title}}"
+              placeholder="区块标题"
+              data-sindex="{{sIndex}}"
+              bindinput="onSectionTitle"
+            />
+            <switch
+              checked="{{section.visible !== false}}"
+              color="#2f6df4"
+              data-sindex="{{sIndex}}"
+              bindchange="toggleSectionVisible"
+            />
+          </view>
+          <view class="eh-section-tools">
+            <text data-sindex="{{sIndex}}" data-delta="-1" bindtap="moveSection">上移</text>
+            <text data-sindex="{{sIndex}}" data-delta="1" bindtap="moveSection">下移</text>
+            <text class="eh-remove" data-sindex="{{sIndex}}" bindtap="removeSection">删除这个区块</text>
+          </view>
+          <view
+            wx:for="{{section.items}}"
+            wx:key="index"
+            wx:for-item="item"
+            wx:for-index="iIndex"
+            class="eh-item"
+          >
+            <block wx:for="{{item.fieldRows}}" wx:key="key" wx:for-item="field">
+              <text class="eh-item-field-label">{{field.label}}</text>
+              <textarea
+                wx:if="{{field.isMultiline}}"
+                class="eh-textarea eh-item-field"
+                value="{{field.value}}"
+                placeholder="{{field.placeholder}}"
+                auto-height
+                data-sindex="{{sIndex}}"
+                data-iindex="{{iIndex}}"
+                data-key="{{field.key}}"
+                bindinput="onItemField"
+              />
+              <input
+                wx:elif="{{field.isText || field.isColor}}"
+                class="eh-input"
+                value="{{field.value}}"
+                placeholder="{{field.placeholder || (field.isColor ? '配色：rose / sky…' : '')}}"
+                data-sindex="{{sIndex}}"
+                data-iindex="{{iIndex}}"
+                data-key="{{field.key}}"
+                bindinput="onItemField"
+              />
+            </block>
+            <picker
+              wx:if="{{item.showTikTokDisplay}}"
+              mode="selector"
+              range="{{tiktokDisplayOptions}}"
+              range-key="label"
+              data-sindex="{{sIndex}}"
+              data-iindex="{{iIndex}}"
+              bindchange="onTikTokDisplay"
+            >
+              <view class="eh-display-pick">
+                TikTok 展示：{{item.tiktokDisplayLabel}}
+                {{item.tiktokGalleryReady ? '' : '（画廊未就绪，仅链接可用）'}} ›
+              </view>
+            </picker>
+            <picker
+              wx:if="{{item.showInstagramDisplay}}"
+              mode="selector"
+              range="{{instagramDisplayOptions}}"
+              range-key="label"
+              data-sindex="{{sIndex}}"
+              data-iindex="{{iIndex}}"
+              bindchange="onInstagramDisplay"
+            >
+              <view class="eh-display-pick">
+                Instagram 展示：{{item.instagramDisplayLabel}}
+                {{item.instagramGalleryReady ? '' : '（画廊未就绪，仅链接可用）'}} ›
+              </view>
+            </picker>
+            <text
+              class="eh-remove"
+              data-sindex="{{sIndex}}"
+              data-iindex="{{iIndex}}"
+              bindtap="removeLinkItem"
+            >删除条目</text>
+          </view>
+          <button
+            class="eh-btn eh-btn-ghost"
+            data-sindex="{{sIndex}}"
+            bindtap="addLinkItem"
+          >＋ 添加一条</button>
+        </view>
+      </block>
+      <button class="eh-btn eh-btn-ghost eh-add-section" bindtap="addLinksSection">
+        ＋ 添加链接区块
+      </button>
+    </block>
+
+    <view wx:if="{{saveError}}" class="eh-error" role="alert">{{saveError}}</view>
+    <view wx:if="{{publishFeedback}}" class="eh-feedback">{{publishFeedback}}</view>
+
+    <!-- 对齐 App EditHomeScreen：SHARE · 预览与分享 → 发布按钮 → Studio 提示 -->
+    <view class="eh-share-section">
+      <view class="eh-eyebrow">SHARE · 预览与分享</view>
+      <block wx:if="{{publishedAt}}">
+        <view class="eh-share-grid-row">
+          <view class="eh-ghost-btn" bindtap="openFinishedProduct">看成品</view>
+          <view
+            class="eh-ghost-btn {{shareBusy ? 'eh-ghost-busy' : ''}}"
+            bindtap="sharePageLink"
+          >分享 {{addressDisplay}}</view>
+        </view>
+        <view class="eh-share-grid-row">
+          <block wx:if="{{shortLink}}">
+            <view class="eh-short-code">{{shortLinkDisplay}}</view>
+            <view
+              class="eh-ghost-btn {{shareBusy ? 'eh-ghost-busy' : ''}}"
+              bindtap="shareShortLink"
+            >分享短链接</view>
+          </block>
+          <view
+            wx:else
+            class="eh-ghost-btn"
+            bindtap="makeShortLink"
+          >要一个短链接</view>
+        </view>
+        <view class="eh-share-hint-text">{{shortLinkHint}}</view>
+      </block>
+      <view wx:else class="eh-share-hint-text">
+        先发布，才有能分享出去的地址。上面可以「预览草稿」看现在改成什么样了。
+      </view>
+      <view wx:if="{{shareNote}}" class="eh-share-hint-text" role="status">{{shareNote}}</view>
+    </view>
+
+    <view class="eh-publish-foot">
+      <button
+        class="eh-btn eh-btn-publish"
+        bindtap="publish"
+        disabled="{{busy}}"
+      >
+        <text class="eh-publish-label">{{busy ? '正在发布…' : publishLabel}}</text>
+        <text class="eh-publish-arrow" aria-hidden="true">↑</text>
+      </button>
+      <view wx:if="{{isOrg}}" class="eh-studio-hint">
+        企业主页由所有者和管理员编辑；成员邀请、企业套餐与认证可返回企业空间操作。
+      </view>
+      <view wx:else class="eh-studio-hint">
+        模板、自定义域名、作品库在网页版 Studio 里：{{studioHost}}
+      </view>
+    </view>
+  </block>
+</view>
+
+<!-- 对齐 App presentShareChoices：选择分享地址弹框 -->
+<view
+  wx:if="{{sharePickerOpen}}"
+  class="eh-overlay eh-overlay-center"
+  catchtouchmove="noop"
+  bindtap="closeSharePicker"
+>
+  <view class="eh-share-picker" catchtap="noop" aria-label="选择分享地址">
+    <text class="eh-share-picker-title">分享</text>
+    <text class="eh-share-picker-note">选择访问地址，主页内容和账号所属节点保持不变。</text>
+    <radio-group bindchange="onSharePickerSelect">
+      <label
+        wx:for="{{sharePickerOptions}}"
+        wx:key="id"
+        class="eh-share-picker-option"
+      >
+        <radio value="{{item.id}}" checked="{{item.id === sharePickerSelected}}" color="#254ee8" />
+        <view class="eh-share-picker-option-text">
+          <text>{{item.label}}</text>
+          <text class="eh-share-picker-url">{{item.display}}</text>
+        </view>
+      </label>
+    </radio-group>
+    <view wx:if="{{sharePickerStatus}}" class="eh-share-picker-status" role="status">{{sharePickerStatus}}</view>
+    <view class="eh-share-picker-foot">
+      <button class="eh-share-picker-cancel" bindtap="closeSharePicker" disabled="{{sharePickerBusy}}">取消</button>
+      <button class="eh-share-picker-send" bindtap="confirmSharePicker" disabled="{{sharePickerBusy}}">
+        {{sharePickerBusy ? '正在打开分享…' : '分享此地址'}}
+      </button>
+    </view>
+  </view>
+</view>

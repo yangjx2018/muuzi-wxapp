@@ -1,0 +1,13 @@
+<view class="wrap">
+  <view class="note">{{urlCheckNote}}</view>
+  <button type="primary" loading="{{busy}}" bindtap="onStart">开始验证 4 个域名</button>
+  <button style="margin-top:16rpx" bindtap="onLoginSmoke">测 im 微信 capabilities 路径</button>
+
+  <view class="row" wx:for="{{rows}}" wx:key="name">
+    <view class="name">{{item.name}} <text class="kind">{{item.kind}}</text></view>
+    <view class="status {{item.status === 'OK' ? 'ok' : (item.status === 'FAIL' ? 'fail' : '')}}">{{item.status}}</view>
+    <view class="detail">{{item.detail}}</view>
+  </view>
+
+  <view wx:if="{{done}}" class="done">本轮结束。若某条 FAIL 且含「不在以下 request 合法域名列表」，说明后台未生效或填错格式。</view>
+</view>

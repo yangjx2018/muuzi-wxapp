@@ -1,0 +1,2 @@
+<app-banner section="个人资料" show-back fallback-url="/pages/me/index" fallback-tab="{{true}}" />
+<view class="eh-state">正在打开个人资料…</view>

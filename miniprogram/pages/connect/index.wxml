@@ -1,0 +1,191 @@
+<app-banner section="连接" />
+<view class="fc">
+  <view class="fc-heading">
+    <text class="fc-kicker">MEET · CONNECT · CONTINUE</text>
+    <view class="fc-title">每次见面，都有下文。</view>
+    <view class="fc-lead">从面对面交流，到下一次联系。</view>
+  </view>
+
+  <view class="fc-hero">
+    <view class="fc-hero-top">
+      <image class="fc-mic" src="/assets/icon-mic-badge.png" mode="aspectFit" />
+      <text class="fc-tag">面对面交流</text>
+    </view>
+    <view class="fc-hero-h2">面对面，聊起来。</view>
+    <view class="fc-hero-p">一部手机，两种语言。</view>
+    <view class="fc-hero-p fc-hero-p-2">让彼此的想法，自然传达。</view>
+    <button class="fc-primary" bindtap="goTalk">
+      <text>面对面交流</text>
+      <image class="fc-primary-arrow" src="/assets/icon-ui-arrow-right-accent.png" mode="aspectFit" />
+    </button>
+    <view class="fc-availability">进入后检查语音服务</view>
+  </view>
+
+  <view class="fc-shortcuts">
+    <button class="fc-shortcut" bindtap="goCard">
+      <image class="fc-shortcut-icon-img" src="/assets/icon-ui-person-ink.png" mode="aspectFit" />
+      <text class="fc-shortcut-strong">我的名片</text>
+      <text class="fc-shortcut-small">展示个人或企业主页</text>
+      <image class="fc-shortcut-chevron-img" src="/assets/icon-ui-chevron-muted.png" mode="aspectFit" />
+    </button>
+    <button
+      class="fc-shortcut"
+      aria-expanded="{{giftNote}}"
+      bindtap="toggleGift"
+    >
+      <image class="fc-shortcut-icon-img" src="/assets/icon-ui-link-ink.png" mode="aspectFit" />
+      <text class="fc-shortcut-strong">赠卡邀请</text>
+      <text class="fc-shortcut-small">暂未开放</text>
+      <image class="fc-shortcut-chevron-img" src="/assets/icon-ui-chevron-muted.png" mode="aspectFit" />
+    </button>
+  </view>
+
+  <view wx:if="{{giftNote}}" class="fc-availability fc-gift-note" role="status">
+    赠卡领取服务尚未开放。开放后可选择未领取的卡片，邀请对方领取并接续交流。
+  </view>
+
+  <view class="fc-section fc-saved">
+    <view class="fc-section-title">
+      <text class="fc-section-h2">已保存的现场交流</text>
+    </view>
+
+    <block wx:if="{{savedPhase === 'ready' && savedItems.length}}">
+      <view
+        wx:for="{{savedItems}}"
+        wx:key="roomId"
+        class="fc-topic-item"
+      >
+        <button
+          class="fc-link"
+          data-room="{{item.roomId}}"
+          bindtap="openSavedRoom"
+        >{{item.name}}</button>
+        <view class="fc-topic-item-meta">{{item.preview}}</view>
+        <button
+          class="fc-link"
+          data-room="{{item.roomId}}"
+          bindtap="continueSaved"
+        >继续扫码交流</button>
+      </view>
+    </block>
+
+    <view wx:else class="fc-empty" role="status">{{savedNote}}</view>
+    <button
+      wx:if="{{!(savedPhase === 'ready' && savedItems.length)}}"
+      class="fc-card-refresh"
+      bindtap="openContinueShell"
+    >了解继续扫码交流</button>
+  </view>
+
+  <view class="fc-section fc-recent">
+    <view class="fc-section-title">
+      <text class="fc-section-h2">现场话题</text>
+    </view>
+
+    <view wx:if="{{encounterPhase === 'loading'}}" class="fc-empty" role="status">正在读取话题…</view>
+    <view wx:elif="{{encounterPhase === 'unavailable'}}" class="fc-empty">当前节点尚未开放现场话题服务。</view>
+    <button
+      wx:elif="{{encounterPhase === 'error'}}"
+      class="fc-card-refresh"
+      bindtap="refreshEncounters"
+    >重新读取话题</button>
+
+    <block wx:elif="{{encounterPhase === 'ready'}}">
+      <view class="fc-topic-form">
+        <view class="fc-topic-field">
+          <text class="fc-topic-label">展会或话题名称</text>
+          <input
+            class="fc-topic-input"
+            value="{{eventName}}"
+            maxlength="120"
+            disabled="{{encounterBusy || createPending}}"
+            placeholder="例如：上海展会"
+            bindinput="onEventName"
+          />
+        </view>
+        <view class="fc-topic-field">
+          <text class="fc-topic-label">我的语言</text>
+          <picker
+            mode="selector"
+            range="{{langOptions}}"
+            range-key="label"
+            value="{{sourceLanguage === 'zh' ? 0 : sourceLanguage === 'en' ? 1 : 2}}"
+            disabled="{{encounterBusy || createPending}}"
+            bindchange="onSourceLang"
+          >
+            <view class="fc-topic-input">{{sourceLanguage === 'zh' ? '中文' : sourceLanguage === 'en' ? 'English' : '日本語'}}</view>
+          </picker>
+        </view>
+        <view class="fc-topic-field">
+          <text class="fc-topic-label">对方语言</text>
+          <picker
+            mode="selector"
+            range="{{langOptions}}"
+            range-key="label"
+            value="{{targetLanguage === 'zh' ? 0 : targetLanguage === 'en' ? 1 : 2}}"
+            disabled="{{encounterBusy || createPending}}"
+            bindchange="onTargetLang"
+          >
+            <view class="fc-topic-input">{{targetLanguage === 'zh' ? '中文' : targetLanguage === 'en' ? 'English' : '日本語'}}</view>
+          </picker>
+        </view>
+        <view class="fc-topic-hint">
+          话题服务仅保存名称、语言和状态。面对面确认的交流文字写入消息频道，可在上方「已保存的现场交流」与消息中查看。{{canDelete ? '话题保留至你主动删除。' : ''}}
+        </view>
+        <button
+          class="fc-primary"
+          disabled="{{encounterBusy}}"
+          bindtap="createEncounter"
+        >{{encounterBusy ? '处理中…' : createPending ? '重试创建（同一请求）' : '新建独立话题'}}</button>
+      </view>
+
+      <button class="fc-card-refresh" disabled="{{encounterBusy}}" bindtap="refreshEncounters">刷新列表</button>
+
+      <view wx:if="{{!encounterItems.length}}" class="fc-empty">还没有现场话题，每位客户请单独创建。</view>
+
+      <view
+        wx:for="{{encounterItems}}"
+        wx:key="encounterId"
+        class="fc-topic-item"
+      >
+        <view class="fc-topic-item-title">{{item.title}}</view>
+        <view class="fc-topic-item-meta">{{item.langPair}} · {{item.lifecycleLabel}}</view>
+        <view class="fc-topic-item-meta">{{item.createdLabel}} · 交流文字在消息频道</view>
+        <button
+          wx:if="{{item.lifecycle === 'open'}}"
+          class="fc-card-refresh"
+          disabled="{{encounterBusy}}"
+          data-id="{{item.encounterId}}"
+          bindtap="closeEncounter"
+        >结束话题</button>
+        <button
+          wx:if="{{canDelete}}"
+          class="fc-card-refresh"
+          disabled="{{encounterBusy}}"
+          data-id="{{item.encounterId}}"
+          bindtap="askDelete"
+        >删除话题</button>
+        <view
+          wx:if="{{canDelete && deletingId === item.encounterId}}"
+          class="fc-delete-confirm"
+        >
+          <view class="fc-topic-item-title">删除「{{item.title}}」？</view>
+          <view class="fc-topic-hint">将清除话题名称和双方语言，删除后不能恢复。系统会保留必要的删除记录，避免重复操作恢复话题。名片与好友关系不受影响。</view>
+          <button class="fc-card-refresh" disabled="{{encounterBusy}}" bindtap="cancelDelete">取消</button>
+          <button class="fc-card-refresh" disabled="{{encounterBusy}}" bindtap="confirmDelete">
+            {{encounterBusy ? '处理中…' : '确认删除'}}
+          </button>
+        </view>
+      </view>
+
+      <button
+        wx:if="{{encounterBefore}}"
+        class="fc-card-refresh"
+        disabled="{{encounterBusy}}"
+        bindtap="loadMoreEncounters"
+      >更多话题</button>
+    </block>
+
+    <view wx:if="{{encounterNote}}" class="fc-availability" role="status">{{encounterNote}}</view>
+  </view>
+</view>

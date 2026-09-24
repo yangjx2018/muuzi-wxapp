@@ -1,0 +1,37 @@
+@import "../_page.wxss";
+
+.cp-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.cp-kind {
+  padding: 12rpx 28rpx;
+  border-radius: 999rpx;
+  font-size: 26rpx;
+  color: var(--app-ink);
+  background: var(--app-bg);
+  border: 1rpx solid var(--app-line);
+}
+
+.cp-kind-on {
+  color: #fff;
+  background: var(--app-accent);
+  border-color: transparent;
+}
+
+.cp-work {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid var(--app-line);
+  font-size: 26rpx;
+}
+
+.cp-work-on {
+  color: var(--app-accent);
+  font-weight: 600;
+}

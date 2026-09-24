@@ -1,0 +1,249 @@
+<app-banner section="我的店铺" show-back fallback-url="/pages/me/index" fallback-tab="{{true}}" />
+<view class="mp">
+  
+  <view class="mp-lead">统一管理店铺；精选商城商品与实物链接，保存后发布才公开。</view>
+
+  <view wx:if="{{loading}}" class="mp-state">{{error || '正在读取店铺配置…'}}</view>
+  <block wx:else>
+    <view wx:if="{{error}}" class="mp-error" role="alert">{{error}}</view>
+
+    <view class="mp-card">
+      <view class="mp-h2">商城连接</view>
+      <view wx:if="{{catalogNote}}" class="mp-lead">{{catalogNote}}</view>
+      <view wx:if="{{catalogBusy && !stores.length}}" class="mp-lead">正在连接当前节点的店铺…</view>
+      <block wx:elif="{{stores.length}}">
+        <view class="mp-badge">商品读取已连接</view>
+        <view class="mp-field">
+          <text class="mp-label">查看店铺</text>
+          <picker
+            mode="selector"
+            range="{{stores}}"
+            range-key="name"
+            bindchange="onStorePick"
+          >
+            <view class="mp-input">{{selectedStoreLabel || '选择店铺'}} ›</view>
+          </picker>
+        </view>
+        <view
+          wx:if="{{featuredStoreId && featuredStoreId !== selectedStoreId}}"
+          class="mp-lead"
+        >已保存其他店铺的精选。选择当前店铺的商品将替换原精选。</view>
+        <button
+          wx:if="{{featuredStoreId !== selectedStoreId}}"
+          class="mp-btn mp-btn-ghost"
+          bindtap="useSelectedStore"
+          disabled="{{catalogBusy}}"
+        >使用这家店铺</button>
+
+        <view wx:for="{{products}}" wx:key="product_id" class="mp-product">
+          <view
+            class="mp-check {{item.selected ? 'on' : ''}} {{catalogBusy ? 'disabled' : ''}}"
+            data-id="{{item.product_id}}"
+            bindtap="toggleProduct"
+            role="checkbox"
+            aria-checked="{{item.selected}}"
+          >
+            <text wx:if="{{item.selected}}" class="mp-check-tick">✓</text>
+          </view>
+          <view class="mp-product-body">
+            <text class="mp-product-kind">{{item.kind === 'agent' ? 'Agent' : 'Skill'}}</text>
+            <text class="mp-product-name">{{item.name}}</text>
+            <text class="mp-lead">{{item.description}}</text>
+            <text class="mp-muted">参考标价 {{item.priceLabel}}</text>
+          </view>
+        </view>
+        <view wx:if="{{!products.length && !catalogBusy}}" class="mp-lead">这家店铺还没有已发布商品。</view>
+
+        <view class="mp-paging" wx:if="{{productPage > 1 || hasNextProducts}}">
+          <text bindtap="prevProducts" class="{{productPage <= 1 ? 'mp-muted' : 'mp-link'}}">上一页</text>
+          <text class="mp-muted">第 {{productPage}} 页</text>
+          <text bindtap="nextProducts" class="{{hasNextProducts ? 'mp-link' : 'mp-muted'}}">下一页</text>
+        </view>
+
+        <view class="mp-lead">已选 {{featuredIds.length}} / {{featuredLimit}} 个 · 按选择顺序保存</view>
+        <button
+          wx:if="{{featuredIds.length}}"
+          class="mp-btn mp-btn-ghost"
+          bindtap="clearFeatured"
+          disabled="{{catalogBusy}}"
+        >清空精选</button>
+        <button
+          class="mp-btn mp-btn-primary"
+          bindtap="saveFeatured"
+          disabled="{{catalogBusy || featuredIds.length > featuredLimit}}"
+        >{{catalogBusy ? '正在保存…' : '保存精选草稿'}}</button>
+        <view class="mp-lead">
+          {{publication ? '已有公开版本。修改草稿不会立即改变公开内容。' : '保存精选和展示资料后，即可发布店铺。'}}
+        </view>
+        <button
+          class="mp-btn mp-btn-primary"
+          bindtap="publishShop"
+          disabled="{{catalogBusy || !publicationAvailable || !featuredStoreId || featuredIds.length > featuredLimit}}"
+        >
+          {{!publicationAvailable ? '节点尚未开通发布' : publication ? '更新公开店铺' : '发布店铺'}}
+        </button>
+        <button
+          wx:if="{{publication}}"
+          class="mp-btn mp-btn-ghost"
+          bindtap="unpublishShop"
+          disabled="{{catalogBusy}}"
+        >撤下店铺展示</button>
+      </block>
+      <view wx:elif="{{!catalogBusy}}" class="mp-lead">当前账号还没有可管理的商城店铺，或节点未开通商城接口。</view>
+      <view class="mp-lead">这里显示商城已发布的 Agent 和 Skill 商品。先保存精选草稿和下方展示资料，再发布店铺。</view>
+    </view>
+
+    <view class="mp-card">
+      <view class="mp-h2">个人店铺展示资料</view>
+      <view class="mp-lead">编辑个人主页里的店铺介绍，不会修改上方所查看的商城店铺。</view>
+      <view class="mp-field">
+        <text class="mp-label">店铺名称</text>
+        <view class="mp-input {{busy ? 'is-disabled' : ''}}">
+          <input
+            class="mp-control"
+            maxlength="60"
+            value="{{name}}"
+            placeholder="给店铺起个名字"
+            disabled="{{busy}}"
+            bindinput="onName"
+          />
+        </view>
+      </view>
+      <view class="mp-field">
+        <text class="mp-label">店铺介绍</text>
+        <view class="mp-textarea {{busy ? 'is-disabled' : ''}}">
+          <textarea
+            class="mp-control mp-control-area"
+            maxlength="300"
+            value="{{description}}"
+            placeholder="介绍你的商品与服务"
+            disabled="{{busy}}"
+            bindinput="onDesc"
+          />
+        </view>
+      </view>
+    </view>
+
+    <view class="mp-card">
+      <view class="mp-h2">个人主页中的店铺</view>
+      <view
+        class="mp-toggle {{!homepageProducts || busy ? 'disabled' : ''}}"
+        bindtap="onHomepageEnabled"
+      >
+        <text class="mp-toggle-label">在主页展示精选商品</text>
+        <view
+          class="mp-check {{homepageEnabled ? 'on' : ''}} {{!homepageProducts || busy ? 'disabled' : ''}}"
+          role="checkbox"
+          aria-checked="{{homepageEnabled}}"
+        >
+          <text wx:if="{{homepageEnabled}}" class="mp-check-tick">✓</text>
+        </view>
+      </view>
+      <view class="mp-lead">个人主页最多精选 {{homepageProducts}} 个商品。完整店铺展示全部已发布商品。</view>
+      <view class="mp-field">
+        <text class="mp-label">展示数量</text>
+        <view class="mp-input {{!homepageEnabled || busy ? 'is-disabled' : ''}}">
+          <input
+            class="mp-control"
+            type="number"
+            value="{{homepageLimit}}"
+            disabled="{{!homepageEnabled || busy}}"
+            bindinput="onHomepageLimit"
+          />
+        </view>
+      </view>
+      <text class="mp-link" bindtap="goMembership">查看会员权益 →</text>
+    </view>
+
+    <view class="mp-card">
+      <view class="mp-h2">两个入口，同一家店</view>
+      <view class="mp-lead">主页用于介绍你，店铺用于集中展示商品。接入并发布后，可分别分享。</view>
+      <view wx:if="{{pageLink}}" class="mp-field">
+        <text class="mp-label">个人主页地址</text>
+        <view class="mp-input mp-input-readonly" data-kind="page" bindtap="copyLink">{{pageLink}}</view>
+      </view>
+      <view wx:if="{{shopLink}}" class="mp-field">
+        <text class="mp-label">独立店铺地址</text>
+        <view class="mp-input mp-input-readonly" data-kind="shop" bindtap="copyLink">{{shopLink}}</view>
+      </view>
+      <view wx:if="{{!pageLink && !shopLink}}" class="mp-lead">发布主页后可在此复制分享链接。</view>
+      <view wx:else class="mp-muted">发布后，独立店铺展示全部已公开商品，主页按精选设置展示。</view>
+    </view>
+
+    <view class="mp-card">
+      <view class="mp-h2">实物好物</view>
+      <view class="mp-lead">添加淘宝、天猫的实物商品链接，单独展示在你的店铺。购买与售后在第三方完成。</view>
+      <view class="mp-field">
+        <text class="mp-label">商品名称</text>
+        <view class="mp-input {{linkBusy ? 'is-disabled' : ''}}">
+          <input class="mp-control" maxlength="60" value="{{linkDraft.title}}" data-key="title" disabled="{{linkBusy}}" bindinput="onLinkField" />
+        </view>
+      </view>
+      <view class="mp-field">
+        <text class="mp-label">完整商品链接</text>
+        <view class="mp-input {{linkBusy ? 'is-disabled' : ''}}">
+          <input class="mp-control" maxlength="2048" value="{{linkDraft.url}}" placeholder="https://item.taobao.com/…" data-key="url" disabled="{{linkBusy}}" bindinput="onLinkField" />
+        </view>
+      </view>
+      <view class="mp-field">
+        <text class="mp-label">推荐理由</text>
+        <view class="mp-input {{linkBusy ? 'is-disabled' : ''}}">
+          <input class="mp-control" maxlength="160" value="{{linkDraft.note}}" data-key="note" disabled="{{linkBusy}}" bindinput="onLinkField" />
+        </view>
+      </view>
+      <view class="mp-toggle {{linkBusy ? 'disabled' : ''}}" bindtap="onLinkPhysical">
+        <text class="mp-toggle-label">这是需要发货的实物商品，不是数字内容或充值</text>
+        <view
+          class="mp-check {{linkDraft.physical_goods ? 'on' : ''}} {{linkBusy ? 'disabled' : ''}}"
+          role="checkbox"
+          aria-checked="{{linkDraft.physical_goods}}"
+        >
+          <text wx:if="{{linkDraft.physical_goods}}" class="mp-check-tick">✓</text>
+        </view>
+      </view>
+      <view class="mp-toggle {{linkBusy ? 'disabled' : ''}}" bindtap="onLinkPublished">
+        <text class="mp-toggle-label">保存后在已公开的店铺中展示</text>
+        <view
+          class="mp-check {{linkDraft.published ? 'on' : ''}} {{linkBusy ? 'disabled' : ''}}"
+          role="checkbox"
+          aria-checked="{{linkDraft.published}}"
+        >
+          <text wx:if="{{linkDraft.published}}" class="mp-check-tick">✓</text>
+        </view>
+      </view>
+      <button
+        class="mp-btn mp-btn-primary"
+        bindtap="saveLink"
+        disabled="{{linkBusy || !linkDraft.physical_goods}}"
+      >{{linkBusy ? '正在保存…' : linkDraft.published ? '保存并展示' : '保存草稿'}}</button>
+      <button
+        wx:if="{{editingLinkId}}"
+        class="mp-btn mp-btn-ghost"
+        bindtap="cancelEditLink"
+        disabled="{{linkBusy}}"
+      >取消编辑</button>
+      <view wx:if="{{linkError}}" class="mp-error">{{linkError}}</view>
+
+      <view wx:for="{{linkItems}}" wx:key="id" class="mp-product">
+        <view class="mp-product-body">
+          <text class="mp-product-name">{{item.title}}</text>
+          <text class="mp-muted">{{item.merchant === 'tmall' ? '天猫' : '淘宝'}} · {{item.published ? '已展示' : '草稿'}}</text>
+          <view class="mp-row-actions">
+            <text class="mp-link" data-id="{{item.id}}" bindtap="editLink">编辑</text>
+            <text class="mp-link" data-id="{{item.id}}" bindtap="toggleLinkPublished">{{item.published ? '隐藏' : '展示'}}</text>
+            <text class="mp-link" data-id="{{item.id}}" bindtap="deleteLink">删除</text>
+          </view>
+        </view>
+      </view>
+      <view wx:if="{{!linkItems.length}}" class="mp-lead">还没有实物商品链接。</view>
+      <view class="mp-paging" wx:if="{{linkAfter || linkNext}}">
+        <text wx:if="{{linkAfter}}" class="mp-link" bindtap="firstLinkPage">第一页</text>
+        <text wx:if="{{linkNext}}" class="mp-link" bindtap="nextLinkPage">下一页</text>
+      </view>
+    </view>
+
+    <view wx:if="{{note}}" class="mp-note" role="status">{{note}}</view>
+    <button class="mp-btn mp-btn-primary" bindtap="save" disabled="{{busy}}">{{busy ? '正在保存…' : '保存店铺配置'}}</button>
+    <button class="mp-btn mp-btn-ghost" bindtap="goEditHome">去编辑主页添加链接卡片</button>
+  </block>
+</view>

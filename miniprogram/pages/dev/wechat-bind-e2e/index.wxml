@@ -1,0 +1,5 @@
+<view class="wrap">
+  <view class="title">微信绑定完整联调</view>
+  <view class="line" wx:for="{{lines}}" wx:key="*this">{{item}}</view>
+  <view wx:if="{{done}}" class="{{ok ? 'ok' : 'fail'}}">{{ok ? 'E2E 通过' : 'E2E 失败'}}</view>
+</view>

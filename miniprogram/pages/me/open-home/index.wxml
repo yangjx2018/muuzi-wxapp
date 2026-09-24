@@ -1,0 +1,21 @@
+<app-banner section="主页" show-back fallback-url="/pages/me/index" fallback-tab="{{true}}" />
+<web-view
+  wx:if="{{homeUrl}}"
+  src="{{homeUrl}}"
+  binderror="onWebViewError"
+></web-view>
+
+<view wx:else class="oh-page">
+  <view wx:if="{{loading}}" class="oh-loading">正在打开主页…</view>
+  <view wx:else class="oh-card">
+    <view class="oh-eyebrow">SHARE · 成品</view>
+    <view class="oh-title">{{error || title}}</view>
+    <view wx:if="{{fallbackDisplay || fallbackUrl}}" class="oh-url">{{fallbackDisplay || fallbackUrl}}</view>
+    <view class="oh-hint">{{hint || '可复制链接后在浏览器中打开。'}}</view>
+    <button
+      wx:if="{{fallbackUrl}}"
+      class="oh-btn"
+      bindtap="copyFallback"
+    >复制主页链接</button>
+  </view>
+</view>

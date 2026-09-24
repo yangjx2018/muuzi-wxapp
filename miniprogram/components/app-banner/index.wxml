@@ -1,0 +1,38 @@
+<!-- 对齐 MuuziGit AppBanner：logo + MuuZi + 分区名；可选左侧返回 -->
+<view class="app-banner-root">
+  <view class="app-banner-spacer" style="height: {{bannerPadPx}}px;"></view>
+  <view class="app-banner" style="padding-top: {{statusBarPx}}px;">
+    <view class="app-banner-row" style="height: {{navBarPx}}px;">
+      <view class="app-banner-side">
+        <view
+          wx:if="{{showBack}}"
+          class="app-banner-back"
+          bindtap="onBack"
+          aria-label="{{backLabel}}"
+          hover-class="none"
+        >
+          <image
+            class="app-banner-back-img"
+            src="/assets/icon-ui-back-ink.png"
+            mode="aspectFit"
+          />
+        </view>
+      </view>
+      <view class="app-banner-identity">
+        <view class="app-banner-mark">
+          <image
+            class="app-banner-mark-img"
+            src="/assets/logo-muu.png"
+            mode="aspectFit"
+          />
+        </view>
+        <text class="app-banner-name">MuuZi</text>
+        <text wx:if="{{section}}" class="app-banner-section">{{section}}</text>
+      </view>
+      <view
+        class="app-banner-side app-banner-side-right"
+        style="min-width: {{capsuleGapPx}}px;"
+      ></view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,117 @@
+@import "../_page.wxss";
+
+.mp-hero .mp-h2 {
+  font-size: 44rpx;
+  margin-top: 8rpx;
+}
+
+.mp-kicker {
+  margin-top: 16rpx;
+  font-size: 22rpx;
+  color: var(--app-muted);
+  letter-spacing: 0.06em;
+}
+
+.mp-feature-list,
+.mp-feature {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: var(--app-ink-2);
+  line-height: 1.45;
+}
+
+.mp-feature::before {
+  content: '· ';
+  color: var(--app-accent);
+}
+
+.mp-segments {
+  display: flex;
+  gap: 8rpx;
+  background: var(--app-bg);
+  border-radius: 999rpx;
+  padding: 4rpx;
+}
+
+.mp-segment {
+  padding: 10rpx 22rpx;
+  font-size: 24rpx;
+  color: var(--app-muted);
+  border-radius: 999rpx;
+}
+
+.mp-segment-on {
+  background: var(--app-card);
+  color: var(--app-ink);
+  font-weight: 600;
+}
+
+.mp-plan {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 20rpx 0;
+  border-top: 1rpx solid var(--app-line);
+}
+
+.mp-plan-current {
+  background: var(--app-accent-wash);
+  margin: 0 -28rpx;
+  padding-left: 28rpx;
+  padding-right: 28rpx;
+  border-radius: 20rpx;
+  border-top-color: transparent;
+}
+
+.mp-plan-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.mp-plan-name {
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.mp-plan-desc {
+  font-size: 22rpx;
+  color: var(--app-muted);
+}
+
+.mp-plan-buy {
+  flex: none;
+  margin: 0;
+  padding: 0 24rpx;
+  line-height: 2;
+  font-size: 24rpx;
+}
+
+.mp-channels {
+  margin-top: 16rpx;
+  padding-top: 12rpx;
+  border-top: 1rpx solid var(--app-line);
+}
+
+.mp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 12rpx;
+}
+
+.mp-chip {
+  padding: 12rpx 22rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid var(--app-line);
+  font-size: 24rpx;
+  color: var(--app-ink-2);
+}
+
+.mp-chip-on {
+  border-color: var(--app-accent);
+  background: var(--app-accent-wash);
+  color: var(--app-ink);
+}

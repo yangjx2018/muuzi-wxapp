@@ -1,0 +1,384 @@
+/**
+ * App-parity FieldHostInvite styles.
+ * Source of truth: MuuziGit muuzi/src/screens/app/ConnectScreen.css
+ * （.fc-visitor / .fc-scan-* / .fc-chat / .fc-bubble / .fc-primary / .fc-chip）
+ * 组件样式隔离：全部自包含，不依赖 page 的 .btn-primary。
+ * 换算：App 375 宽 1px ≈ 2rpx。
+ */
+
+.fhi,
+.fc-visitor {
+  display: flex;
+  flex-direction: column;
+  gap: 32rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 语言行 · 对齐 App .fc-scan-langs（必须可见，不得被挤成 0 高） */
+.fc-scan-langs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20rpx;
+  width: 100%;
+  min-height: 72rpx;
+  box-sizing: border-box;
+}
+
+.fc-scan-lang {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  font-size: 26rpx;
+  color: #55607a;
+  flex: none;
+}
+
+.fc-scan-lang-label {
+  flex: none;
+  font-size: 26rpx;
+  color: #55607a;
+  line-height: 1.3;
+}
+
+.fc-scan-lang-select {
+  min-width: 220rpx;
+  max-width: 42vw;
+  min-height: 64rpx;
+  padding: 12rpx 16rpx;
+  border: 2rpx solid #dce0eb;
+  border-radius: 20rpx;
+  background: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--app-ink, #15171e);
+  font-size: 26rpx;
+  line-height: 1.3;
+  box-sizing: border-box;
+}
+
+.fc-chip {
+  margin: 0;
+  padding: 14rpx 26rpx;
+  border: 2rpx solid #dce0eb;
+  border-radius: 999rpx;
+  background: #ffffff;
+  font-size: 26rpx;
+  color: #44506a;
+  line-height: 1.4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-height: 64rpx;
+  flex: none;
+}
+
+.fc-chip::after {
+  border: none;
+  content: none;
+  display: none;
+}
+
+.fc-chip-on,
+.fc-chip[aria-pressed='true'] {
+  border-color: #4a6cf7;
+  background: #eaf0ff;
+  color: #23386f;
+}
+
+.fc-chip[disabled] {
+  opacity: 0.5;
+}
+
+/* 对话气泡 · 对齐 App：客白底左尖、我蓝底右尖；scroll-view 必须固定高度 */
+.fc-chat {
+  height: 42vh;
+  max-height: 42vh;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8rpx 0;
+}
+
+.fc-chat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fc-scan-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24rpx;
+}
+
+.fc-scan-head-kicker {
+  display: block;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 20rpx;
+  letter-spacing: 0.14em;
+  color: #8a93a6;
+}
+
+.fc-scan-head-title {
+  margin: 8rpx 0 0;
+  font-size: 44rpx;
+  font-weight: 600;
+  color: var(--app-ink, #15171e);
+  line-height: 1.25;
+}
+
+.fc-scan-state {
+  flex: none;
+  padding: 10rpx 22rpx;
+  border-radius: 999rpx;
+  background: #eef2f9;
+  color: #44506a;
+  font-size: 24rpx;
+  line-height: 1.3;
+}
+
+.fc-availability {
+  font-size: 24rpx;
+  color: var(--app-muted, #666c80);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.fc-scan-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24rpx;
+  padding: 44rpx 36rpx;
+  border-radius: 44rpx;
+  background: #ffffff;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.fc-scan-card-text {
+  margin: 0;
+  color: #55607a;
+  font-size: 26rpx;
+  line-height: 1.55;
+}
+
+.fc-scan-decide {
+  align-items: stretch;
+  text-align: left;
+}
+
+.fc-scan-qr {
+  padding: 36rpx;
+  gap: 20rpx;
+}
+
+.fc-scan-hint {
+  font-size: 30rpx;
+  color: #1d2540;
+}
+
+.fc-scan-expiry {
+  color: #8a93a6;
+  font-size: 24rpx;
+}
+
+.fc-scan-placeholder {
+  width: 70%;
+  max-width: 380rpx;
+  aspect-ratio: 1;
+  border-radius: 36rpx;
+  border: 4rpx dashed #d7dced;
+  box-sizing: border-box;
+}
+
+.fc-invite-qr {
+  width: 280px;
+  height: 280px;
+  display: block;
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 40rpx;
+}
+
+.fhi-canvas {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  width: 280px;
+  height: 280px;
+}
+
+.fc-spinner {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 50%;
+  border: 6rpx solid #dfe5f2;
+  border-top-color: #4a6cf7;
+  animation: fc-spin 900ms linear infinite;
+}
+
+@keyframes fc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 对齐 App .fc-primary：实心蓝胶囊；原生 button 默认灰底需 !important 压过 */
+button.fc-primary,
+.fc-primary {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 96rpx !important;
+  padding: 0 32rpx !important;
+  margin: 0 !important;
+  border-radius: 999rpx !important;
+  background: #2f6df4 !important;
+  background-color: #2f6df4 !important;
+  color: #ffffff !important;
+  font-size: 28rpx !important;
+  font-weight: 500 !important;
+  border: none !important;
+  line-height: 1.3 !important;
+  box-sizing: border-box !important;
+  text-align: center !important;
+}
+
+button.fc-primary::after,
+.fc-primary::after {
+  border: none !important;
+  content: none !important;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+button.fc-primary[disabled],
+.fc-primary[disabled] {
+  opacity: 0.5 !important;
+  color: #ffffff !important;
+  background: #2f6df4 !important;
+  background-color: #2f6df4 !important;
+}
+
+.fc-link {
+  padding: 0 8rpx;
+  margin: 0;
+  background: transparent;
+  color: var(--app-accent, #2f6df4);
+  font-size: 24rpx;
+  border: none;
+  line-height: 1.5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-height: 0;
+  height: auto;
+  font-weight: 400;
+}
+
+.fc-link::after {
+  border: none;
+  content: none;
+  display: none;
+}
+
+.fc-link[disabled] {
+  opacity: 0.45;
+}
+
+.fc-scan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 36rpx;
+  justify-content: center;
+  align-items: center;
+}
+
+.fc-bubble {
+  max-width: 84%;
+  margin: 0;
+  padding: 20rpx 28rpx;
+  border-radius: 36rpx 36rpx 36rpx 12rpx;
+  background: #ffffff;
+  box-sizing: border-box;
+  align-self: flex-start;
+}
+
+.fc-bubble-own {
+  margin-left: auto;
+  align-self: flex-end;
+  border-radius: 36rpx 36rpx 12rpx 36rpx;
+  background: #eaf0ff;
+}
+
+.fc-bubble-meta {
+  display: flex;
+  gap: 20rpx;
+  align-items: baseline;
+  color: #8a93a6;
+  font-size: 22rpx;
+}
+
+.fc-bubble-time {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 21rpx;
+}
+
+.fc-bubble-label {
+  display: flex;
+  align-items: baseline;
+  gap: 16rpx;
+  margin-top: 8rpx;
+  color: #8a93a6;
+  font-size: 22rpx;
+}
+
+.fc-bubble-retry {
+  color: var(--app-accent, #2f6df4);
+}
+
+.fc-bubble-text {
+  display: block;
+  margin-top: 8rpx;
+  white-space: pre-wrap;
+  line-height: 1.55;
+  font-size: 28rpx;
+  color: var(--app-ink, #15171e);
+  overflow-wrap: anywhere;
+}
+
+.fc-bubble-original {
+  color: #737d93;
+  font-size: 26rpx;
+}
+
+.fc-chat-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  width: 100%;
+}
+
+.fc-chat-draft {
+  width: 100%;
+  min-height: 128rpx;
+  box-sizing: border-box;
+  border: 2rpx solid #dce0eb;
+  border-radius: 28rpx;
+  padding: 22rpx 24rpx;
+  background: #ffffff;
+  font-size: 28rpx;
+  color: var(--app-ink, #15171e);
+  line-height: 1.5;
+}

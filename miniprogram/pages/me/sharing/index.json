@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "Agent 卡与邀请",
+  "usingComponents": {
+    "app-banner": "/components/app-banner/index"
+  },
+  "navigationStyle": "custom"
+}

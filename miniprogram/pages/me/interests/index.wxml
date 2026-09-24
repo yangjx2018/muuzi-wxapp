@@ -1,0 +1,41 @@
+<app-banner section="Muu 的筛选规则" show-back fallback-url="/pages/me/index" fallback-tab="{{true}}" />
+<view class="mp">
+  
+  <view class="mp-lead">Muu 用这些替你看首页：需求看「我能做」，供给看「我在找」，命中「不想看」一律不推。</view>
+
+  <view wx:if="{{loading}}" class="mp-state">正在读取…</view>
+  <block wx:else>
+    <view class="mp-card">
+      <view class="mp-field">
+        <text class="mp-label">我能做（逗号分隔）</text>
+        <input class="mp-input" value="{{offers}}" placeholder="声音设计, 配乐" bindinput="onOffers" />
+      </view>
+      <view class="mp-field">
+        <text class="mp-label">我在找</text>
+        <input class="mp-input" value="{{wants}}" placeholder="短片, 合作导演" bindinput="onWants" />
+      </view>
+      <view class="mp-field">
+        <text class="mp-label">不想看</text>
+        <input class="mp-input" value="{{excludes}}" placeholder="广告, 婚庆" bindinput="onExcludes" />
+      </view>
+      <view class="mp-row">
+        <view class="mp-field">
+          <text class="mp-label">最低报价（元）</text>
+          <input class="mp-input" type="digit" value="{{priceMin}}" placeholder="2000" bindinput="onPriceMin" />
+        </view>
+        <view class="mp-field">
+          <text class="mp-label">最高报价（元）</text>
+          <input class="mp-input" type="digit" value="{{priceMax}}" placeholder="20000" bindinput="onPriceMax" />
+        </view>
+      </view>
+      <view class="mp-field">
+        <text class="mp-label">给 Muu 的话（可空）</text>
+        <textarea class="mp-textarea" value="{{notes}}" maxlength="500" placeholder="只接周末的活" bindinput="onNotes" />
+      </view>
+    </view>
+    <view wx:if="{{error}}" class="mp-error" role="alert">{{error}}</view>
+    <view wx:if="{{note}}" class="mp-note" role="status">{{note}}</view>
+    <button class="mp-btn mp-btn-primary" bindtap="save" disabled="{{busy}}">{{busy ? '正在保存…' : '保存'}}</button>
+    <view class="mp-lead">免费档也可以填；升级后首页「精选」按这些挑。</view>
+  </block>
+</view>

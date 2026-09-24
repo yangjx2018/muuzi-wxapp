@@ -1,0 +1,170 @@
+<view class="fc-visitor fhi">
+  <view class="fc-scan-head">
+    <view>
+      <text class="fc-scan-head-kicker">SCAN · JOIN</text>
+      <view class="fc-scan-head-title">扫码交流</view>
+    </view>
+    <text class="fc-scan-state">{{scanState}}</text>
+  </view>
+
+  <view class="fc-availability">{{saveNote}}</view>
+  <view wx:if="{{notice}}" class="fc-availability" role="status">{{notice}}</view>
+
+  <block wx:if="{{!roomId}}">
+    <view class="fc-scan-card">
+      <view class="fc-spinner" aria-hidden="true"></view>
+      <view class="fc-scan-card-text" role="status">正在创建本次话题…二维码随后就能生成。</view>
+    </view>
+  </block>
+
+  <block wx:elif="{{!inviteStatus && allowCreate}}">
+    <view class="fc-scan-card">
+      <block wx:if="{{busy}}">
+        <view class="fc-spinner" aria-hidden="true"></view>
+        <view class="fc-scan-card-text" role="status">正在生成二维码，请稍候…</view>
+      </block>
+      <block wx:else>
+        <view class="fc-scan-placeholder" aria-hidden="true"></view>
+        <view class="fc-scan-card-text">生成后把屏幕转向客户，让对方用相机扫码。</view>
+        <button
+          class="fc-primary"
+          disabled="{{!enabled || busy}}"
+          bindtap="onCreate"
+        >生成本次交流二维码</button>
+      </block>
+    </view>
+  </block>
+
+  <view wx:if="{{!inviteStatus && !allowCreate && !busy}}" class="fc-availability">
+    尚未找到可恢复的扫码交流，请刷新核对；已有文字可返回现场列表查看。
+  </view>
+
+  <view wx:if="{{url}}" class="fc-scan-card fc-scan-qr">
+    <image wx:if="{{qrPath}}" class="fc-invite-qr" src="{{qrPath}}" mode="aspectFit" />
+    <canvas canvas-id="hostQr" class="fhi-canvas" style="width:280px;height:280px;"></canvas>
+    <view class="fc-scan-hint">请客户用相机扫码加入</view>
+    <text wx:if="{{expiresLabel}}" class="fc-scan-expiry">邀请 {{expiresLabel}} 前有效</text>
+    <button class="fc-link" bindtap="copyUrl">复制邀请链接</button>
+  </view>
+
+  <view wx:if="{{inviteStatus === 'open' && !url}}" class="fc-availability">
+    邀请凭据暂不可用。请撤销本次邀请，避免重复邀请。
+  </view>
+
+  <view wx:if="{{inviteStatus === 'pending'}}" class="fc-scan-card fc-scan-decide">
+    <view class="fc-scan-card-text">
+      {{inviteGuestName || '访客'}} 申请加入本次交流。请当面确认是当前客户。
+    </view>
+    <button
+      class="fc-primary"
+      disabled="{{busy}}"
+      data-accept="1"
+      bindtap="onDecide"
+    >允许加入</button>
+    <button class="fc-link" disabled="{{busy}}" data-accept="0" bindtap="onDecide">拒绝</button>
+  </view>
+
+  <block wx:if="{{chatting}}">
+    <view class="fc-scan-langs">
+      <view class="fc-scan-lang">
+        <text class="fc-scan-lang-label">我读</text>
+        <picker
+          mode="selector"
+          range="{{langOptions}}"
+          range-key="label"
+          value="{{mineIndex}}"
+          bindchange="onMineLang"
+        >
+          <view class="fc-scan-lang-select">{{mineLabel || '选择语言'}}</view>
+        </picker>
+      </view>
+      <view class="fc-scan-lang">
+        <text class="fc-scan-lang-label">对方</text>
+        <picker
+          mode="selector"
+          range="{{langOptions}}"
+          range-key="label"
+          value="{{guestIndex}}"
+          bindchange="onGuestLang"
+        >
+          <view class="fc-scan-lang-select">{{guestLabel || '选择语言'}}</view>
+        </picker>
+      </view>
+      <button
+        class="fc-chip {{translateOn ? 'fc-chip-on' : ''}}"
+        aria-pressed="{{translateOn}}"
+        disabled="{{chipDisabled}}"
+        bindtap="toggleTranslate"
+      >{{translateOn ? '自动翻译已开' : '开启自动翻译'}}</button>
+    </view>
+    <view wx:if="{{langHint}}" class="fc-availability">{{langHint}}</view>
+
+    <scroll-view
+      class="fc-chat"
+      scroll-y
+      scroll-into-view="{{chatAnchor}}"
+      scroll-with-animation
+      enhanced
+      show-scrollbar="{{false}}"
+      role="log"
+      aria-label="现场交流"
+    >
+      <view class="fc-chat-list">
+        <block wx:for="{{chatMessages}}" wx:key="domId">
+          <view
+            id="msg-{{item.domId}}"
+            class="fc-bubble {{item.own ? 'fc-bubble-own' : ''}}"
+          >
+            <view class="fc-bubble-meta">
+              <text>{{item.own ? '我' : (inviteGuestName || '访客')}}</text>
+              <text class="fc-bubble-time">{{item.timeLabel}}</text>
+            </view>
+            <text wx:if="{{item.translated}}" class="fc-bubble-text">{{item.translated}}</text>
+            <view wx:if="{{item.label}}" class="fc-bubble-label">
+              <text>{{item.label}}</text>
+              <text
+                wx:if="{{item.canRetry}}"
+                class="fc-bubble-retry"
+                data-id="{{item.id}}"
+                bindtap="retryTranslation"
+              >重试</text>
+            </view>
+            <text class="fc-bubble-text {{item.translated ? 'fc-bubble-original' : ''}}">{{item.body}}</text>
+          </view>
+        </block>
+        <view wx:if="{{!chatMessages.length}}" class="fc-availability">客户页面就绪后即可收发文字。</view>
+      </view>
+    </scroll-view>
+
+    <view class="fc-chat-form">
+      <textarea
+        class="fc-chat-draft"
+        placeholder="输入文字…"
+        value="{{draft}}"
+        maxlength="1500"
+        disabled="{{busy || !!pendingText}}"
+        bindinput="onDraft"
+        aria-label="发送文字"
+      />
+      <button
+        class="fc-primary"
+        disabled="{{busy || !canSend}}"
+        bindtap="onSend"
+      >{{pendingText ? '重试原消息' : '发送'}}</button>
+    </view>
+  </block>
+
+  <view wx:if="{{inviteStatus && !inviteActive}}" class="fc-availability">
+    本次邀请已结束。已有交流仍保留在现场频道中。
+  </view>
+
+  <view class="fc-scan-actions">
+    <button
+      wx:if="{{inviteActive}}"
+      class="fc-link"
+      disabled="{{busy}}"
+      bindtap="onRevoke"
+    >撤销客户访问</button>
+    <button class="fc-link" disabled="{{busy}}" bindtap="onRefresh">刷新状态</button>
+  </view>
+</view>

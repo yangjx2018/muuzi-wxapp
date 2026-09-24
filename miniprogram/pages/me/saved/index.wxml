@@ -1,0 +1,36 @@
+<app-banner section="我的收藏" show-back fallback-url="/pages/me/index" fallback-tab="{{true}}" />
+<view class="mp">
+  
+
+  <view class="mp-lead">按收藏时间倒序。取消收藏后条目留到下次进来再消失，免得手滑找不回。</view>
+
+  <view wx:if="{{loading}}" class="mp-state">正在读取…</view>
+  <block wx:else>
+    <view wx:if="{{error}}" class="mp-error" role="alert">{{error}}</view>
+    <view wx:if="{{note}}" class="mp-note" role="status">{{note}}</view>
+
+    <view wx:if="{{!items.length}}" class="mp-state">
+      {{error || '还没有收藏；动态里点书签就会存到这里'}}
+    </view>
+
+    <view wx:else class="mp-card">
+      <view wx:for="{{items}}" wx:key="id" class="mp-item">
+        <view class="mp-item-meta">
+          {{item.authorName}}{{item.kindLabel ? ' · ' + item.kindLabel : ''}}
+        </view>
+        <view wx:if="{{item.title}}" class="mp-h2">{{item.title}}</view>
+        <view wx:if="{{item.body}}" class="mp-item-body">{{item.body}}</view>
+        <view class="mp-actions">
+          <button
+            wx:if="{{item.saved}}"
+            class="mp-btn mp-btn-ghost"
+            data-id="{{item.id}}"
+            bindtap="unsave"
+            disabled="{{busy}}"
+          >取消收藏</button>
+          <text wx:else class="mp-lead">已取消（下次进入后消失）</text>
+        </view>
+      </view>
+    </view>
+  </block>
+</view>

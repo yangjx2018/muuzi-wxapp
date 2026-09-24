@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "企业与邀请",
+  "usingComponents": {
+    "app-banner": "/components/app-banner/index"
+  },
+  "navigationStyle": "custom"
+}

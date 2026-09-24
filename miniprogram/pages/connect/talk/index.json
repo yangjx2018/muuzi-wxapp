@@ -1,0 +1,8 @@
+{
+  "navigationStyle": "custom",
+  "navigationBarTitleText": "面对面交流",
+  "usingComponents": {
+    "app-banner": "/components/app-banner/index",
+    "field-host-invite": "/components/field-host-invite/index"
+  }
+}

@@ -1,0 +1,10 @@
+.wrap { padding: 40rpx; }
+.note { color: #666c80; font-size: 24rpx; margin-bottom: 24rpx; line-height: 1.5; }
+.row { margin-top: 28rpx; padding: 24rpx; background: #fff; border-radius: 16rpx; }
+.name { font-size: 28rpx; font-weight: 600; }
+.kind { font-size: 22rpx; color: #666c80; font-weight: 400; }
+.status { margin-top: 8rpx; font-size: 26rpx; }
+.status.ok { color: #2a7d51; }
+.status.fail { color: #c0173a; }
+.detail { margin-top: 6rpx; font-size: 22rpx; color: #666c80; word-break: break-all; }
+.done { margin-top: 36rpx; font-size: 24rpx; color: #2f6df4; line-height: 1.6; }

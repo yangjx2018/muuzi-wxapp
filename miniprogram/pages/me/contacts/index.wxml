@@ -1,0 +1,153 @@
+<app-banner section="留言收件箱" show-back fallback-url="/pages/messages/index" fallback-tab="{{true}}" />
+<view class="mp">
+  
+
+  <view class="mp-tabs">
+    <view class="mp-tab {{!settingsOpen ? 'mp-tab-on' : ''}}" bindtap="openList">收到的留言</view>
+    <view class="mp-tab {{settingsOpen ? 'mp-tab-on' : ''}}" bindtap="openSettings">信箱设置</view>
+  </view>
+
+  <view wx:if="{{note}}" class="mp-note" role="status">{{note}}</view>
+  <view wx:if="{{loading}}" class="mp-state">正在读取收件箱…</view>
+
+  <block wx:elif="{{!settingsOpen}}">
+    <view class="mp-card">
+      <view class="mp-h2">收到的留言</view>
+      <view wx:if="{{!items.length}}" class="mp-lead">暂无留言</view>
+      <view wx:for="{{items}}" wx:key="id" class="mp-item">
+        <view class="mp-item-meta">{{item.statusLabel}} · {{item.createdLabel}}</view>
+        <block wx:if="{{item.reported_at}}">
+          <view class="mp-lead">已转交安全人员，正文与回复邮箱不再显示。</view>
+        </block>
+        <block wx:else>
+          <view class="mp-item-body">{{item.body}}</view>
+          <view wx:if="{{item.reply_email}}" class="mp-lead">回复邮箱（未验证）：{{item.reply_email}}</view>
+        </block>
+        <view class="mp-actions">
+          <button
+            wx:if="{{!item.reported_at}}"
+            class="mp-btn mp-btn-ghost"
+            data-id="{{item.id}}"
+            data-status="read"
+            bindtap="mark"
+            disabled="{{busy}}"
+          >标记已读</button>
+          <button
+            wx:if="{{!item.reported_at}}"
+            class="mp-btn mp-btn-ghost"
+            data-id="{{item.id}}"
+            data-status="closed"
+            bindtap="mark"
+            disabled="{{busy}}"
+          >关闭</button>
+          <button
+            wx:if="{{!item.reported_at}}"
+            class="mp-btn mp-btn-ghost"
+            data-id="{{item.id}}"
+            data-status="reported"
+            bindtap="mark"
+            disabled="{{busy}}"
+          >举报</button>
+          <button
+            class="mp-btn mp-btn-ghost"
+            data-id="{{item.id}}"
+            bindtap="remove"
+            disabled="{{busy}}"
+          >删除</button>
+        </view>
+      </view>
+      <button
+        wx:if="{{nextAfter}}"
+        class="mp-btn mp-btn-secondary"
+        bindtap="loadMore"
+        disabled="{{busy}}"
+      >加载更多</button>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="mp-card" wx:if="{{!owner}}">
+      <view class="mp-h2">节点私人频道</view>
+      <view class="mp-lead">主动连接后，新留言会进入你在当前节点的独立私人频道。历史留言不会搬移，访客邮箱不会发送到频道。删除、举报或关闭连接后，已投递内容会进入撤回处理。</view>
+      <block wx:if="{{inboxAvailable}}">
+        <view class="mp-field">
+          <text class="mp-label">接收内容</text>
+          <picker
+            mode="selector"
+            range="{{inboxModeLabels}}"
+            value="{{inboxModeIndex}}"
+            disabled="{{channelBusy || inboxBound}}"
+            bindchange="onInboxMode"
+          >
+            <view class="mp-input">{{inboxModeLabels[inboxModeIndex]}}</view>
+          </picker>
+        </view>
+        <view class="mp-note">{{inboxBound ? '已连接 · 新留言自动接收' : '尚未连接'}}</view>
+        <button
+          class="mp-btn mp-btn-primary"
+          bindtap="connectInbox"
+          disabled="{{!matrixReady || !inbox || channelBusy || inboxBound}}"
+        >{{channelBusy ? '正在处理…' : '同意并连接私人频道'}}</button>
+      </block>
+      <view wx:else class="mp-lead">当前节点尚未开放自动接收。现有留言仍可在收件箱查看。</view>
+      <button
+        wx:if="{{inbox && inbox.binding}}"
+        class="mp-btn mp-btn-ghost"
+        bindtap="disconnectInbox"
+        disabled="{{channelBusy}}"
+      >关闭连接并撤回</button>
+      <view wx:if="{{channelNote}}" class="mp-note" role="status">{{channelNote}}</view>
+      <button
+        class="mp-btn mp-btn-secondary"
+        bindtap="openInboxChannel"
+        disabled="{{!inboxRoomId}}"
+      >{{inboxRoomId ? '打开留言频道' : (matrixReady ? '留言频道准备中' : '等待消息同步')}}</button>
+    </view>
+    <view class="mp-card">
+      <view class="mp-h2">留言设置</view>
+      <view class="mp-lead">默认关闭。开启后访客可提交一次性联系请求。</view>
+      <button class="mp-btn mp-btn-primary" bindtap="toggleEnabled" disabled="{{busy || loading}}">
+        {{enabled ? '关闭公开留言' : '开启公开留言'}}
+      </button>
+    </view>
+    <view class="mp-card">
+      <view class="mp-h2">本人邮箱通知</view>
+      <view class="mp-note">
+        {{notification.verified_at ? ('已验证：' + notification.email) : '尚未验证邮箱'}}
+        · {{notification.enabled ? '通知已开启' : '通知已关闭'}}
+      </view>
+      <view class="mp-field">
+        <text class="mp-label">本人通知邮箱</text>
+        <input class="mp-input" value="{{email}}" maxlength="254" bindinput="onEmail" />
+      </view>
+      <button
+        class="mp-btn mp-btn-ghost"
+        bindtap="requestVerify"
+        disabled="{{busy || !email}}"
+      >申请验证邮件</button>
+      <block wx:if="{{notification.verification_pending}}">
+        <view class="mp-field">
+          <text class="mp-label">邮件中的验证码</text>
+          <input class="mp-input" value="{{code}}" maxlength="32" bindinput="onCode" />
+        </view>
+        <button
+          class="mp-btn mp-btn-ghost"
+          bindtap="verifyEmail"
+          disabled="{{busy || code.length !== 32}}"
+        >验证邮箱</button>
+      </block>
+      <button
+        wx:if="{{notification.verified_at}}"
+        class="mp-btn mp-btn-ghost"
+        bindtap="toggleNotify"
+        disabled="{{busy}}"
+      >{{notification.enabled ? '关闭邮件通知' : '开启邮件通知'}}</button>
+      <button
+        wx:if="{{notification.verified_at || notification.verification_pending}}"
+        class="mp-btn mp-btn-ghost"
+        bindtap="removeEmail"
+        disabled="{{busy}}"
+      >移除邮箱</button>
+    </view>
+  </block>
+</view>

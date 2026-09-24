@@ -1,0 +1,28 @@
+<app-banner section="现场交流" show-back fallback-url="/pages/connect/index" fallback-tab="{{true}}" />
+<view class="fc fc-continue">
+  <view class="fc-heading">
+    <text class="fc-kicker">FIELD · CONTINUE</text>
+    <view class="fc-title">继续扫码交流</view>
+    <view class="fc-lead">从已保存的现场话题恢复邀请或打开频道；不会伪造房间。</view>
+  </view>
+
+  <view class="fc-hero">
+    <view class="fc-hero-p" role="status">{{note}}</view>
+    <view
+      wx:if="{{!roomId}}"
+      class="fc-availability"
+    >请从连接页「已保存的现场交流」进入，或先完成面对面交流后再继续。</view>
+    <view
+      wx:if="{{roomId && matrixReady && !canOpenChat}}"
+      class="fc-availability"
+    >无法恢复这个现场话题，请从当前账号的现场列表重新进入。</view>
+    <view
+      wx:if="{{roomId && !matrixReady}}"
+      class="fc-availability"
+    >同步未就绪时暂不能打开会话；就绪后将自动进入扫码邀请。</view>
+    <button wx:if="{{canResume}}" class="fc-primary" bindtap="resumeHost">恢复扫码邀请</button>
+    <button wx:if="{{canOpenChat}}" class="fc-card-refresh" bindtap="openChat">打开现场频道</button>
+    <button class="fc-primary" bindtap="goTalk">去面对面交流</button>
+    <button class="fc-card-refresh" bindtap="goConnect">返回连接</button>
+  </view>
+</view>

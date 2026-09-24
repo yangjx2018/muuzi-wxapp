@@ -1,0 +1,190 @@
+<view class="auth-page">
+  <view class="auth-header">
+    <view class="auth-mark">
+      <image class="auth-mark-img" src="/assets/logo-muu.png" mode="aspectFit" />
+    </view>
+    <view class="auth-wordmark">
+      <text class="auth-wordmark-name">MuuZi</text>
+      <text class="auth-wordmark-section">// {{section}}</text>
+    </view>
+    <text class="auth-status">{{statusText}}</text>
+    <view class="auth-gear" catchtap="onGear" aria-label="设置">
+      <view class="auth-ico-gear" aria-hidden="true"></view>
+    </view>
+  </view>
+
+  <view class="auth-body">
+    <view class="auth-step">AUTH / 001</view>
+    <view class="auth-title">登录 MuuZi</view>
+    <view class="auth-lead">用同一个 MuuZi ID，找回你的作品、Agent，和替你说话的分身 Muu。</view>
+
+    <view wx:if="{{notice}}" class="auth-notice">{{notice}}</view>
+
+    <block wx:if="{{node && !picking}}">
+      <view class="node-selected">
+        <view class="node-identity">
+          <view class="node-logo">{{nodeInitial}}</view>
+          <view>
+            <text class="node-name">{{node.brandName}}</text>
+            <text class="node-domain">{{node.domain}}</text>
+          </view>
+        </view>
+        <text class="node-change" catchtap="onChangeNode">更换节点</text>
+      </view>
+    </block>
+    <view wx:else class="node-picker">
+      <view class="field-label" style="margin-bottom:16rpx">所属节点（仅白名单）</view>
+      <view
+        wx:for="{{nodes}}"
+        wx:key="domain"
+        class="node-option {{node.domain === item.domain ? 'active' : ''}}"
+        data-domain="{{item.domain}}"
+        catchtap="onPickNode"
+      >
+        <text class="node-name">{{item.company_name || item.label}}</text>
+        <text class="node-domain">{{item.domain}}</text>
+      </view>
+    </view>
+
+    <view class="field">
+      <text class="field-label">账号或邮箱</text>
+      <input
+        class="field-input"
+        placeholder="请输入账号或邮箱"
+        placeholder-class="field-input-placeholder"
+        value="{{identifier}}"
+        bindinput="onIdentifier"
+        confirm-type="next"
+      />
+    </view>
+    <view class="field">
+      <text class="field-label">密码</text>
+      <view class="field-secure">
+        <input
+          class="field-input field-input-secure"
+          password="{{!showPassword}}"
+          value="{{password}}"
+          bindinput="onPassword"
+          confirm-type="done"
+          bindconfirm="onLoginTap"
+        />
+        <view
+          class="field-reveal"
+          catchtap="togglePassword"
+          aria-label="{{showPassword ? '隐藏密码' : '显示密码'}}"
+        >
+          <text class="field-reveal-text">{{showPassword ? '隐藏' : '显示'}}</text>
+        </view>
+      </view>
+    </view>
+    <view wx:if="{{stepUpHint}}" class="field">
+      <text class="field-label">邮箱安全验证码 · {{stepUpHint}}</text>
+      <input
+        class="field-input"
+        type="digit"
+        maxlength="6"
+        placeholder="······"
+        placeholder-class="field-input-placeholder"
+        value="{{securityCode}}"
+        bindinput="onSecurityCode"
+        bindconfirm="onLoginTap"
+      />
+    </view>
+    <view class="assist-row">
+      <text class="assist-link" catchtap="goRecover">忘记密码？</text>
+    </view>
+
+    <button
+      class="btn-primary {{loginBusy ? 'is-busy' : ''}} {{ready || loginBusy ? '' : 'is-muted'}}"
+      hover-class="btn-primary-hover"
+      loading="{{loginBusy}}"
+      disabled="{{loginBusy || wechatBusy}}"
+      bindtap="onLoginTap"
+    >{{loginBusy ? '正在登录…' : (stepUpHint ? '完成安全验证' : '登录 MuuZi')}}</button>
+
+    <view wx:if="{{error}}" class="auth-notice error" style="margin-top:28rpx">{{error}}</view>
+
+    <view class="divider"><text class="divider-text">或使用其他方式</text></view>
+    <button
+      class="btn-wechat {{wechatBusy || loginBusy || !node || bindSheetVisible ? 'is-muted' : ''}}"
+      hover-class="btn-wechat-hover"
+      loading="{{wechatBusy}}"
+      disabled="{{wechatBusy || loginBusy || !node || bindSheetVisible}}"
+      bindtap="onWeChatLogin"
+    >{{wechatBusy ? '正在连接微信…' : '微信登录'}}</button>
+
+    <view class="footer-link">
+      <text class="footer-prompt">还没有 MuuZi ID？</text>
+      <text class="footer-action" catchtap="goJoin">建立新账号</text>
+    </view>
+
+    <view class="legal-note">
+      账号、密码和 Matrix 会话只会送往你选择的 GuDuu OS 节点，不会送往 Nexus。微信登录码只发往当前节点。
+    </view>
+
+    <view class="status-strip">
+      <text>SESSION / READY</text>
+      <text>{{statusText}}</text>
+    </view>
+  </view>
+
+  <view wx:if="{{bindSheetVisible}}" class="bind-mask" catchtouchmove="noop">
+    <view class="bind-mask-bg" catchtap="closeBindSheet"></view>
+    <view class="bind-sheet" catchtap="noop">
+      <view class="bind-sheet-handle"></view>
+
+      <block wx:if="{{bindSheetMode === 'form'}}">
+        <view class="bind-sheet-title">绑定本节点账号</view>
+        <view class="bind-sheet-lead">微信已通过。请填写本节点已有账号完成验证，通过后即可进入；下次同一微信可一键登录。</view>
+
+        <view class="field">
+          <text class="field-label">账号或邮箱</text>
+          <input
+            class="field-input"
+            placeholder="本节点已有账号"
+            placeholder-class="field-input-placeholder"
+            value="{{bindAccount}}"
+            bindinput="onBindAccount"
+            focus="{{bindSheetVisible && bindSheetMode === 'form'}}"
+          />
+        </view>
+        <view class="field">
+          <text class="field-label">密码</text>
+          <view class="field-secure">
+            <input
+              class="field-input field-input-secure"
+              password="{{!showBindPassword}}"
+              placeholder="请输入密码"
+              placeholder-class="field-input-placeholder"
+              value="{{bindPassword}}"
+              bindinput="onBindPassword"
+            />
+            <view
+              class="field-reveal"
+              catchtap="toggleBindPassword"
+              aria-label="{{showBindPassword ? '隐藏密码' : '显示密码'}}"
+            >
+              <text class="field-reveal-text">{{showBindPassword ? '隐藏' : '显示'}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view wx:if="{{bindError}}" class="auth-notice error" style="margin-bottom:20rpx">{{bindError}}</view>
+
+        <button class="btn-primary" disabled="{{!bindReady || bindBusy}}" loading="{{bindBusy}}" bindtap="onBindConfirm">
+          {{bindBusy ? '正在验证…' : '验证并绑定'}}
+        </button>
+        <view class="bind-sheet-cancel" catchtap="closeBindSheet">取消</view>
+      </block>
+
+      <block wx:else>
+        <view class="bind-sheet-title">账号验证未通过</view>
+        <view class="bind-sheet-lead">{{bindFailHint}}</view>
+
+        <button class="btn-primary" bindtap="onBindRetry">重新填写账号</button>
+        <button class="btn-wechat bind-sheet-secondary" bindtap="onBindCreateAccount">建立新账号</button>
+        <view class="bind-sheet-cancel" catchtap="closeBindSheet">稍后再说</view>
+      </block>
+    </view>
+  </view>
+</view>

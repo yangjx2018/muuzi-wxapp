@@ -1,0 +1,22 @@
+@import "../_page.wxss";
+
+.mp-list-item {
+  padding: 20rpx 0;
+  border-top: 1rpx solid var(--app-line);
+}
+
+.mp-list-item:first-child {
+  border-top: none;
+}
+
+.mp-badge {
+  font-size: 22rpx;
+  color: var(--app-muted);
+}
+
+.mp-link-text {
+  font-size: 24rpx;
+  color: var(--app-ink);
+  word-break: break-all;
+  line-height: 1.4;
+}

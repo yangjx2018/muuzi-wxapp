@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "我",
+  "usingComponents": {
+    "status-pad": "/components/status-pad/index"
+  },
+  "navigationStyle": "custom"
+}

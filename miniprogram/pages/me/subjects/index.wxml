@@ -1,0 +1,156 @@
+<app-banner section="管理主体" show-back fallback-url="/pages/me/index" fallback-tab="{{true}}" />
+<view class="mp">
+  
+  <view class="mp-lead">虚拟主体由你的账号运营，不拥有独立聊天账号。互动仍以你本人进行。</view>
+
+  <view wx:if="{{loading}}" class="mp-state">正在读取…</view>
+  <block wx:else>
+    <view wx:if="{{error}}" class="mp-error" role="alert">{{error}}</view>
+    <view wx:if="{{note}}" class="mp-note" role="status">{{note}}</view>
+    <view wx:if="{{opsNote}}" class="mp-note" role="status">{{opsNote}}</view>
+
+    <view class="mp-card">
+      <view class="mp-field">
+        <text class="mp-label">当前管理主体</text>
+        <picker mode="selector" range="{{names}}" value="{{selectedIndex}}" bindchange="onPick">
+          <view class="mp-input">{{names[selectedIndex]}} ›</view>
+        </picker>
+      </view>
+      <button wx:if="{{!current}}" class="mp-btn mp-btn-ghost" bindtap="goEditHome">编辑本人主页</button>
+      <block wx:if="{{current}}">
+        <view class="mp-h2">{{current.name || current.slug}}</view>
+        <view class="mp-note">
+          {{current.form === 'org' ? '虚拟企业' : '虚拟人'}} · {{current.slug}}
+          · {{current.status === 'active' ? '活跃' : '已停用'}}
+        </view>
+        <view wx:if="{{blocked}}" class="mp-lead">该主体当前受限，可查看保留资料；恢复条件以当前套餐和审核状态为准。</view>
+        <button class="mp-btn mp-btn-ghost" bindtap="copyPublic">复制公开主页</button>
+        <button class="mp-btn mp-btn-ghost" bindtap="goCompose" disabled="{{blocked}}">以此主体发布动态</button>
+        <button class="mp-btn mp-btn-ghost" bindtap="goSharing">Agent 卡与邀请分享</button>
+        <button class="mp-btn mp-btn-ghost" bindtap="goContacts">留言收件箱</button>
+        <button class="mp-btn mp-btn-ghost" bindtap="goAgentAccess">代理权限与人设</button>
+        <button class="mp-btn mp-btn-ghost" bindtap="copyStudio">复制 Studio（编辑主页）</button>
+        <button
+          class="mp-btn mp-btn-primary"
+          bindtap="toggleActive"
+          disabled="{{opsBusy || (current.status === 'disabled' && current.disabled_by_type === 'platform')}}"
+        >
+          {{current.status === 'active' ? '停用主体' : '恢复主体'}}
+        </button>
+        <button
+          class="mp-btn mp-btn-ghost"
+          bindtap="makeShortLink"
+          disabled="{{opsBusy || blocked}}"
+        >生成分享短链</button>
+        <view wx:if="{{shortUrl}}" class="mp-field">
+          <text class="mp-link" bindtap="copyShort">{{shortUrl}}</text>
+        </view>
+      </block>
+    </view>
+
+    <block wx:if="{{current}}">
+      <view class="mp-card">
+        <view class="mp-h2">作品库</view>
+        <view class="mp-field">
+          <text class="mp-label">作品标题</text>
+          <input class="mp-input" maxlength="80" value="{{workTitle}}" disabled="{{opsBusy || blocked}}" bindinput="onWorkTitle" />
+        </view>
+        <view class="mp-field">
+          <text class="mp-label">作品类型</text>
+          <picker mode="selector" range="{{workKindLabels}}" value="{{workKindIndex}}" disabled="{{opsBusy || blocked}}" bindchange="onWorkKind">
+            <view class="mp-input">{{workKindLabels[workKindIndex]}} ›</view>
+          </picker>
+        </view>
+        <view class="mp-field">
+          <text class="mp-label">作品地址</text>
+          <input class="mp-input" value="{{workUrl}}" placeholder="https://" disabled="{{opsBusy || blocked}}" bindinput="onWorkUrl" />
+        </view>
+        <button class="mp-btn mp-btn-ghost" bindtap="addWork" disabled="{{opsBusy || blocked || !workTitle || !workUrl}}">添加私有作品</button>
+        <button class="mp-btn mp-btn-ghost" bindtap="uploadWorkImage" disabled="{{opsBusy || blocked}}">上传图片（先存为私有）</button>
+        <view wx:for="{{works}}" wx:key="id" class="mp-product">
+          <view class="mp-product-body">
+            <text class="mp-product-name">{{item.title}}</text>
+            <text class="mp-muted">{{item.visibility === 'public' ? '公开' : '私有'}}</text>
+            <view class="mp-row-actions">
+              <text
+                class="mp-link"
+                data-id="{{item.id}}"
+                data-visibility="{{item.visibility}}"
+                bindtap="toggleWorkVisibility"
+              >{{item.visibility === 'public' ? '设为私有' : '公开作品'}}</text>
+              <text class="mp-link" data-id="{{item.id}}" bindtap="removeWork">删除作品</text>
+            </view>
+          </view>
+        </view>
+        <view wx:if="{{!works.length}}" class="mp-lead">暂无作品</view>
+      </view>
+
+      <view class="mp-card">
+        <view class="mp-h2">主体动态</view>
+        <view wx:for="{{posts}}" wx:key="id" class="mp-product">
+          <view class="mp-product-body">
+            <text class="mp-product-name">{{item.title}}</text>
+            <text class="mp-muted">{{item.status === 'active' ? '展示中' : '已关闭'}}</text>
+            <view class="mp-row-actions">
+              <text
+                wx:if="{{item.status === 'active'}}"
+                class="mp-link"
+                data-id="{{item.id}}"
+                bindtap="closeManagedPost"
+              >关闭动态</text>
+              <text class="mp-link" data-id="{{item.id}}" bindtap="removeManagedPost">删除动态</text>
+            </view>
+          </view>
+        </view>
+        <view wx:if="{{!posts.length}}" class="mp-lead">暂无动态</view>
+      </view>
+
+      <view class="mp-card">
+        <view class="mp-h2">运营者认证</view>
+        <view class="mp-lead">{{verification}}。认证只核验运营者，不表示虚拟形象是真人。</view>
+        <view class="mp-field">
+          <text class="mp-label">运营者真实姓名</text>
+          <input class="mp-input" maxlength="80" value="{{legalName}}" disabled="{{opsBusy || blocked}}" bindinput="onLegalName" />
+        </view>
+        <view class="mp-field">
+          <text class="mp-label">佐证链接</text>
+          <input class="mp-input" value="{{evidence}}" placeholder="https://" disabled="{{opsBusy || blocked}}" bindinput="onEvidence" />
+        </view>
+        <view class="mp-field">
+          <text class="mp-label">申请说明</text>
+          <textarea class="mp-textarea" maxlength="600" value="{{statement}}" disabled="{{opsBusy || blocked}}" bindinput="onStatement" />
+        </view>
+        <button
+          class="mp-btn mp-btn-primary"
+          bindtap="applyVerification"
+          disabled="{{opsBusy || blocked || !legalName || !evidence || !statement}}"
+        >提交认证申请</button>
+      </view>
+    </block>
+
+    <view class="mp-card">
+      <view class="mp-h2">创建虚拟主体</view>
+      <view class="mp-note">活跃主体 {{activeCount}} / {{limit}}</view>
+      <button wx:if="{{!limit}}" class="mp-btn mp-btn-ghost" bindtap="goMembership">查看会员名额</button>
+      <view class="mp-field">
+        <text class="mp-label">名称</text>
+        <input class="mp-input" maxlength="40" value="{{name}}" bindinput="onName" />
+      </view>
+      <view class="mp-field">
+        <text class="mp-label">主页地址</text>
+        <input class="mp-input" maxlength="40" value="{{slug}}" placeholder="小写字母、数字或连字符" bindinput="onSlug" />
+      </view>
+      <view class="mp-field">
+        <text class="mp-label">主体类型</text>
+        <picker mode="selector" range="{{formLabels}}" value="{{formIndex}}" bindchange="onForm">
+          <view class="mp-input">{{formLabels[formIndex]}} ›</view>
+        </picker>
+      </view>
+      <button
+        class="mp-btn mp-btn-primary"
+        bindtap="create"
+        disabled="{{busy || activeCount >= limit}}"
+      >{{busy ? '正在创建…' : '创建主体'}}</button>
+    </view>
+  </block>
+</view>

@@ -1,0 +1,325 @@
+/* Connect Hub · 对齐 App ConnectScreen 视觉 + 同源 SVG 图标 */
+
+.fc {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 24rpx 40rpx calc(24rpx + env(safe-area-inset-bottom));
+  background: var(--app-bg);
+}
+
+.fc-heading {
+  padding: 24rpx 0 50rpx;
+}
+
+.fc-kicker {
+  display: block;
+  font-size: 18rpx;
+  letter-spacing: 0.12em;
+  color: var(--app-muted);
+}
+
+.fc-title {
+  font-size: 50rpx;
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: -0.8px;
+  margin: 24rpx 0 18rpx;
+  color: var(--app-ink);
+}
+
+.fc-lead {
+  font-size: 24rpx;
+  color: var(--app-muted);
+  line-height: 1.6;
+}
+
+.fc-hero {
+  background: var(--app-card);
+  border: 1rpx solid var(--app-line);
+  border-radius: 44rpx;
+  padding: 44rpx;
+}
+
+.fc-hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fc-mic {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 34rpx;
+}
+
+.fc-tag {
+  font-size: 20rpx;
+  color: var(--app-muted);
+  padding: 12rpx 18rpx;
+  background: var(--app-bg);
+  border-radius: 999rpx;
+}
+
+.fc-hero-h2 {
+  font-size: 46rpx;
+  letter-spacing: -0.6px;
+  margin: 46rpx 0 20rpx;
+  font-weight: 550;
+  color: var(--app-ink);
+}
+
+.fc-hero-p {
+  font-size: 26rpx;
+  color: var(--app-muted);
+  line-height: 1.8;
+  margin: 0;
+}
+
+.fc-hero-p-2 {
+  margin: 0 0 50rpx;
+}
+
+/* 对齐 App .fc-primary；原生 button 默认灰底需 !important 压过 */
+button.fc-primary,
+.fc-primary {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 24rpx;
+  min-height: 96rpx !important;
+  border-radius: 999rpx !important;
+  background: #2f6df4 !important;
+  background-color: #2f6df4 !important;
+  color: #ffffff !important;
+  font-size: 28rpx !important;
+  font-weight: 500 !important;
+  border: none !important;
+  padding: 0 32rpx !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  text-align: center !important;
+  line-height: 1.3 !important;
+}
+
+button.fc-primary::after,
+.fc-primary::after {
+  border: none !important;
+  content: none !important;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+button.fc-primary[disabled],
+.fc-primary[disabled] {
+  opacity: 0.5 !important;
+  color: #ffffff !important;
+  background: #2f6df4 !important;
+  background-color: #2f6df4 !important;
+}
+
+.fc-primary-arrow {
+  width: 40rpx;
+  height: 40rpx;
+  /* 蓝底按钮上需白色箭头（accent 资源为蓝色） */
+  filter: brightness(0) invert(1);
+}
+
+.fc-availability {
+  font-size: 24rpx;
+  color: var(--app-muted);
+  line-height: 1.7;
+  margin: 28rpx 0 0;
+}
+
+.fc-gift-note {
+  margin-top: 8rpx;
+  margin-bottom: 8rpx;
+}
+
+.fc-shortcuts {
+  display: flex;
+  gap: 24rpx;
+  margin: 28rpx 0 40rpx;
+}
+
+.fc-shortcut {
+  flex: 1;
+  position: relative;
+  text-align: left;
+  padding: 32rpx 28rpx;
+  background: var(--app-card);
+  border: 1rpx solid var(--app-line);
+  border-radius: 36rpx;
+  box-sizing: border-box;
+  line-height: 1.3;
+}
+
+.fc-shortcut::after {
+  border: none;
+}
+
+.fc-shortcut-icon-img {
+  display: block;
+  width: 46rpx;
+  height: 46rpx;
+  margin: 0 0 24rpx;
+}
+
+.fc-shortcut-strong {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 550;
+  color: var(--app-ink);
+}
+
+.fc-shortcut-small {
+  display: block;
+  font-size: 20rpx;
+  color: var(--app-muted);
+  margin-top: 12rpx;
+  padding-right: 24rpx;
+}
+
+.fc-shortcut-chevron-img {
+  position: absolute;
+  right: 24rpx;
+  top: 32rpx;
+  width: 28rpx;
+  height: 28rpx;
+}
+
+.fc-section {
+  margin-top: 8rpx;
+  padding-top: 8rpx;
+}
+
+.fc-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+
+.fc-section-h2 {
+  font-size: 28rpx;
+  font-weight: 550;
+  color: var(--app-ink);
+}
+
+.fc-empty {
+  padding: 40rpx 0;
+  border-top: 1rpx solid var(--app-line);
+  color: var(--app-muted);
+  font-size: 24rpx;
+  line-height: 1.8;
+}
+
+.fc-saved .fc-empty {
+  border-top: none;
+  padding-top: 8rpx;
+}
+
+.fc-link {
+  display: block;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--app-accent);
+  font-size: 26rpx;
+  border: none;
+  text-align: left;
+  line-height: 1.5;
+  width: auto;
+}
+
+.fc-link::after {
+  border: none;
+}
+
+.fc-card-refresh {
+  margin: 8rpx 0 16rpx;
+  padding: 20rpx 0;
+  background: transparent;
+  color: var(--app-accent);
+  font-size: 26rpx;
+  border: none;
+  text-align: left;
+}
+
+.fc-card-refresh::after {
+  border: none;
+}
+
+.fc-card-refresh[disabled] {
+  opacity: 0.5;
+}
+
+.fc-topic-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+  padding: 36rpx;
+  border-radius: 36rpx;
+  background: var(--app-card);
+  border: 1rpx solid var(--app-line);
+  margin-bottom: 16rpx;
+}
+
+.fc-topic-field {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.fc-topic-label {
+  font-size: 24rpx;
+  color: var(--app-ink);
+}
+
+.fc-topic-input {
+  min-height: 84rpx;
+  padding: 16rpx 20rpx;
+  border: 1rpx solid var(--app-line);
+  border-radius: 20rpx;
+  background: var(--app-bg);
+  color: var(--app-ink);
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.fc-topic-hint {
+  font-size: 22rpx;
+  color: var(--app-muted);
+  line-height: 1.6;
+}
+
+.fc-topic-item {
+  border-top: 1rpx solid var(--app-line);
+  padding: 24rpx 0;
+}
+
+.fc-topic-item-title {
+  font-size: 28rpx;
+  font-weight: 550;
+  color: var(--app-ink);
+  word-break: break-word;
+  margin-bottom: 8rpx;
+}
+
+.fc-topic-item-meta {
+  font-size: 22rpx;
+  color: var(--app-muted);
+  line-height: 1.6;
+}
+
+.fc-delete-confirm {
+  margin-top: 16rpx;
+  padding: 28rpx;
+  border: 1rpx solid var(--app-line);
+  border-radius: 28rpx;
+  background: var(--app-card);
+}
+

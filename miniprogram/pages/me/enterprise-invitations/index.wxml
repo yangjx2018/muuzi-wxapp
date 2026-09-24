@@ -1,0 +1,39 @@
+<app-banner section="企业与邀请" show-back fallback-url="/pages/me/index" fallback-tab="{{true}}" />
+<view class="mp">
+  
+
+  <view class="mp-lead">接受后加入当前节点的企业组织，并启用企业分配的 MuuZi 席位。个人空间保留。</view>
+
+  <view wx:if="{{loading}}" class="mp-state">正在读取邀请…</view>
+  <block wx:else>
+    <view wx:if="{{error}}" class="mp-error" role="alert">{{error}}</view>
+
+    <view wx:if="{{!rows.length}}" class="mp-state">当前账号没有待处理的企业邀请。</view>
+
+    <view wx:for="{{rows}}" wx:key="id" class="mp-card">
+      <view class="mp-h2">{{item.name}}</view>
+      <view class="mp-item-meta">{{item.pageHint}}</view>
+
+      <block wx:if="{{item.pending}}">
+        <view class="mp-lead">邀请只对当前账号有效。加入企业不会自动公开你的个人主页。</view>
+        <button
+          class="mp-btn mp-btn-primary"
+          data-id="{{item.id}}"
+          bindtap="accept"
+          disabled="{{!!busyId}}"
+        >{{busyId === item.id ? '正在核对加入结果…' : '接受邀请，加入企业'}}</button>
+      </block>
+
+      <block wx:else>
+        <view class="mp-note">{{item.statusLabel}}</view>
+        <view class="mp-lead">授权后，你已发布的头像、名称和个人主页将展示在企业主页。你可以随时关闭；席位失效或退出组织后将停止展示。</view>
+        <button
+          class="mp-btn mp-btn-secondary"
+          data-id="{{item.id}}"
+          bindtap="toggleDisplay"
+          disabled="{{!!busyId || item.displayDisabled}}"
+        >{{busyId === item.id ? '正在保存…' : item.displayLabel}}</button>
+      </block>
+    </view>
+  </block>
+</view>

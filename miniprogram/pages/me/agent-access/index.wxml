@@ -1,0 +1,87 @@
+<app-banner section="代理权限与人设" show-back fallback-url="/pages/me/index" fallback-tab="{{true}}" />
+<view class="mp">
+  
+
+  <view class="mp-lead">
+    绑定当前主体：{{ownerLabel}}。只授权选择的用途，无法管理账号或再创建令牌。读取留言正文可能包含访客自行填写的联系方式，独立回复邮箱不开放。
+  </view>
+
+  <view wx:if="{{loading}}" class="mp-state">正在读取…</view>
+  <block wx:else>
+    <view wx:if="{{error}}" class="mp-error" role="alert">{{error}}</view>
+    <view wx:if="{{note}}" class="mp-note" role="status">{{note}}</view>
+
+    <view class="mp-card">
+      <view class="mp-h2">代理权限</view>
+      <checkbox-group bindchange="onScopes">
+        <label wx:for="{{scopeChoices}}" wx:key="value" class="mp-toggle">
+          <text>{{item.label}}</text>
+          <checkbox value="{{item.value}}" checked="{{item.checked}}" disabled="{{busy}}" />
+        </label>
+      </checkbox-group>
+      <view class="mp-field">
+        <text class="mp-label">有效天数（1–30）</text>
+        <input class="mp-input" type="number" value="{{days}}" bindinput="onDays" disabled="{{busy}}" />
+      </view>
+      <button
+        class="mp-btn mp-btn-primary"
+        bindtap="createToken"
+        disabled="{{busy || !!plain}}"
+      >创建代理令牌</button>
+    </view>
+
+    <view wx:if="{{plain}}" class="mp-card">
+      <view class="mp-h2">一次性令牌</view>
+      <view class="mp-lead">仅显示一次，请保存到你自己的安全配置。不要贴进聊天、日志或代码。</view>
+      <textarea class="mp-textarea" readonly value="{{plain}}" />
+      <button class="mp-btn mp-btn-ghost" bindtap="copyPlain">复制令牌</button>
+      <button class="mp-btn mp-btn-secondary" bindtap="hidePlain">已保存，隐藏令牌</button>
+    </view>
+
+    <view class="mp-card">
+      <view class="mp-h2">本人签发的令牌</view>
+      <view wx:if="{{!tokens.length}}" class="mp-lead">暂无令牌</view>
+      <view wx:for="{{tokens}}" wx:key="id" class="mp-item">
+        <view class="mp-item-body" style="overflow-wrap:anywhere;">{{item.prefix}}</view>
+        <view class="mp-item-meta">{{item.subjectLine}} · {{item.scopesLabel}}</view>
+        <view class="mp-item-meta">{{item.status}}</view>
+        <view class="mp-actions" wx:if="{{item.canRevoke}}">
+          <button
+            class="mp-btn mp-btn-ghost"
+            data-id="{{item.id}}"
+            bindtap="revoke"
+            disabled="{{busy}}"
+          >撤销令牌</button>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{hasPersona}}" class="mp-card">
+      <view class="mp-h2">人设配置</view>
+      <view class="mp-lead">仅记录未来使用意图，不会执行工具、同步知识或开放访客对话。知识范围最多选择 100 项本主体已经公开的作品或动态。</view>
+      <view class="mp-field">
+        <text class="mp-label">显示名称</text>
+        <input class="mp-input" maxlength="40" value="{{personaName}}" bindinput="onPersonaName" disabled="{{busy}}" />
+      </view>
+      <view class="mp-field">
+        <text class="mp-label">人设说明</text>
+        <textarea class="mp-textarea" maxlength="2000" value="{{personaBrief}}" bindinput="onPersonaBrief" disabled="{{busy}}" />
+      </view>
+      <view class="mp-h2">选择公开知识来源</view>
+      <view wx:if="{{!sources.length}}" class="mp-lead">暂无可选的公开作品或动态</view>
+      <label
+        wx:for="{{sources}}"
+        wx:key="id"
+        class="mp-toggle"
+        data-id="{{item.id}}"
+        data-kind="{{item.kind}}"
+        bindtap="onSourceToggle"
+      >
+        <text>{{item.title}} · {{item.kindLabel}}</text>
+        <checkbox value="{{item.id}}" checked="{{item.checked}}" disabled="{{item.disabled || busy}}" />
+      </label>
+      <view class="mp-note">访客对话：尚未开放</view>
+      <button class="mp-btn mp-btn-primary" bindtap="savePersona" disabled="{{busy}}">保存人设</button>
+    </view>
+  </block>
+</view>

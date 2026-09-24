@@ -1,0 +1,144 @@
+<app-banner section="设置" show-back fallback-url="/pages/me/index" fallback-tab="{{true}}" />
+<view class="me-settings">
+  <!-- 通知 · 对齐 App NotificationSettings -->
+  <view class="me-settings-group" aria-label="消息通知">
+    <view class="me-settings-label">通知</view>
+    <view class="me-settings-list">
+      <button
+        class="me-settings-row"
+        disabled="{{notifyBusy || !notifySupported}}"
+        bindtap="onNotifyTap"
+      >
+        <view class="me-settings-row-icon">
+          <image class="me-settings-row-glyph" src="{{icoShield}}" mode="aspectFit" />
+        </view>
+        <view class="me-settings-row-text">
+          <text class="me-settings-row-title">{{notifyBusy ? '正在更新通知…' : notifyTitle}}</text>
+          <text class="me-settings-row-meta">{{notifyMeta}}</text>
+        </view>
+        <image class="me-settings-chevron-img" src="{{icoChevron}}" mode="aspectFit" aria-hidden="true" />
+      </button>
+      <button
+        wx:if="{{notifySupported && !notifyAuthorized}}"
+        class="me-settings-row"
+        bindtap="onSystemNotifyTap"
+      >
+        <view class="me-settings-row-text me-settings-row-text-alone">
+          <text class="me-settings-row-title">系统通知设置</text>
+        </view>
+        <image class="me-settings-chevron-img" src="{{icoChevron}}" mode="aspectFit" aria-hidden="true" />
+      </button>
+      <view wx:if="{{notifyNotice}}" class="me-settings-inline-note" role="status">{{notifyNotice}}</view>
+    </view>
+  </view>
+
+  <!-- 访客统计 -->
+  <view class="me-stats" aria-label="访客统计">
+    <view wx:for="{{stats}}" wx:key="label" class="me-stat">
+      <text class="me-stat-value">{{item.value}}</text>
+      <text class="me-stat-label">{{item.label}}</text>
+    </view>
+  </view>
+
+  <view wx:for="{{groups}}" wx:key="label" class="me-settings-group">
+    <view class="me-settings-label">{{item.label}}</view>
+    <view class="me-settings-list">
+      <block wx:for="{{item.rows}}" wx:for-item="row" wx:for-index="ri" wx:key="title">
+        <!-- Pro 自定义主页地址 · App addressOffer -->
+        <button
+          wx:if="{{row.kind === 'offer'}}"
+          class="me-settings-offer"
+          data-gi="{{index}}"
+          data-ri="{{ri}}"
+          bindtap="onRow"
+        >
+          <view class="me-settings-offer-text">
+            <text class="me-settings-offer-title">{{row.title}}</text>
+            <text class="me-settings-offer-meta">{{row.meta}}</text>
+          </view>
+          <image class="me-settings-chevron-img" src="{{icoChevron}}" mode="aspectFit" aria-hidden="true" />
+        </button>
+
+        <!-- 主页配色 -->
+        <view wx:elif="{{row.kind === 'skin'}}" class="me-settings-row me-skin-row">
+          <view class="me-settings-row-icon me-settings-row-icon-accent"></view>
+          <view class="me-settings-row-text">
+            <text class="me-settings-row-title">{{row.title}}</text>
+            <text class="me-settings-row-meta">{{skinLabel}} · {{row.meta}}</text>
+          </view>
+          <view class="me-swatches">
+            <view
+              wx:for="{{skinOptions}}"
+              wx:for-item="sk"
+              wx:key="id"
+              class="me-swatch {{sk.selected ? 'selected' : ''}}"
+              style="background: {{sk.swatch}};"
+              data-id="{{sk.id}}"
+              bindtap="onPickSkin"
+              aria-label="{{sk.label}}"
+            ></view>
+          </view>
+        </view>
+
+        <!-- 普通行 / 分享 / 社交 -->
+        <button
+          wx:else
+          class="me-settings-row {{row.disabled ? 'is-disabled' : ''}}"
+          data-gi="{{index}}"
+          data-ri="{{ri}}"
+          bindtap="onRow"
+        >
+          <view
+            wx:if="{{row.icon || row.iconAccent || row.iconCircle}}"
+            class="me-settings-row-icon {{row.iconAccent ? 'me-settings-row-icon-accent' : ''}} {{row.iconCircle ? 'me-settings-row-icon-circle' : ''}}"
+          >
+            <image
+              wx:if="{{row.icon}}"
+              class="me-settings-row-glyph"
+              src="{{row.icon}}"
+              mode="aspectFit"
+            />
+          </view>
+          <view class="me-settings-row-text">
+            <text class="me-settings-row-title">{{row.title}}</text>
+            <text wx:if="{{row.meta}}" class="me-settings-row-meta">{{row.meta}}</text>
+          </view>
+          <view wx:if="{{row.kind === 'social' && row.socials}}" class="me-settings-socials">
+            <image
+              wx:for="{{row.socials}}"
+              wx:for-item="soc"
+              wx:key="*this"
+              class="me-settings-social"
+              src="{{soc}}"
+              mode="aspectFit"
+            />
+          </view>
+          <image
+            wx:elif="{{row.trailing === 'share'}}"
+            class="me-settings-trailing-share"
+            src="{{icoShare}}"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
+          <image
+            wx:elif="{{row.trailing === 'arrow'}}"
+            class="me-settings-chevron-img"
+            src="/assets/icon-ui-arrow-right-accent.png"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
+          <image
+            wx:else
+            class="me-settings-chevron-img"
+            src="{{icoChevron}}"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
+        </button>
+      </block>
+    </view>
+  </view>
+
+  <view wx:if="{{studioNote}}" class="me-settings-note" role="status">{{studioNote}}</view>
+  <view class="me-settings-tail"></view>
+</view>

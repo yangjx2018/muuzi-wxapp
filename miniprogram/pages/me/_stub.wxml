@@ -1,0 +1,6 @@
+<view class="me-stub">
+  <view class="me-stub-back" bindtap="goBack">‹ 返回</view>
+  <view class="me-stub-kicker">{{slice}}</view>
+  <view class="me-stub-title">{{title}}</view>
+  <view class="me-stub-lead">{{lead}}</view>
+</view>

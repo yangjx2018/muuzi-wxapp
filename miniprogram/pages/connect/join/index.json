@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "加入",
+  "usingComponents": {
+    "app-banner": "/components/app-banner/index"
+  },
+  "navigationStyle": "custom"
+}

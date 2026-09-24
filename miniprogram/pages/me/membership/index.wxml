@@ -1,0 +1,124 @@
+<app-banner section="主理人订阅" show-back fallback-url="/pages/me/index" fallback-tab="{{true}}" />
+<view class="mp">
+  
+
+  <view wx:if="{{phase === 'loading'}}" class="mp-state">正在读取会员信息…</view>
+  <view wx:elif="{{phase === 'error'}}" class="mp-state">
+    <view class="mp-error">{{error}}</view>
+    <button class="mp-btn mp-btn-secondary" bindtap="bootstrap">重试</button>
+  </view>
+
+  <block wx:elif="{{phase === 'ready'}}">
+    <view class="mp-card mp-hero">
+      <view class="mp-kicker">个人空间 · 当前套餐</view>
+      <view class="mp-h2">{{planName}}</view>
+      <view class="mp-note">{{planMeta}}</view>
+      <view wx:if="{{features.length}}" class="mp-feature-list">
+        <view wx:for="{{features}}" wx:key="*this" class="mp-feature">{{item}}</view>
+      </view>
+      <view wx:else class="mp-lead">免费档看全部动态；升级后 Muu 替你筛，还有模板、域名、店铺。</view>
+    </view>
+
+    <view class="mp-card">
+      <view class="mp-h2">个人与企业，分别订阅</view>
+      <view class="mp-lead">个人空间提供免费主理人和主理人 Pro。企业套餐在 Studio 管理。身份认证仍需单独审核。</view>
+    </view>
+
+    <view wx:if="{{payHint}}" class="mp-note">{{payHint}}</view>
+    <view wx:if="{{note}}" class="mp-note" role="status">{{note}}</view>
+    <view wx:if="{{error}}" class="mp-error" role="alert">{{error}}</view>
+
+    <view wx:if="{{trialAvailable}}" class="mp-card">
+      <view class="mp-h2">免费试用 {{trialDays}} 天</view>
+      <view class="mp-lead">立刻用上「{{trialName}}」试用权益；到期自动回免费档，不会自动扣款。</view>
+      <button
+        class="mp-btn mp-btn-primary"
+        bindtap="startTrial"
+        disabled="{{busy}}"
+      >{{busy === 'trial' ? '正在开通…' : '开始试用'}}</button>
+    </view>
+
+    <view wx:if="{{pending}}" class="mp-card">
+      <view class="mp-h2">待付订单 · {{pending.channel_label}}</view>
+      <view class="mp-note">
+        {{pending.plan_name}} · {{pending.intervalLabel}} · {{pending.amountLabel}}
+        <text wx:if="{{pending.expiresLabel}}"> · {{pending.expiresLabel}}</text>
+      </view>
+      <view class="mp-lead">
+        {{pending.channel === 'manual' ? '线下付款：联系平台完成付款，确认后套餐立即生效。' : '渠道确认到账后套餐自动生效，通常一分钟内。'}}
+      </view>
+      <view wx:if="{{payLink}}" class="mp-field">
+        <text class="mp-label">付款链接 / 收款码地址</text>
+        <text class="mp-link" bindtap="copyPayLink">点此复制</text>
+      </view>
+      <button
+        class="mp-btn mp-btn-primary"
+        bindtap="payAgain"
+        disabled="{{busy}}"
+      >{{busy ? '处理中…' : (pending.channel === 'manual' ? '改用在线付款' : '继续付款')}}</button>
+      <button
+        class="mp-btn mp-btn-ghost"
+        bindtap="cancelPending"
+        disabled="{{busy}}"
+      >取消订单</button>
+    </view>
+
+    <view class="mp-card">
+      <view class="mp-toggle">
+        <text class="mp-h2">套餐</text>
+        <view class="mp-segments">
+          <text
+            class="mp-segment {{interval === 'month' ? 'mp-segment-on' : ''}}"
+            bindtap="setIntervalMonth"
+          >月付</text>
+          <text
+            class="mp-segment {{interval === 'year' ? 'mp-segment-on' : ''}}"
+            bindtap="setIntervalYear"
+          >年付</text>
+        </view>
+      </view>
+
+      <view wx:for="{{plans}}" wx:key="id" class="mp-plan {{item.current ? 'mp-plan-current' : ''}}">
+        <view class="mp-plan-text">
+          <text class="mp-plan-name">{{item.name}}{{item.current ? ' · 当前' : ''}}</text>
+          <text class="mp-plan-desc">{{item.description}}</text>
+        </view>
+        <button
+          class="mp-btn mp-btn-secondary mp-plan-buy"
+          data-id="{{item.id}}"
+          bindtap="buy"
+          disabled="{{busy || pending || !item.price || !channels.length}}"
+        >{{busy ? '处理中…' : item.priceLabel}}</button>
+      </view>
+      <view wx:if="{{!plans.length}}" class="mp-lead">平台还没有上架付费套餐。</view>
+
+      <view wx:if="{{channels.length > 1}}" class="mp-channels">
+        <text class="mp-label">付款方式</text>
+        <view class="mp-chips">
+          <text
+            wx:for="{{channels}}"
+            wx:key="id"
+            class="mp-chip {{item.selected ? 'mp-chip-on' : ''}}"
+            data-id="{{item.id}}"
+            bindtap="pickChannel"
+          >{{item.label}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{orders.length}}" class="mp-card">
+      <view class="mp-h2">最近订单</view>
+      <view wx:for="{{orders}}" wx:key="id" class="mp-item">
+        <view class="mp-item-meta">{{item.state}}</view>
+        <view class="mp-item-body">{{item.title}}</view>
+        <view class="mp-lead">{{item.meta}}</view>
+      </view>
+    </view>
+
+    <view class="mp-card">
+      <view class="mp-h2">付费档有什么</view>
+      <view wx:for="{{featureCatalog}}" wx:key="*this" class="mp-feature">{{item}}</view>
+      <view class="mp-lead">付款直接走你选的渠道，MuuZi 不保存卡号；到期不自动扣款。未配置渠道时本页不会假开通。</view>
+    </view>
+  </block>
+</view>

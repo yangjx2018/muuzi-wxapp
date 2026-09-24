@@ -1,0 +1,21 @@
+@import "../talk/index.wxss";
+
+.fc-host {
+  padding: 24rpx 32rpx 80rpx;
+}
+
+.fc-host-qr {
+  width: 280px;
+  height: 280px;
+  display: block;
+  margin: 24rpx auto;
+  background: #fff;
+}
+
+.fc-host-canvas {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  width: 280px;
+  height: 280px;
+}

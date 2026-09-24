@@ -1,0 +1,39 @@
+@import "../index.wxss";
+
+.fc-continue {
+  padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
+}
+
+.fc-card-refresh {
+  margin: 16rpx 0;
+  padding: 20rpx 0;
+  background: transparent;
+  color: var(--app-accent);
+  font-size: 26rpx;
+  border: none;
+  text-align: left;
+}
+
+.fc-card-refresh::after {
+  border: none;
+}
+
+.fc-primary {
+  margin-top: 28rpx;
+  background: var(--app-grad);
+  color: #fff;
+  border-radius: 999rpx;
+  font-size: 28rpx;
+  border: none;
+}
+
+.fc-primary::after {
+  border: none;
+}
+
+.fc-availability {
+  font-size: 24rpx;
+  color: var(--app-muted);
+  line-height: 1.6;
+  margin: 20rpx 0 0;
+}

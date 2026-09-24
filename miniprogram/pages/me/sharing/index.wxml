@@ -1,0 +1,79 @@
+<app-banner section="Agent 卡与邀请" show-back fallback-url="/pages/me/index" fallback-tab="{{true}}" />
+<view class="mp">
+  
+
+  <view class="mp-lead">先发布主页中的 Agent 条目或供给动态，再创建稳定卡片。平台不运行 Agent，也不代替商城证明归属。</view>
+
+  <view wx:if="{{loading}}" class="mp-state">正在读取…</view>
+  <block wx:else>
+    <view wx:if="{{error}}" class="mp-error" role="alert">{{error}}</view>
+    <view wx:if="{{note}}" class="mp-note" role="status">{{note}}</view>
+
+    <view class="mp-card">
+      <view class="mp-h2">创建与管理卡片</view>
+      <view class="mp-field">
+        <text class="mp-label">已发布来源</text>
+        <picker mode="selector" range="{{sourceLabels}}" value="{{sourceIndex}}" bindchange="onSourcePick">
+          <view class="mp-input">{{sourceLabels[sourceIndex]}} ›</view>
+        </picker>
+      </view>
+      <button class="mp-btn mp-btn-primary" bindtap="createCard" disabled="{{busy || !sourceIndex}}">创建 Agent 卡</button>
+      <view class="mp-field">
+        <text class="mp-label">管理卡片</text>
+        <picker mode="selector" range="{{cardLabels}}" value="{{cardIndex}}" bindchange="onCardPick">
+          <view class="mp-input">{{cardLabels[cardIndex]}} ›</view>
+        </picker>
+      </view>
+    </view>
+
+    <view wx:if="{{hasCard}}" class="mp-card">
+      <view class="mp-h2">编辑卡片 · {{cardStatus}}</view>
+      <view class="mp-lead">保存只改草稿；发布会同步更新来源的名称与简介。卡片编号保持不变。</view>
+      <view class="mp-field">
+        <text class="mp-label">Agent 名称</text>
+        <input class="mp-input" maxlength="40" value="{{cardName}}" bindinput="onCardName" disabled="{{busy}}" />
+      </view>
+      <view class="mp-field">
+        <text class="mp-label">卡片简介</text>
+        <textarea class="mp-textarea" maxlength="120" value="{{cardSummary}}" bindinput="onCardSummary" disabled="{{busy}}" />
+      </view>
+      <button class="mp-btn mp-btn-ghost" bindtap="saveCard" disabled="{{busy}}">保存卡片</button>
+      <button class="mp-btn mp-btn-primary" bindtap="publishCard" disabled="{{busy}}">发布卡片</button>
+      <button class="mp-btn mp-btn-secondary" bindtap="disableCard" disabled="{{busy}}">下架卡片</button>
+      <block wx:if="{{cardPublicUrl}}">
+        <view class="mp-field">
+          <text class="mp-label">公开卡片</text>
+          <text class="mp-link" bindtap="copyCardUrl">{{cardPublicUrl}}</text>
+        </view>
+        <button class="mp-btn mp-btn-ghost" bindtap="copyCardUrl">复制公开链接</button>
+      </block>
+    </view>
+
+    <view class="mp-card">
+      <view class="mp-h2">邀请分享</view>
+      <view class="mp-lead">仅统计首次平台激活，点击数不是独立访客数。邀请不会代替节点注册。</view>
+      <view wx:if="{{inviteStats}}" class="mp-note">{{inviteStats}}</view>
+      <view wx:if="{{inviteUrl}}" class="mp-field">
+        <text class="mp-label">邀请链接</text>
+        <text class="mp-link" bindtap="copyInviteUrl">{{inviteUrl}}</text>
+      </view>
+      <button
+        wx:if="{{!inviteActive}}"
+        class="mp-btn mp-btn-primary"
+        bindtap="generateInvite"
+        disabled="{{busy}}"
+      >{{invite ? '恢复邀请' : '生成邀请链接'}}</button>
+      <button
+        wx:if="{{inviteActive}}"
+        class="mp-btn mp-btn-secondary"
+        bindtap="disableInvite"
+        disabled="{{busy}}"
+      >停用邀请</button>
+      <button
+        wx:if="{{inviteUrl}}"
+        class="mp-btn mp-btn-ghost"
+        bindtap="copyInviteUrl"
+      >复制邀请链接</button>
+    </view>
+  </block>
+</view>

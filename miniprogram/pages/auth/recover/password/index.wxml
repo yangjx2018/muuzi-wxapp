@@ -1,0 +1,37 @@
+<view class="auth-page">
+  <view class="auth-header">
+    <view class="auth-mark">
+      <image class="auth-mark-img" src="/assets/logo-muu.png" mode="aspectFit" />
+    </view>
+    <view class="auth-wordmark">
+      <text class="auth-wordmark-name">MuuZi</text>
+      <text class="auth-wordmark-section">// 账号找回</text>
+    </view>
+    <text class="auth-status">PASSWORD / SET</text>
+  </view>
+  <view class="auth-body">
+    <text class="auth-back" bindtap="goBack">← 返回验证</text>
+    <view class="auth-step">AUTH.RECOVERY / 03</view>
+    <view class="auth-title">建立新的\n密码</view>
+    <view class="auth-lead">设定新密码后，其他设备上的登录状态会一并失效。</view>
+    <view class="field">
+      <text class="field-label">新密码</text>
+      <view class="field-secure">
+        <input class="field-input field-input-secure" password="{{!showPassword}}" value="{{password}}" bindinput="onPassword" />
+        <view class="field-reveal" bindtap="togglePassword" aria-label="{{showPassword ? '隐藏密码' : '显示密码'}}"><text class="field-reveal-text">{{showPassword ? '隐藏' : '显示'}}</text></view>
+      </view>
+    </view>
+    <view class="field">
+      <text class="field-label">确认新密码</text>
+      <view class="field-secure">
+        <input class="field-input field-input-secure" password="{{!showConfirm}}" value="{{confirmation}}" bindinput="onConfirm" />
+        <view class="field-reveal" bindtap="toggleConfirm" aria-label="{{showConfirm ? '隐藏密码' : '显示密码'}}"><text class="field-reveal-text">{{showConfirm ? '隐藏' : '显示'}}</text></view>
+      </view>
+    </view>
+    <view class="pwd-rule {{strong ? 'met' : ''}}">8–512 个字符，字母、数字、符号至少两类</view>
+    <view class="pwd-rule {{matches ? 'met' : ''}}">两次密码一致</view>
+    <button class="btn-primary" disabled="{{!ready}}" bindtap="onSubmit"><text>更新密码</text><text>→</text></button>
+    <view wx:if="{{error}}" class="auth-notice error" style="margin-top:28rpx">{{error}}</view>
+    <view class="status-strip"><text>STEP 3 / 3</text><text></text></view>
+  </view>
+</view>

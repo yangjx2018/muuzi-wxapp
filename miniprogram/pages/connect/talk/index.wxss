@@ -1,0 +1,409 @@
+@import "../index.wxss";
+
+.fc-talk-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  background: var(--app-bg);
+}
+
+.fc-talk {
+  padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
+}
+
+.fc-topic-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24rpx;
+  padding-top: 8rpx;
+  margin: 0 0 36rpx;
+}
+
+.fc-talk-title {
+  font-size: 50rpx;
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: -0.8px;
+  margin: 12rpx 0 0;
+  color: var(--app-ink);
+}
+
+/* 对齐 App .fc-save 白底胶囊 */
+.fc-save {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  flex-shrink: 0;
+  font-size: 20rpx;
+  color: var(--app-muted);
+  line-height: 1.3;
+  background: #ffffff;
+  border-radius: 999rpx;
+  padding: 16rpx 20rpx;
+  max-width: 46%;
+  box-sizing: border-box;
+}
+
+.fc-modes {
+  display: flex;
+  background: rgba(21, 23, 30, 0.06);
+  border-radius: 999rpx;
+  padding: 6rpx;
+  margin-bottom: 36rpx;
+}
+
+.fc-mode {
+  flex: 1;
+  text-align: center;
+  border-radius: 999rpx;
+  padding: 18rpx;
+  font-size: 24rpx;
+  color: var(--app-muted);
+  background: transparent;
+  border: none;
+  line-height: 1.3;
+}
+
+.fc-mode::after {
+  border: none;
+}
+
+.fc-mode.selected {
+  background: var(--app-card);
+  color: var(--app-ink);
+  font-weight: 500;
+  box-shadow: 0 2rpx 6rpx rgba(21, 23, 30, 0.06);
+}
+
+.fc-scan-card {
+  padding: 40rpx;
+  background: var(--app-card);
+  border: 1rpx solid var(--app-line);
+  border-radius: 36rpx;
+  margin-bottom: 24rpx;
+}
+
+.fc-card-refresh {
+  margin: 8rpx 0 16rpx;
+  padding: 20rpx 0;
+  background: transparent;
+  color: var(--app-accent);
+  font-size: 26rpx;
+  border: none;
+  text-align: left;
+}
+
+.fc-card-refresh::after {
+  border: none;
+}
+
+.fc-card-refresh[disabled] {
+  opacity: 0.5;
+}
+
+.fc-link-btn {
+  margin: 8rpx 0;
+  padding: 0;
+  background: transparent;
+  color: var(--app-accent);
+  font-size: 26rpx;
+  border: none;
+  text-align: left;
+  display: inline-block;
+  width: auto;
+  line-height: 1.5;
+}
+
+.fc-link-btn::after {
+  border: none;
+}
+
+/* 对齐 App .fc-voice-gate */
+.fc-voice-gate {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  padding: 28rpx 32rpx;
+  border-radius: 36rpx;
+  background: #ffffff;
+  margin: 16rpx 0;
+}
+
+.fc-voice-gate-p {
+  margin: 0;
+  font-size: 26rpx;
+  line-height: 1.6;
+  color: #55607a;
+}
+
+.fc-talk-status {
+  margin-top: 8rpx;
+  min-height: 3.4em;
+}
+
+.fc-alert {
+  color: #b42318;
+}
+
+.fc-speaker {
+  background: #ffffff;
+  border: 1rpx solid var(--app-line);
+  border-radius: 40rpx;
+  padding: 34rpx;
+  display: flex;
+  flex-direction: column;
+  min-height: 360rpx;
+  margin-top: 28rpx;
+  transition: transform 0.25s;
+}
+
+/* 对齐 App ConnectScreen：对方区域用 accent wash，我方保持白底 */
+.fc-guest {
+  background: var(--app-accent-wash);
+  border-color: transparent;
+}
+
+.fc-guest.fc-flipped {
+  transform: rotate(180deg);
+}
+
+.fc-speaker-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 24rpx;
+  color: var(--app-ink);
+}
+
+.fc-lang-pick {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+  color: var(--app-ink);
+  max-width: 420rpx;
+  text-align: right;
+}
+
+/* 对齐 App <select> 上下双箭头 */
+.fc-lang-caret {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+  flex-shrink: 0;
+  opacity: 0.45;
+}
+
+.fc-lang-caret-up,
+.fc-lang-caret-down {
+  width: 0;
+  height: 0;
+  border-left: 7rpx solid transparent;
+  border-right: 7rpx solid transparent;
+}
+
+.fc-lang-caret-up {
+  border-bottom: 7rpx solid var(--app-ink);
+}
+
+.fc-lang-caret-down {
+  border-top: 7rpx solid var(--app-ink);
+}
+
+.fc-utterance {
+  flex: 1;
+  padding: 28rpx 0 24rpx;
+  /* 对齐 App：约等于原文输入 + 确认按钮高度，按住时区域不塌缩、按钮不跟着跳 */
+  min-height: 324rpx;
+}
+
+.fc-utterance.fc-held {
+  opacity: 0.45;
+}
+
+.fc-utt-label {
+  display: block;
+  font-size: 18rpx;
+  color: var(--app-muted);
+  letter-spacing: 0.08em;
+}
+
+.fc-utt-text {
+  font-size: 40rpx;
+  font-weight: 550;
+  line-height: 1.4;
+  letter-spacing: -0.6px;
+  margin: 12rpx 0 8rpx;
+  color: var(--app-ink);
+  word-break: break-word;
+}
+
+.fc-utt-input {
+  display: block;
+  width: 100%;
+  min-height: 140rpx;
+  margin: 16rpx 0;
+  padding: 20rpx;
+  box-sizing: border-box;
+  border: 1rpx solid var(--app-line);
+  border-radius: 20rpx;
+  background: var(--app-bg);
+  color: var(--app-ink);
+  font-size: 28rpx;
+}
+
+.fc-speak {
+  width: 100%;
+  min-height: 88rpx;
+  border-radius: 999rpx;
+  background: var(--app-accent);
+  color: #ffffff;
+  font-size: 26rpx;
+  border: none;
+  margin-top: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  /* 对齐 App：按住说话手势不被滚动/选中打断 */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.fc-speak-guest {
+  background: #ffffff;
+  color: var(--app-accent);
+}
+
+.fc-speak::after {
+  border: none;
+}
+
+.fc-speak-disabled {
+  opacity: 0.45;
+  background: var(--app-bg);
+  color: var(--app-muted);
+  border: 1rpx solid var(--app-line);
+  pointer-events: none;
+}
+
+.fc-speak-guest.fc-speak-disabled {
+  background: #ffffff;
+  color: var(--app-accent);
+  border: none;
+  opacity: 0.55;
+}
+
+.fc-speak-active {
+  background: #b42318;
+  color: #ffffff;
+}
+
+/* 振幅条始终占位，避免插入节点导致按住中布局跳动 */
+.fc-voice-meter {
+  margin-top: 12rpx;
+  height: 10rpx;
+  border-radius: 999rpx;
+  background: rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  opacity: 0;
+}
+
+.fc-voice-meter-on {
+  opacity: 1;
+}
+
+.fc-voice-meter-fill {
+  height: 100%;
+  border-radius: 999rpx;
+  background: var(--app-accent);
+  transition: width 0.08s linear;
+}
+
+.fc-speak-active + .fc-voice-meter .fc-voice-meter-fill {
+  background: #b42318;
+}
+
+.fc-voice-elapsed {
+  margin-top: 8rpx;
+  min-height: 1.2em;
+  font-size: 22rpx;
+  color: var(--app-muted);
+  text-align: center;
+}
+
+.fc-end-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(21, 23, 30, 0.35);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40rpx;
+  box-sizing: border-box;
+}
+
+.fc-end-dialog {
+  width: 100%;
+  max-width: 640rpx;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 48rpx;
+  border: 1rpx solid var(--app-line);
+  border-radius: 44rpx;
+  background: var(--app-card);
+  box-sizing: border-box;
+}
+
+.fc-end-title {
+  font-size: 40rpx;
+  font-weight: 600;
+  margin-bottom: 24rpx;
+  color: var(--app-ink);
+}
+
+.fc-end-dialog .fc-primary {
+  margin-top: 8rpx;
+}
+
+.fc-end-dialog .fc-card-refresh {
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+
+/* 对齐 App FieldTalk 底部：查看现场频道用 fc-link，结束交流在后 */
+.fc-talk-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8rpx;
+  margin-top: 8rpx;
+}
+
+.fc-talk-footer .fc-link-btn {
+  margin: 8rpx 0;
+}
+
+/* 对齐 App ConnectScreen.css .fc-audio */
+.fc-audio {
+  display: block;
+  align-self: stretch;
+  width: 100%;
+  margin-top: 32rpx;
+  box-sizing: border-box;
+}
+
+.fc-talk-footer .fc-card-refresh {
+  margin: 0;
+  padding: 20rpx 0;
+}

@@ -1,0 +1,28 @@
+<view class="auth-page">
+  <view class="auth-header">
+    <view class="auth-mark">
+      <image class="auth-mark-img" src="/assets/logo-muu.png" mode="aspectFit" />
+    </view>
+    <view class="auth-wordmark">
+      <text class="auth-wordmark-name">MuuZi</text>
+      <text class="auth-wordmark-section">// 账号找回</text>
+    </view>
+    <text class="auth-status">EMAIL / VERIFY</text>
+  </view>
+  <view class="auth-body">
+    <text class="auth-back" bindtap="goBack">← 修改邮箱</text>
+    <view class="auth-step">AUTH.RECOVERY / 02</view>
+    <view class="auth-title">输入邮箱\n验证码</view>
+    <view class="auth-lead">请输入寄至下方邮箱的 6 位数验证码。</view>
+    <view class="email-summary">{{email}}</view>
+    <view class="field">
+      <text class="field-label">验证码</text>
+      <input class="field-input" type="digit" maxlength="6" placeholder="······" placeholder-class="field-input-placeholder" value="{{code}}" bindinput="onCode" />
+    </view>
+    <button class="btn-primary" disabled="{{!ready}}" bindtap="onSubmit"><text>继续</text><text>→</text></button>
+    <text wx:if="{{left > 0}}" class="resend disabled">重新寄送（{{left}}s）</text>
+    <text wx:else class="resend" bindtap="onResend">重新寄送</text>
+    <view wx:if="{{error}}" class="auth-notice error" style="margin-top:28rpx">{{error}}</view>
+    <view class="status-strip"><text>STEP 2 / 3</text><text></text></view>
+  </view>
+</view>

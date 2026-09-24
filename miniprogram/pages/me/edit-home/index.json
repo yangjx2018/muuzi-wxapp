@@ -1,0 +1,10 @@
+{
+  "navigationBarTitleText": "编辑主页",
+  "navigationBarBackgroundColor": "#f4f5f8",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#f4f5f8",
+  "usingComponents": {
+    "app-banner": "/components/app-banner/index"
+  },
+  "navigationStyle": "custom"
+}

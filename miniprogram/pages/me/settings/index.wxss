@@ -1,0 +1,250 @@
+/* 对齐 App ProfileScreen.module.css · settings 区 */
+
+.me-settings {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 0 0 calc(32rpx + env(safe-area-inset-bottom));
+  background: var(--app-bg);
+}
+
+.me-settings-group {
+  padding: 28rpx 32rpx 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+}
+
+.me-settings-label {
+  padding-left: 8rpx;
+  font-size: 22rpx;
+  color: var(--app-muted);
+  letter-spacing: 0.08em;
+}
+
+.me-settings-list {
+  background: var(--app-card);
+  border-radius: 40rpx;
+  overflow: hidden;
+}
+
+.me-settings-row {
+  display: flex;
+  align-items: center;
+  gap: 22rpx;
+  width: 100%;
+  margin: 0;
+  padding: 24rpx 28rpx;
+  background: transparent;
+  border: none;
+  border-bottom: 1rpx solid var(--app-line);
+  text-align: left;
+  line-height: 1.35;
+  box-sizing: border-box;
+}
+
+.me-settings-row:last-child {
+  border-bottom: none;
+}
+
+.me-settings-row::after {
+  border: none;
+  content: none;
+}
+
+.me-settings-row.is-disabled {
+  opacity: 0.55;
+}
+
+.me-settings-row-icon {
+  width: 68rpx;
+  height: 68rpx;
+  flex: none;
+  border-radius: 22rpx;
+  background: var(--app-accent-wash, #eaf1ff);
+  color: var(--app-accent, #2f6df4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.me-settings-row-icon-accent {
+  background: linear-gradient(150deg, #6a99fe, #2f6df4);
+}
+
+.me-settings-row-icon-circle {
+  border-radius: 50%;
+}
+
+.me-settings-row-glyph {
+  width: 36rpx;
+  height: 36rpx;
+  display: block;
+}
+
+.me-settings-row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.me-settings-row-text-alone {
+  padding-left: 0;
+}
+
+.me-settings-row-title {
+  display: block;
+  font-size: 27rpx;
+  font-weight: 500;
+  color: var(--app-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.me-settings-row-meta {
+  display: block;
+  font-size: 22rpx;
+  color: var(--app-faint, #9ea3b4);
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+
+.me-settings-chevron-img {
+  flex: none;
+  width: 28rpx;
+  height: 28rpx;
+  opacity: 0.7;
+}
+
+.me-settings-trailing-share {
+  flex: none;
+  width: 40rpx;
+  height: 40rpx;
+}
+
+.me-settings-socials {
+  display: flex;
+  gap: 10rpx;
+  align-items: center;
+  flex: none;
+}
+
+.me-settings-social {
+  width: 30rpx;
+  height: 30rpx;
+  opacity: 0.75;
+}
+
+/* Pro · 自定义主页地址 */
+.me-settings-offer {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  width: 100%;
+  margin: 0;
+  padding: 28rpx 36rpx;
+  background: rgba(50, 107, 255, 0.03);
+  border: none;
+  border-bottom: 1rpx solid var(--app-line);
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.me-settings-offer::after {
+  border: none;
+  content: none;
+}
+
+.me-settings-offer-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.me-settings-offer-title {
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #326bff;
+}
+
+.me-settings-offer-meta {
+  font-size: 22rpx;
+  color: var(--app-muted);
+}
+
+.me-settings-note {
+  margin: 28rpx 40rpx 0;
+  font-size: 22rpx;
+  color: var(--app-muted);
+  line-height: 1.6;
+}
+
+.me-settings-inline-note {
+  padding: 0 28rpx 24rpx;
+  font-size: 22rpx;
+  color: var(--app-muted);
+  line-height: 1.5;
+}
+
+.me-stats {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 24rpx;
+  padding: 0 32rpx;
+}
+
+.me-stat {
+  flex: 1;
+  min-width: 0;
+  background: var(--app-card);
+  border-radius: 36rpx;
+  padding: 24rpx 16rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.me-stat-value {
+  font-family: 'Songti SC', 'Noto Serif SC', Georgia, 'Times New Roman', serif;
+  font-size: 48rpx;
+  font-weight: 600;
+  color: var(--app-ink);
+  line-height: 1;
+}
+
+.me-stat-label {
+  font-size: 22rpx;
+  color: var(--app-faint, #9ea3b4);
+}
+
+.me-skin-row {
+  align-items: center;
+}
+
+.me-swatches {
+  display: flex;
+  gap: 8rpx;
+  flex: none;
+  align-items: center;
+}
+
+.me-swatch {
+  width: 28rpx;
+  height: 28rpx;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.me-swatch.selected {
+  box-shadow: 0 0 0 4rpx var(--app-card, #fff), 0 0 0 7rpx var(--app-ink);
+  transform: scale(1.05);
+}
+
+.me-settings-tail {
+  height: 32rpx;
+}

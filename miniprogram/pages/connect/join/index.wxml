@@ -1,0 +1,173 @@
+<app-banner />
+<view class="fc fc-join">
+  <view class="fc-card-selector">
+    <text class="fc-label">{{copy.language}}</text>
+    <picker mode="selector" range="{{langOptions}}" range-key="label" value="{{langIndex}}" bindchange="onLanguage">
+      <view class="fc-picker">{{langOptions[langIndex].label}}</view>
+    </picker>
+  </view>
+
+  <view class="fc-heading">
+    <view class="fc-title">{{copy.title}}</view>
+    <view class="fc-lead">{{copy.intro}}</view>
+  </view>
+
+  <block wx:if="{{!entryPresent}}">
+    <view class="fc-hero">
+      <view class="fc-hero-p" role="status">{{copy.unavailable}}</view>
+      <view class="fc-availability">{{copy.speech}}</view>
+      <view class="fc-paste-block">
+        <view class="fc-label">{{copy.paste}}</view>
+        <textarea
+          class="fc-textarea"
+          value="{{paste}}"
+          maxlength="800"
+          bindinput="onPaste"
+          placeholder="https://www.muuzi.co/connect/join/…"
+        />
+        <button class="fc-primary" bindtap="applyPaste">{{copy.apply}}</button>
+      </view>
+      <button class="fc-primary fc-join-secondary" disabled>{{copy.guest}}</button>
+      <button class="fc-primary fc-join-secondary" disabled>{{copy.app}}</button>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="fc-availability">{{nodeLabel}}</view>
+
+    <block wx:if="{{gate === 'checking' || gate === 'unavailable'}}">
+      <view class="fc-hero">
+        <view class="fc-hero-p" role="status">
+          {{gate === 'checking' ? gateCopy.checking : gateCopy.unavailable}}
+        </view>
+        <button
+          wx:if="{{gate === 'unavailable'}}"
+          class="fc-primary"
+          bindtap="retryGate"
+        >{{gateCopy.retry}}</button>
+      </view>
+    </block>
+
+    <view class="fc-visitor" wx:if="{{gate === 'ready' || gate === 'unavailable'}}">
+      <block wx:if="{{phase === 'new' && !hasJoinProof && recoveryChecked}}">
+        <view class="fc-availability" role="status">{{vCopy.closed}}</view>
+      </block>
+
+      <block wx:if="{{gate === 'ready' && phase === 'new' && hasJoinProof && entryVerified}}">
+        <view class="fc-topic-form">
+          <view class="fc-label">{{vCopy.name}}</view>
+          <input
+            class="fc-input"
+            value="{{name}}"
+            maxlength="64"
+            disabled="{{busy}}"
+            bindinput="onName"
+          />
+          <view class="fc-hero-p">{{vCopy.local}}</view>
+          <checkbox-group bindchange="onConsent">
+            <label class="fc-consent">
+              <checkbox value="1" checked="{{consent}}" disabled="{{busy}}" />
+              <text>{{vCopy.consent}}</text>
+            </label>
+          </checkbox-group>
+          <button
+            class="fc-primary"
+            disabled="{{busy || !consent || !name}}"
+            bindtap="submitJoin"
+          >{{vCopy.join}}</button>
+        </view>
+      </block>
+
+      <view wx:if="{{paused}}" class="fc-availability" role="status">{{eCopy.paused}}</view>
+      <view
+        wx:if="{{!paused && phase === 'waiting' && gate === 'ready'}}"
+        class="fc-availability"
+        role="status"
+      >{{vCopy.waiting}}</view>
+      <view wx:if="{{phase === 'closed'}}" class="fc-availability" role="status">{{vCopy.closed}}</view>
+
+      <block wx:if="{{gate === 'ready' && !paused && phase === 'ready'}}">
+        <view class="fc-talk-title">{{vCopy.title}}</view>
+        <button
+          wx:if="{{hasOlder}}"
+          class="fc-card-refresh"
+          disabled="{{busy}}"
+          bindtap="loadOlder"
+        >{{vCopy.older}}</button>
+        <view class="fc-messages" role="log">
+          <block wx:for="{{messages}}" wx:key="eventId">
+            <view class="fc-message {{item.role === 'guest' ? 'fc-message-own' : ''}}">
+              <view class="fc-message-meta">{{item.role === 'guest' ? vCopy.guest : vCopy.host}}</view>
+              <view class="fc-message-text">{{item.text}}</view>
+            </view>
+          </block>
+        </view>
+        <view class="fc-topic-form">
+          <view class="fc-label">{{vCopy.language}}</view>
+          <picker
+            mode="selector"
+            range="{{textLangOptions}}"
+            range-key="label"
+            value="{{textLangIndex}}"
+            disabled="{{busy || pending}}"
+            bindchange="onTextLang"
+          >
+            <view class="fc-picker">{{textLangOptions[textLangIndex].label}}</view>
+          </picker>
+          <view class="fc-label">{{vCopy.message}} ({{pending ? pending.text.length : byteCount}}/2000 bytes)</view>
+          <textarea
+            class="fc-textarea"
+            value="{{pending ? pending.text : text}}"
+            maxlength="1500"
+            disabled="{{busy || pending}}"
+            bindinput="onText"
+          />
+          <button
+            class="fc-primary"
+            disabled="{{busy || (!pending && (!text || byteCount > 2000))}}"
+            bindtap="sendMessage"
+          >{{pending ? vCopy.retry : vCopy.send}}</button>
+        </view>
+      </block>
+
+      <view wx:if="{{error}}" class="fc-availability" role="alert">{{vCopy.error}}</view>
+
+      <button
+        wx:if="{{gate === 'ready' && phase !== 'closed'}}"
+        class="fc-card-refresh"
+        disabled="{{busy}}"
+        bindtap="refreshJoin"
+      >{{vCopy.refresh}}</button>
+
+      <button
+        wx:if="{{gate === 'ready' && phase !== 'new' && phase !== 'closed' && !paused}}"
+        class="fc-card-refresh"
+        disabled="{{busy}}"
+        bindtap="pauseJoin"
+      >{{eCopy.pause}}</button>
+
+      <block wx:if="{{(phase !== 'new' || started) && !ended}}">
+        <block wx:if="{{confirmEnd}}">
+          <view class="fc-availability">
+            <view class="fc-hero-p">{{eCopy.explain}}</view>
+            <button class="fc-card-refresh" disabled="{{busy}}" bindtap="confirmEndJoin">{{eCopy.confirm}}</button>
+            <button class="fc-card-refresh" disabled="{{busy}}" bindtap="cancelEnd">{{eCopy.cancel}}</button>
+          </view>
+        </block>
+        <button
+          wx:else
+          class="fc-card-refresh"
+          disabled="{{busy}}"
+          bindtap="openEndConfirm"
+        >{{eCopy.end}}</button>
+      </block>
+    </view>
+  </block>
+
+  <view class="fc-availability">{{copy.speech}}</view>
+
+  <view class="fc-join-footer">
+    <button wx:if="{{!signedIn}}" class="fc-link-btn" bindtap="goLogin">去登录</button>
+    <button wx:else class="fc-link-btn" bindtap="goConnect">返回连接</button>
+  </view>
+</view>

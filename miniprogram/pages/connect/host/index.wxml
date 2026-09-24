@@ -1,0 +1,7 @@
+<app-banner section="扫码交流" show-back fallback-url="/pages/connect/index" fallback-tab="{{true}}" />
+<view class="fc fc-host">
+  <field-host-invite
+    room-id="{{roomId}}"
+    allow-create="{{allowCreate}}"
+  />
+</view>

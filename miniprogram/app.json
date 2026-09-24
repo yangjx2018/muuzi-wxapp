@@ -1,0 +1,85 @@
+{
+  "pages": [
+    "pages/auth/login/index",
+    "pages/auth/join/index",
+    "pages/auth/join/verify/index",
+    "pages/auth/join/password/index",
+    "pages/auth/recover/index",
+    "pages/auth/recover/verify/index",
+    "pages/auth/recover/password/index",
+    "pages/auth/bind/index",
+    "pages/connect/index",
+    "pages/connect/talk/index",
+    "pages/connect/card/index",
+    "pages/connect/join/index",
+    "pages/connect/continue/index",
+    "pages/connect/host/index",
+    "pages/messages/index",
+    "pages/messages/room/index",
+    "pages/me/index",
+    "pages/me/open-home/index",
+    "pages/me/settings/index",
+    "pages/me/edit-home/index",
+    "pages/me/profile/index",
+    "pages/me/shop/index",
+    "pages/me/address/index",
+    "pages/me/contacts/index",
+    "pages/me/subjects/index",
+    "pages/me/membership/index",
+    "pages/me/spaces/index",
+    "pages/me/org-members/index",
+    "pages/me/enterprise-create/index",
+    "pages/me/enterprise-join/index",
+    "pages/me/interests/index",
+    "pages/me/security/index",
+    "pages/me/agent-access/index",
+    "pages/me/sharing/index",
+    "pages/me/enterprise-invitations/index",
+    "pages/me/saved/index",
+    "pages/me/compose/index",
+    "pages/me/muu/index",
+    "pages/dev/domain-check/index",
+    "pages/dev/wechat-login-smoke/index",
+    "pages/dev/wechat-bind-e2e/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "MuuZi",
+    "navigationBarBackgroundColor": "#f4f5f8",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f4f5f8",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#8a8f9c",
+    "selectedColor": "#2f6df4",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/connect/index",
+        "text": "连接",
+        "iconPath": "assets/tab-connect.png",
+        "selectedIconPath": "assets/tab-connect-active.png"
+      },
+      {
+        "pagePath": "pages/messages/index",
+        "text": "消息",
+        "iconPath": "assets/tab-messages.png",
+        "selectedIconPath": "assets/tab-messages-active.png"
+      },
+      {
+        "pagePath": "pages/me/index",
+        "text": "我",
+        "iconPath": "assets/tab-me.png",
+        "selectedIconPath": "assets/tab-me-active.png"
+      }
+    ]
+  },
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents",
+  "permission": {
+    "scope.record": {
+      "desc": "用于面对面交流时按住说话，完成语音识别与翻译"
+    }
+  }
+}

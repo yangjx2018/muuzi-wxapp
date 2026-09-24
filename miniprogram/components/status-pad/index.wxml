@@ -1,0 +1,2 @@
+<!-- 仅垫高状态栏：消息/我 等自有顶栏页，隐藏微信原生标题 -->
+<view class="status-pad" style="height: {{statusBarPx}}px;"></view>

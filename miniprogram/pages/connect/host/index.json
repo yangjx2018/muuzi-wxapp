@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "扫码交流",
+  "usingComponents": {
+    "field-host-invite": "/components/field-host-invite/index",
+    "app-banner": "/components/app-banner/index"
+  },
+  "navigationStyle": "custom"
+}

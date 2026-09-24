@@ -1,0 +1,9 @@
+node_modules/
+.DS_Store
+*.log
+.miniprogram/
+project.private.config.json
+.tmp-domain-check*
+.tmp-*
+.e2e-local-credentials.json
+miniprogram/config.local.js

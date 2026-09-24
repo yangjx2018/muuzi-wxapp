@@ -1,0 +1,402 @@
+<status-pad />
+<view class="chat-page" style="padding-bottom: {{keyboardHeight}}px;">
+  <!-- 对齐 App chatHeader：返回 + 会话名 + 更多（自定义导航后必须自带返回） -->
+  <view class="chat-header">
+    <view class="chat-header-back" bindtap="onBack" aria-label="对话列表" hover-class="none">
+      <image class="chat-header-back-img" src="/assets/icon-ui-back-ink.png" mode="aspectFit" />
+    </view>
+    <view class="chat-header-mid">
+      <text class="chat-header-name">{{name || '会话'}}</text>
+      <text wx:if="{{subtitle}}" class="chat-header-sub">{{subtitle}}</text>
+    </view>
+    <view class="chat-more" bindtap="openSettings" aria-role="button" aria-label="会话设置">
+      <view class="chat-ico-more"></view>
+    </view>
+  </view>
+
+  <view class="chat-tabs">
+    <view
+      class="chat-tab {{chatTab === 'messages' ? 'on' : ''}}"
+      data-tab="messages"
+      bindtap="onChatTab"
+    >
+      <image class="chat-tab-img" src="/assets/tab-messages{{chatTab === 'messages' ? '-active' : ''}}.png" mode="aspectFit" />
+      <text>消息</text>
+    </view>
+    <view
+      class="chat-tab {{chatTab === 'files' ? 'on' : ''}}"
+      data-tab="files"
+      bindtap="onChatTab"
+    >
+      <image class="chat-tab-img" src="/assets/icon-link.png" mode="aspectFit" />
+      <text>文件</text>
+    </view>
+    <view class="chat-tab-spacer"></view>
+  </view>
+
+  <view class="chat-security">
+    {{encrypted ? '端到端加密对话' : '此对话未启用端到端加密'}}
+  </view>
+  <view wx:if="{{e2eeBanner}}" class="chat-e2ee">{{e2eeBanner}}</view>
+  <view wx:if="{{empty && chatTab === 'messages'}}" class="chat-security soft">
+    开始发送第一条消息。
+  </view>
+  <view wx:if="{{chatTab === 'files'}}" class="chat-security soft">
+    已加载的图片和文件；更早附件可继续加载历史。
+  </view>
+
+  <scroll-view
+    class="chat-scroll"
+    scroll-y
+    scroll-into-view="msg-bottom"
+    enable-flex
+  >
+    <view wx:if="{{hasMore}}" class="chat-older" bindtap="onLoadOlder">
+      {{paging ? '正在加载…' : '加载更早消息'}}
+    </view>
+    <view wx:if="{{empty && chatTab === 'files'}}" class="chat-empty">
+      暂无已加载的附件。
+    </view>
+    <block wx:for="{{displayMessages}}" wx:key="id">
+      <view class="chat-row {{item.own ? 'own' : ''}}" id="msg-{{item.id}}">
+        <view class="chat-avatar {{item.own ? 'own' : ''}}">{{item.senderGlyph}}</view>
+        <view class="chat-col">
+          <view class="chat-sender-line">
+            <text class="chat-sender-name">{{item.senderLabel}}</text>
+            <text class="chat-sender-time">{{item.timeLabel}}</text>
+          </view>
+          <view
+            class="chat-bubble {{item.own ? 'own' : ''}} {{item.failed ? 'failed' : ''}}"
+            data-id="{{item.eventId || item.id}}"
+            data-event-id="{{item.eventId}}"
+            data-body="{{item.body}}"
+            bindlongpress="onReply"
+          >
+            <view wx:if="{{item.replyPreview}}" class="chat-reply">{{item.replyPreview}}</view>
+            <block wx:if="{{item.isImage}}">
+              <image
+                wx:if="{{item.imageSrc}}"
+                class="chat-image"
+                src="{{item.imageSrc}}"
+                mode="widthFix"
+                data-src="{{item.imageSrc}}"
+                bindtap="onPreviewImage"
+              />
+              <view wx:else class="chat-image-placeholder">{{item.mediaPending ? '图片加载中…' : '[图片]'}}</view>
+            </block>
+            <block wx:elif="{{item.isVideo}}">
+              <video
+                wx:if="{{item.mediaSrc}}"
+                class="chat-video"
+                src="{{item.mediaSrc}}"
+                controls
+                show-center-play-btn
+                object-fit="contain"
+              />
+              <view wx:else class="chat-image-placeholder">{{item.mediaPending ? '视频加载中…' : '[视频]'}}</view>
+            </block>
+            <block wx:elif="{{item.isFile}}">
+              <view
+                class="chat-file"
+                data-src="{{item.mediaSrc}}"
+                data-name="{{item.fileLabel}}"
+                bindtap="onOpenFile"
+              >
+                <text class="chat-file-name">{{item.fileLabel}}</text>
+                <text class="chat-file-hint">{{item.mediaSrc ? '点击打开' : (item.mediaPending ? '下载中…' : '待下载')}}</text>
+              </view>
+            </block>
+            <view wx:else class="chat-body">{{item.body}}</view>
+            <view class="chat-meta" wx:if="{{item.own}}">
+              <text wx:if="{{item.sending}}">发送中…</text>
+              <text wx:elif="{{item.readByOthers}}">已读</text>
+              <text wx:elif="{{item.failed}}">未发出</text>
+            </view>
+          </view>
+          <view
+            wx:if="{{item.failed}}"
+            class="chat-retry"
+            data-id="{{item.id}}"
+            bindtap="onRetry"
+          >重试</view>
+          <view
+            wx:elif="{{item.eventId && item.delivery === 'sent'}}"
+            class="chat-reply-action"
+            data-id="{{item.eventId || item.id}}"
+            data-event-id="{{item.eventId}}"
+            data-body="{{item.body}}"
+            bindtap="onReply"
+          >回复</view>
+        </view>
+      </view>
+    </block>
+    <view id="msg-bottom" class="chat-bottom-anchor"></view>
+  </scroll-view>
+
+  <view wx:if="{{error}}" class="chat-error">{{error}}</view>
+
+  <view wx:if="{{showEmoji}}" class="chat-emoji">
+    <view class="chat-emoji-cats">
+      <view
+        wx:for="{{emojiGroups}}"
+        wx:key="label"
+        class="chat-emoji-cat {{emojiCategory === index ? 'on' : ''}}"
+        data-index="{{index}}"
+        bindtap="onEmojiCategory"
+      >{{item.label}}</view>
+      <view class="chat-emoji-cat" bindtap="onToggleEmoji" aria-label="关闭">
+        <view class="chat-ico-close"></view>
+      </view>
+    </view>
+    <view class="chat-emoji-grid">
+      <block wx:for="{{emojis}}" wx:key="*this">
+        <view class="chat-emoji-item" data-emoji="{{item}}" bindtap="onPickEmoji">{{item}}</view>
+      </block>
+    </view>
+  </view>
+
+  <view wx:if="{{showAttachMenu}}" class="chat-attach-menu">
+    <view class="chat-attach-btn" bindtap="onPickPhotos">照片与视频</view>
+    <view class="chat-attach-btn" bindtap="onPickDocs">文件</view>
+    <text class="chat-attach-hint">照片与视频：选择媒体；文件：选择文档等附件。</text>
+  </view>
+
+  <view class="chat-composer {{expandedInput ? 'expanded' : ''}} {{keyboardHeight ? 'kb-open' : ''}}">
+    <view wx:if="{{replyTo}}" class="chat-reply-draft">
+      <view class="chat-reply-copy">
+        <text>回复</text>
+        <text class="chat-reply-snip">{{replySnippet}}</text>
+      </view>
+      <view class="chat-reply-cancel" bindtap="onCancelReply" aria-label="取消回复">
+        <view class="chat-ico-close"></view>
+      </view>
+    </view>
+    <view class="chat-input-field">
+      <textarea
+        class="chat-input"
+        value="{{draft}}"
+        bindinput="onDraftInput"
+        maxlength="10000"
+        auto-height
+        show-confirm-bar="{{false}}"
+        placeholder="{{'发送到 ' + (name || '对话')}}"
+        adjust-position="{{false}}"
+        adjust-keyboard-to="bottom"
+        hold-keyboard="{{true}}"
+        bindkeyboardheightchange="onKeyboardHeight"
+      />
+      <view class="chat-expand" bindtap="onToggleExpand">
+        <view class="chat-ico-expand {{expandedInput ? 'on' : ''}}"></view>
+      </view>
+    </view>
+    <view class="chat-tools">
+      <view class="chat-tool-hit" bindtap="onToggleEmoji">
+        <view class="chat-ico-smile"></view>
+      </view>
+      <view class="chat-tool-hit" bindtap="onToggleAttachMenu">
+        <view class="chat-ico-plus-circle"></view>
+      </view>
+      <view
+        class="chat-tool-hit send {{draft && !sending ? 'on' : ''}}"
+        bindtap="onSend"
+      >
+          <image
+            class="chat-send-img"
+            src="{{draft && !sending ? '/assets/icon-ui-share-accent.png' : '/assets/icon-ui-share-ink.png'}}"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{settingsOpen}}" class="chat-settings-mask">
+    <view class="chat-settings-panel">
+      <view class="chat-settings-head">
+        <view class="chat-settings-title">{{isDirect ? '会话设置' : '群设置'}}</view>
+        <view class="chat-settings-close" bindtap="closeSettings" aria-label="关闭">
+          <view class="chat-ico-close"></view>
+        </view>
+      </view>
+      <view class="chat-settings-note">
+        {{encrypted ? '端到端加密对话' : '此对话未启用端到端加密'}}
+      </view>
+      <view wx:if="{{settingsError}}" class="chat-settings-alert">{{settingsError}}</view>
+      <view wx:if="{{settingsNotice}}" class="chat-settings-status">{{settingsNotice}}</view>
+
+      <block wx:if="{{settingsLoading}}">
+        <view class="chat-settings-note" bindtap="loadSettings">正在加载设置…（点此重试）</view>
+      </block>
+      <block wx:elif="{{settingsError && !settingsMembers.length && !settingsName && !settingsTopic}}">
+        <button class="chat-settings-btn-ghost" bindtap="loadSettings">重新加载</button>
+      </block>
+      <scroll-view wx:else class="chat-settings-body" scroll-y>
+        <view wx:if="{{contactIdentity}}" class="chat-contact">
+          <view class="chat-contact-summary" bindtap="toggleContactOpen">
+            <text>{{contactOpen ? '▼' : '▶'}} 联系人资料与备注</text>
+          </view>
+          <block wx:if="{{contactOpen}}">
+            <view class="chat-contact-dl">
+              <view class="chat-contact-row">
+                <text class="chat-contact-dt">昵称</text>
+                <text class="chat-contact-dd">{{contactIdentity.nickname || '未设置'}}</text>
+              </view>
+              <view class="chat-contact-row">
+                <text class="chat-contact-dt">完整账号</text>
+                <view class="chat-contact-dd">
+                  <view class="chat-contact-account-row">
+                    <text class="chat-contact-account" user-select>{{contactIdentity.userId}}</text>
+                    <view
+                      class="chat-contact-copy"
+                      bindtap="copyContactAccount"
+                      aria-label="复制账号"
+                    >⧉</view>
+                  </view>
+                  <view
+                    wx:if="{{contactCopyNotice}}"
+                    class="chat-contact-copy-notice {{contactCopyFailed ? 'fail' : ''}}"
+                  >{{contactCopyNotice}}</view>
+                </view>
+              </view>
+              <view class="chat-contact-row">
+                <text class="chat-contact-dt">所属节点</text>
+                <view class="chat-contact-dd">
+                  <text>{{contactIdentity.source}}</text>
+                  <text class="chat-contact-server">{{contactIdentity.server}}</text>
+                </view>
+              </view>
+            </view>
+            <view class="chat-contact-form">
+              <text class="chat-settings-label">联系人备注</text>
+              <input
+                class="chat-settings-input"
+                value="{{contactRemark}}"
+                maxlength="80"
+                placeholder="留空使用对方昵称或账号"
+                disabled="{{settingsBusy}}"
+                bindinput="onContactRemark"
+              />
+              <block wx:if="{{contactIdentity.crossNode}}">
+                <text class="chat-settings-label">节点备注</text>
+                <input
+                  class="chat-settings-input"
+                  value="{{contactNodeRemark}}"
+                  maxlength="80"
+                  placeholder="留空使用节点名称或域名"
+                  disabled="{{settingsBusy}}"
+                  bindinput="onContactNodeRemark"
+                />
+              </block>
+              <view class="chat-contact-hint">
+                备注仅对你可见，随当前 Matrix 账号同步到本机与微信小程序；节点备注会用于该节点的其他联系人。
+              </view>
+              <button
+                class="chat-settings-btn-primary"
+                disabled="{{settingsBusy}}"
+                bindtap="saveContactLabels"
+              >保存备注</button>
+              <button
+                class="chat-settings-btn-ghost"
+                disabled="{{settingsBusy}}"
+                bindtap="cancelContactEdit"
+              >取消修改</button>
+              <view
+                wx:if="{{contactNotice}}"
+                class="chat-contact-notice {{contactFailed ? 'fail' : ''}}"
+              >{{contactNotice}}</view>
+            </view>
+          </block>
+        </view>
+
+        <block wx:if="{{!isDirect}}">
+          <view class="chat-settings-field">
+            <text class="chat-settings-label">群名称</text>
+            <input
+              class="chat-settings-input"
+              value="{{settingsName}}"
+              maxlength="100"
+              disabled="{{!settingsCanName || settingsBusy}}"
+              bindinput="onSettingsName"
+            />
+            <button
+              wx:if="{{settingsCanName}}"
+              class="chat-settings-btn-ghost"
+              disabled="{{settingsBusy || !settingsName}}"
+              bindtap="saveSettingsName"
+            >保存群名称</button>
+          </view>
+        </block>
+        <view class="chat-settings-field">
+          <text class="chat-settings-label">介绍</text>
+          <textarea
+            class="chat-settings-textarea"
+            value="{{settingsTopic}}"
+            maxlength="1000"
+            disabled="{{!settingsCanTopic || settingsBusy}}"
+            bindinput="onSettingsTopic"
+          />
+          <button
+            wx:if="{{settingsCanTopic}}"
+            class="chat-settings-btn-ghost"
+            disabled="{{settingsBusy}}"
+            bindtap="saveSettingsTopic"
+          >保存介绍</button>
+        </view>
+
+        <view class="chat-settings-h3">成员 · {{settingsMembers.length}}</view>
+        <block wx:for="{{settingsMembers}}" wx:key="id">
+          <view class="chat-settings-member">
+            <view class="chat-settings-member-info">
+              <view class="chat-settings-member-name">
+                {{contactIdentity && contactIdentity.userId === item.id ? contactIdentity.name : item.name}}
+              </view>
+              <view wx:if="{{item.invited}}" class="chat-settings-member-tag">待接受邀请</view>
+              <view class="chat-settings-member-id">{{item.id}}</view>
+            </view>
+            <button
+              wx:if="{{item.canRemove}}"
+              class="chat-settings-btn-ghost"
+              data-id="{{item.id}}"
+              disabled="{{settingsBusy}}"
+              bindtap="askRemoveMember"
+            >移出</button>
+          </view>
+        </block>
+
+        <view wx:if="{{settingsCanInvite}}" class="chat-settings-field">
+          <text class="chat-settings-label">邀请成员</text>
+          <input
+            class="chat-settings-input"
+            value="{{settingsInvite}}"
+            placeholder="@用户名:节点"
+            disabled="{{settingsBusy}}"
+            bindinput="onSettingsInvite"
+          />
+          <button
+            class="chat-settings-btn-ghost"
+            disabled="{{settingsBusy || !settingsInvite}}"
+            bindtap="sendInvite"
+          >发送邀请</button>
+        </view>
+      </scroll-view>
+
+      <view wx:if="{{removeTarget}}" class="chat-settings-confirm">
+        <view class="chat-settings-confirm-title">移出此成员？</view>
+        <view class="chat-settings-note">{{removeTarget}}</view>
+        <view class="chat-settings-note">对方将被移出本会话；不会删除已有聊天记录。待接受的邀请会被撤回。</view>
+        <view class="chat-settings-confirm-actions">
+          <button
+            class="chat-settings-btn-ghost"
+            disabled="{{settingsBusy}}"
+            bindtap="cancelRemoveMember"
+          >取消</button>
+          <button
+            class="chat-settings-btn-danger"
+            disabled="{{settingsBusy}}"
+            bindtap="confirmRemoveMember"
+          >确认移出</button>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

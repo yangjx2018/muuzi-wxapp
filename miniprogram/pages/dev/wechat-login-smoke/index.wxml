@@ -1,0 +1,5 @@
+<view class="wrap">
+  <view class="title">本地 bot 微信登录冒烟</view>
+  <view class="line" wx:for="{{lines}}" wx:key="*this">{{item}}</view>
+  <view wx:if="{{done}}" class="{{ok ? 'ok' : 'fail'}}">{{ok ? '本轮成功（含需绑定）' : '本轮失败'}}</view>
+</view>

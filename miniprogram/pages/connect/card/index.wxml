@@ -1,0 +1,96 @@
+<app-banner section="我的名片" show-back fallback-url="/pages/connect/index" fallback-tab="{{true}}" />
+<view class="fc fc-namecard">
+  <view class="fc-heading fc-card-top">
+    <text class="fc-kicker">NAME CARD</text>
+    <view class="fc-title">我的名片</view>
+  </view>
+
+  <view class="fc-card-selector">
+    <text class="fc-card-selector-label">展示哪张名片</text>
+    <picker
+      mode="selector"
+      range="{{sourceLabels}}"
+      value="{{selectedIndex}}"
+      bindchange="onSourceChange"
+      disabled="{{sourcesLoading}}"
+    >
+      <view class="fc-card-selector-value">
+        {{sourceLabels[selectedIndex]}}
+      </view>
+    </picker>
+  </view>
+
+  <view wx:if="{{sourcesLoading}}" class="fc-availability" role="status">正在读取企业主页…</view>
+  <view wx:if="{{sourcesError}}" class="fc-availability fc-alert">{{sourcesError}}</view>
+  <view wx:if="{{!sourcesLoading && !sourcesError && sourcesHint}}" class="fc-availability">{{sourcesHint}}</view>
+
+  <button class="fc-card-refresh" bindtap="refreshSources" disabled="{{sourcesLoading}}">刷新主页列表</button>
+
+  <block wx:if="{{cardStatus === 'loading'}}">
+    <view class="fc-empty" role="status">正在读取已发布名片…</view>
+  </block>
+
+  <block wx:elif="{{cardStatus === 'unpublished'}}">
+    <view class="fc-hero">
+      <view class="fc-hero-h2">先发布这份主页</view>
+      <view class="fc-hero-p">名片只展示已发布资料。所选主页尚未发布，暂时不能生成公开名片二维码。</view>
+      <button class="fc-primary" bindtap="goEdit">{{editLabel}}</button>
+      <button class="fc-card-refresh" bindtap="retryCard">重新检查</button>
+    </view>
+  </block>
+
+  <block wx:elif="{{cardStatus === 'error'}}">
+    <view class="fc-hero">
+      <view class="fc-hero-h2">暂时无法读取名片</view>
+      <view class="fc-hero-p fc-alert">请检查网络和主页权限后重试。也可切换到其他名片。</view>
+      <button class="fc-primary" bindtap="retryCard">重试</button>
+    </view>
+  </block>
+
+  <block wx:elif="{{cardStatus === 'ready' && card}}">
+    <view class="fc-hero fc-card-body">
+      <image
+        class="fc-card-portrait"
+        src="{{card.portrait || '/assets/tab-me.png'}}"
+        mode="aspectFill"
+      />
+      <text class="fc-tag">{{kindTag}}</text>
+      <view class="fc-card-name">{{card.name}}</view>
+      <view wx:if="{{card.headline}}" class="fc-hero-p">{{card.headline}}</view>
+
+      <image
+        wx:if="{{qrImage}}"
+        class="fc-card-qr"
+        src="{{qrImage}}"
+        mode="aspectFit"
+        show-menu-by-longpress
+      />
+      <button
+        wx:elif="{{qrFailed}}"
+        class="fc-card-refresh"
+        bindtap="retryQr"
+      >二维码生成失败，点击重试</button>
+      <view wx:else class="fc-availability" role="status">正在生成二维码…</view>
+
+      <view class="fc-hero-p">扫码查看这份 MuuZi 主页</view>
+      <text class="fc-card-address" user-select selectable>{{card.url}}</text>
+      <button class="fc-primary" bindtap="copyLink" disabled="{{copying}}">
+        {{copying ? '正在复制…' : '复制主页链接'}}
+      </button>
+      <view wx:if="{{note}}" class="fc-availability" role="status">{{note}}</view>
+    </view>
+
+    <view class="fc-availability">此二维码展示你的公开主页，不会赠送卡片、添加好友或分享现场交流。</view>
+    <view class="fc-card-links">
+      <text class="fc-card-link" bindtap="goEdit">{{editLabel}}</text>
+      <text class="fc-card-link" bindtap="retryCard">刷新名片</text>
+    </view>
+  </block>
+
+  <!-- 离屏绘制；不参与布局 -->
+  <canvas
+    canvas-id="namecardQr"
+    class="fc-qr-canvas"
+    style="width: {{qrSize}}px; height: {{qrSize}}px;"
+  />
+</view>

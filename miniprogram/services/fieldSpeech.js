@@ -37,6 +37,8 @@ var errors = {
   FIELD_ACCESS_DENIED: '当前节点尚未开放语音服务。',
   SPEECH_REQUEST_USED: '这次请求已经提交，未再次调用。请确认后重新操作。',
   SPEECH_PROVIDER_BUSY: '翻译服务繁忙，请稍后重试。',
+  SPEECH_PROVIDER_FAILED: '语音识别暂时失败，请重新按住说话。',
+  SPEECH_RESPONSE_INVALID: '语音识别结果异常，请重新按住说话。',
   SPEECH_TIMEOUT: '本次处理超时，请重试。',
   SPEECH_LANGUAGE_UNSUPPORTED: '暂不支持所选语言。',
   SPEECH_TEXT_INVALID: '文字为空或过长，请缩短后重试。',

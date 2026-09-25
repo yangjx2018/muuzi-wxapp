@@ -136,6 +136,7 @@ Component({
     langHint: langHintOf('zh', 'en', false, false),
     chatMessages: [],
     chatAnchor: '',
+    chatPanePx: 280,
     saveNote: '',
     scanState: '准备话题',
     expiresLabel: '',
@@ -144,6 +145,13 @@ Component({
   lifetimes: {
     attached: function () {
       this._alive = true;
+      try {
+        var sys = wx.getSystemInfoSync();
+        var h = Math.round((sys.windowHeight || 667) * 0.42);
+        this.setData({ chatPanePx: Math.max(160, Math.min(h, 420)) });
+      } catch (e) {
+        /* keep default */
+      }
       this._queue = Promise.resolve();
       this._actionQueued = false;
       this._working = false;
@@ -296,7 +304,14 @@ Component({
       var out = [];
       for (i = 0; i < merged.length; i++) {
         var m = merged[i];
+        // K-24：当面 field.record 不得进入扫码气泡（双保险：helper + 正文特征）
         if (!fieldChatTranslation.isScanChatMessage(m)) continue;
+        if (
+          /现场交流/.test(String(m.body || '')) &&
+          /的设备记录/.test(String(m.body || ''))
+        ) {
+          continue;
+        }
         var decision = fieldChatTranslation.translationDecision({
           own: !!m.own,
           source: guest,

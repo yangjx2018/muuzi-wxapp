@@ -10,7 +10,7 @@
 .fc-visitor {
   display: flex;
   flex-direction: column;
-  gap: 32rpx;
+  gap: 32rpx; /* App .fc-visitor gap: 16px */
   width: 100%;
   box-sizing: border-box;
 }
@@ -93,13 +93,18 @@
   opacity: 0.5;
 }
 
-/* 对话气泡 · 对齐 App：客白底左尖、我蓝底右尖；scroll-view 必须固定高度 */
+/* 对话区 · 对齐 App .fc-chat：max-height 42vh，无消息不占死高 */
 .fc-chat {
-  height: 42vh;
   max-height: 42vh;
   width: 100%;
   box-sizing: border-box;
   padding: 8rpx 0;
+}
+
+.fc-chat-empty {
+  width: 100%;
+  padding: 4rpx 0 8rpx;
+  box-sizing: border-box;
 }
 
 .fc-chat-list {

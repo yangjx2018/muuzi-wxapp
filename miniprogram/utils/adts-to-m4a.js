@@ -54,6 +54,8 @@ function parseAdts(buffer) {
   var offset = 0;
   var sampleRateIndex = 4;
   var channelConfig = 1;
+  // ADTS profile 0/1/2 → MPEG-4 Audio Object Type 1/2/3；默认 AAC-LC(2)
+  var audioObjectType = 2;
   while (offset + 7 < buffer.length) {
     if (buffer[offset] !== 0xff || (buffer[offset + 1] & 0xf0) !== 0xf0) {
       offset++;
@@ -65,6 +67,7 @@ function parseAdts(buffer) {
       ((buffer[offset + 5] & 0xe0) >> 5);
     if (frameLength < 7 || offset + frameLength > buffer.length) break;
     var headerLen = buffer[offset + 1] & 0x01 ? 7 : 9;
+    audioObjectType = ((buffer[offset + 2] & 0xc0) >> 6) + 1;
     sampleRateIndex = (buffer[offset + 2] & 0x3c) >> 2;
     channelConfig =
       ((buffer[offset + 2] & 0x01) << 2) | ((buffer[offset + 3] & 0xc0) >> 6);
@@ -73,33 +76,49 @@ function parseAdts(buffer) {
   }
   return {
     frames: frames,
+    audioObjectType: audioObjectType || 2,
     sampleRateIndex: sampleRateIndex,
     channelConfig: channelConfig || 1,
     sampleRate: SAMPLE_RATES[sampleRateIndex] || 44100,
   };
 }
 
-function audioSpecificConfig(sampleRateIndex, channelConfig) {
-  // AAC-LC object type = 2
-  var aot = 2;
+function audioSpecificConfig(audioObjectType, sampleRateIndex, channelConfig) {
+  var aot = audioObjectType >= 1 && audioObjectType <= 4 ? audioObjectType : 2;
   var bits = (aot << 11) | (sampleRateIndex << 7) | (channelConfig << 3);
   return new Uint8Array([(bits >> 8) & 255, bits & 255]);
 }
 
+/**
+ * ISO 14496-1 描述符：短形式 size（length < 128）。
+ * 旧实现混用「短形式长度声明 + 长形式内容」，DecoderSpecificInfo 溢出父描述符，
+ * 安卓微信 ADTS remux 出的 M4A 仍带合法 ftyp，但解码配置损坏，识别链路会失败。
+ */
+function desc(tag, content) {
+  if (content.length > 127) {
+    throw new Error('录音格式无法识别，请重新按住说话。');
+  }
+  return concat([new Uint8Array([tag, content.length]), content]);
+}
+
 function esds(asc) {
-  var decoderConfig = concat([
-    new Uint8Array([0x04, 0x80, 0x80, 0x80, 15 + asc.length]),
-    new Uint8Array([0x40, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]),
-    new Uint8Array([0x05, 0x80, 0x80, 0x80, asc.length]),
-    asc,
-  ]);
-  var es = concat([
-    new Uint8Array([0x03, 0x80, 0x80, 0x80, 3 + decoderConfig.length + 3]),
-    u16(1),
-    new Uint8Array([0x00]),
-    decoderConfig,
-    new Uint8Array([0x06, 0x80, 0x80, 0x80, 1, 0x02]),
-  ]);
+  var decoderSpecific = desc(0x05, asc);
+  // objectTypeIndication + streamType + bufferSizeDB(3) + max/avg bitrate(8) = 13
+  var decoderConfig = desc(
+    0x04,
+    concat([
+      new Uint8Array([
+        0x40, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00,
+      ]),
+      decoderSpecific,
+    ])
+  );
+  var slConfig = desc(0x06, new Uint8Array([0x02]));
+  var es = desc(
+    0x03,
+    concat([u16(1), new Uint8Array([0x00]), decoderConfig, slConfig])
+  );
   return fullBox('esds', 0, 0, es);
 }
 
@@ -124,7 +143,11 @@ function adtsToM4a(input) {
   var frameCount = parsed.frames.length;
   var timescale = parsed.sampleRate;
   var duration = frameCount * 1024;
-  var asc = audioSpecificConfig(parsed.sampleRateIndex, parsed.channelConfig);
+  var asc = audioSpecificConfig(
+    parsed.audioObjectType,
+    parsed.sampleRateIndex,
+    parsed.channelConfig
+  );
 
   var stsd = fullBox(
     'stsd',

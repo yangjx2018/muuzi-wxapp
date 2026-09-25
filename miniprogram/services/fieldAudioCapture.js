@@ -252,11 +252,7 @@ function createFieldAudioCapture(onPhase, onMeter) {
     peakLevel = 0.22;
     startMeterPulse();
     emitMeter();
-    try {
-      if (wx.vibrateShort) wx.vibrateShort({ type: 'light' });
-    } catch (e) {
-      /* ignore */
-    }
+    // 不在 onStart 里触发短震动：安卓微信震动常连带 touchcancel，导致按住按钮红蓝闪。
     var resolve = startWaiters.resolve;
     startWaiters = null;
     resolve();

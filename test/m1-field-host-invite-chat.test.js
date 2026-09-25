@@ -84,6 +84,20 @@ describe('M1 FieldHostInvite scan chat parity', () => {
     );
     assert.equal(
       translation.isScanChatMessage({
+        body:
+          '现场交流・本人发言\n由 @a:im.muuzi.co 的设备记录\n原文（zh）：你好',
+      }),
+      false
+    );
+    assert.equal(
+      translation.isScanChatMessage({
+        body:
+          '现场交流 · 对方发言（身份未关联）\n由 @duxz:im.muuzi.co 的设备记录\n原文（en）：Yes, yes, thank you.\n自动翻译（zh）：是的，是的，谢谢。',
+      }),
+      false
+    );
+    assert.equal(
+      translation.isScanChatMessage({
         body: 'Yes, thank you.',
         fieldKind: 'audience',
       }),
@@ -128,6 +142,7 @@ describe('M1 FieldHostInvite scan chat parity', () => {
     assert.doesNotMatch(wxml, /查看现场频道/);
     assert.match(js, /isScanChatMessage/);
     assert.match(js, /syncChatMessages/);
+    assert.match(js, /的设备记录/);
 
     assert.match(js, /syncChatMessages/);
     assert.match(js, /queueGuestTranslations/);
@@ -145,7 +160,12 @@ describe('M1 FieldHostInvite scan chat parity', () => {
     assert.match(wxss, /\.fc-scan-langs/);
     assert.match(wxss, /min-height:\s*72rpx/);
     assert.match(wxss, /\.fc-chat/);
-    assert.match(wxss, /height:\s*42vh/);
+    // 对齐 App：max-height 42vh；禁止写死 height:42vh（无消息时空洞）
+    // 注意：勿用 [^}]*height 误伤 max-height
+    assert.match(wxss, /max-height:\s*42vh/);
+    assert.doesNotMatch(wxss, /(?<!max-)height:\s*42vh/);
+    assert.match(wxml, /fc-chat-empty/);
+    assert.match(js, /chatPanePx/);
     assert.match(wxss, /\.fc-bubble-own/);
     assert.match(wxss, /\.fc-chip-on/);
     assert.match(wxss, /\.fc-primary/);

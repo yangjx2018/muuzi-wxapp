@@ -77,10 +77,14 @@ Page({
     speakGuestLabel: '对方 · 按住说话',
     speakMineDisabled: true,
     speakGuestDisabled: true,
+    blockScanSwitch: false,
     canPlayVoice: false,
-    // 对齐 App FieldTalk voiceUrl + <audio controls>：可暂停/继续；空则不展示播放器
+    // 对齐 App 可暂停朗读：微信 <audio> 已废弃，用 InnerAudioContext + 暂停/继续按钮
     voiceSrc: '',
+    voicePlaying: false,
+    voicePaused: false,
     voiceMeter: 0,
+    voiceMeterPct: 0,
     voiceElapsed: '',
     showVoiceMeter: false,
     // 对齐 App FieldTalk.held：按住时保留上一轮展示，避免交流区高度塌缩导致按钮在手指下跳动触发 touchcancel。
@@ -100,6 +104,11 @@ Page({
   _reqGen: 0,
   _saveLock: false,
   _holdSpeaker: '',
+  /** 手指仍按下（安卓 setData 易误发 touchcancel，不能据此立刻 abort）。 */
+  _fingerDown: false,
+  /** starting 期间已收到松手/cancel：等录音真正开始后再 stop，避免红蓝来回切。 */
+  _releasePending: false,
+  _lastElapsedSec: -1,
   _saveAttempt: null,
   _topicOpened: false,
   _topicOpening: false,
@@ -118,12 +127,7 @@ Page({
       function (phase) {
         if (!self._alive) return;
         if (phase === 'recording') {
-          // 仅更新非按钮字段；说话按钮 class 绑 holdingSpeaker，此处勿 refreshSpeakButtons。
-          self.setData({
-            phase: 'recording',
-            showVoiceMeter: true,
-            statusText: PHASE_LABEL.recording,
-          });
+          // startHold().then 统一落 UI；此处再 setData 会在安卓上叠一次重绘触发 touchcancel。
           return;
         }
         if (phase === 'starting') {
@@ -138,6 +142,8 @@ Page({
           (self.data.phase === 'starting' || self.data.phase === 'recording')
         ) {
           self._holdSpeaker = '';
+          self._fingerDown = false;
+          self._releasePending = false;
           self.setData({
             phase: 'idle',
             note: '录音已中断，请重新按住说话。',
@@ -151,13 +157,12 @@ Page({
       },
       function (level, elapsedMs) {
         if (!self._alive) return;
-        var now = Date.now();
-        if (now - self._lastMeterAt < 80) return;
-        self._lastMeterAt = now;
+        // 振幅用 CSS 动画，避免 80ms setData 在安卓上打断 touch。
+        // 计时文案最多每秒刷新一次。
         var sec = Math.max(0, Math.floor(elapsedMs / 1000));
-        // 不改按钮文案（避免按住中 setData 触发 touchcancel）；计时只走振幅旁文案/状态。
+        if (sec === self._lastElapsedSec) return;
+        self._lastElapsedSec = sec;
         self.setData({
-          voiceMeter: Math.max(0.08, Math.min(1, level || 0)),
           voiceElapsed: sec + '″',
           showVoiceMeter: true,
         });
@@ -249,12 +254,16 @@ Page({
   },
 
   /**
-   * 对齐 App：pause + 清空 voiceUrl；销毁 InnerAudio（若有）并删除临时 mp3。
+   * 对齐 App：pause + 清空 voiceUrl；销毁 InnerAudio 并删除临时 mp3。
    */
   clearVoicePlayback() {
     if (this._audio) {
       try {
         this._audio.stop();
+      } catch (e0) {
+        /* ignore */
+      }
+      try {
         this._audio.destroy();
       } catch (e) {
         /* ignore */
@@ -263,8 +272,12 @@ Page({
     }
     var path = this._voicePath;
     this._voicePath = '';
-    if (this.data.voiceSrc) {
-      this.setData({ voiceSrc: '' });
+    if (this.data.voiceSrc || this.data.voicePlaying || this.data.voicePaused) {
+      this.setData({
+        voiceSrc: '',
+        voicePlaying: false,
+        voicePaused: false,
+      });
     }
     if (path) {
       try {
@@ -275,13 +288,78 @@ Page({
     }
   },
 
+  /**
+   * @param {string} path 本地 mp3
+   */
+  startInnerVoice(path) {
+    var self = this;
+    if (this._audio) {
+      try {
+        this._audio.stop();
+      } catch (e0) {
+        /* ignore */
+      }
+      try {
+        this._audio.destroy();
+      } catch (e1) {
+        /* ignore */
+      }
+      this._audio = null;
+    }
+    var audio = wx.createInnerAudioContext();
+    audio.src = path;
+    audio.onPlay(function () {
+      if (!self._alive || self._voicePath !== path) return;
+      self.setData({ voicePlaying: true, voicePaused: false });
+    });
+    audio.onPause(function () {
+      if (!self._alive || self._voicePath !== path) return;
+      self.setData({ voicePlaying: false, voicePaused: true });
+    });
+    audio.onStop(function () {
+      if (!self._alive || self._voicePath !== path) return;
+      self.setData({ voicePlaying: false, voicePaused: false });
+    });
+    audio.onEnded(function () {
+      if (!self._alive || self._voicePath !== path) return;
+      // 保留 voiceSrc，便于「继续」从头再听（对齐 App controls 可重播）
+      self.setData({ voicePlaying: false, voicePaused: false });
+    });
+    audio.onError(function () {
+      if (!self._alive) return;
+      self.onVoiceError();
+    });
+    this._audio = audio;
+    this._voicePath = path;
+    this.setData({
+      voiceSrc: path,
+      voicePlaying: true,
+      voicePaused: false,
+    });
+    try {
+      audio.play();
+    } catch (e2) {
+      this.onVoiceError();
+    }
+  },
+
+  /** 暂停 ↔ 继续（pause 后再 play 从断点续播；播完后再 play 从头） */
+  toggleVoicePause() {
+    if (!this._audio || !this.data.voiceSrc) return;
+    try {
+      if (this.data.voicePlaying) {
+        this._audio.pause();
+      } else {
+        this._audio.play();
+      }
+    } catch (e) {
+      this.onVoiceError();
+    }
+  },
+
   onVoiceError() {
     this.clearVoicePlayback();
     this.setData({ note: '朗读音频无法播放，请重新准备朗读。' });
-  },
-
-  onVoiceEnded() {
-    /* 对齐 App：保留 src 以便控件可重播；临时文件在 clearVoicePlayback / unload 时删 */
   },
 
   ensureTopicOpen() {
@@ -452,6 +530,7 @@ Page({
       speakGuestLabel: label('guest'),
       speakMineDisabled: disabled('mine'),
       speakGuestDisabled: disabled('guest'),
+      blockScanSwitch: this.hasUnsavedDraft(),
       canPlayVoice: Boolean(
         d.turn &&
           d.turn.translated &&
@@ -540,18 +619,36 @@ Page({
 
   setModeScan() {
     if (this.data.busy || this.data.translating || this.isHolding()) return;
-    var turn = this.data.turn;
-    if (
-      turn &&
-      turn.original &&
-      turn.original.trim() &&
-      this.data.savedTurnKey !== this.turnIdentity(turn)
-    ) {
+    // 对齐 App 顶栏「扫码交流」：有未确认原文时禁用/拦截（「不等了」走 skipWaitToScan）
+    if (this.hasUnsavedDraft()) {
       this.setData({ note: '请先确认当前文字，或清空后再切换扫码交流。' });
       return;
     }
+    this.applyScanMode();
+  },
+
+  /**
+   * 对齐 App「不等了，先用扫码交流」：话题准备中也可立刻切扫码，不因本机待确认草稿卡住。
+   * （准备态界面无法确认文字，用 setModeScan 草稿门禁会造成死路。）
+   */
+  skipWaitToScan() {
+    this.applyScanMode();
+  },
+
+  hasUnsavedDraft() {
+    var turn = this.data.turn;
+    return Boolean(
+      turn &&
+        turn.original &&
+        String(turn.original).trim() &&
+        this.data.savedTurnKey !== this.turnIdentity(turn)
+    );
+  },
+
+  applyScanMode() {
     // 对齐 App：cancel() 后切扫码；中断面对面录音/朗读，勿把当面轮次 UI 状态带进扫码屏
     this._reqGen += 1;
+    this._holdSpeaker = '';
     this.cancelVoice();
     this.setData({
       scan: true,
@@ -663,6 +760,9 @@ Page({
 
   cancelVoice() {
     this._holdSpeaker = '';
+    this._fingerDown = false;
+    this._releasePending = false;
+    this._lastElapsedSec = -1;
     this.clearVoiceMeter();
     // 对齐 App cancel()：先落 idle，再 cancel capture，避免 idle 回调误报「录音已中断」。
     if (this.isHolding()) {
@@ -682,6 +782,7 @@ Page({
       this.setData({
         showVoiceMeter: false,
         voiceMeter: 0,
+        voiceMeterPct: 0,
         voiceElapsed: '',
       });
     }
@@ -740,17 +841,35 @@ Page({
     });
     this.refreshShown();
     this.refreshStatus();
+    this.refreshSpeakButtons();
   },
 
   onHoldStart(e) {
     var speaker = e.currentTarget.dataset.speaker;
     if (speaker === 'mine' && this.data.speakMineDisabled) return;
     if (speaker === 'guest' && this.data.speakGuestDisabled) return;
+    this._fingerDown = true;
+    this._releasePending = false;
     this.startHold(speaker);
   },
 
+  /** 吞掉 touchmove，避免页面滚动把按住说话 cancel 掉。 */
+  onHoldMove() {},
+
   onHoldEnd() {
-    this.endHold();
+    this._fingerDown = false;
+    this.endHold({ fromCancel: false });
+  },
+
+  /**
+   * 安卓微信：按住期间 setData/震动常误发 touchcancel。
+   * starting：忽略（勿 abort、勿记松手），否则红蓝来回切或一开录就被停。
+   * recording：部分机型松手只发 cancel，按松手送识别。
+   */
+  onHoldCancel() {
+    if (this.data.phase === 'starting') return;
+    this._fingerDown = false;
+    this.endHold({ fromCancel: true });
   },
 
   startHold(speaker) {
@@ -771,6 +890,8 @@ Page({
       return;
     }
     this._holdSpeaker = speaker;
+    this._releasePending = false;
+    this._lastElapsedSec = 0;
     this._reqGen += 1;
     this.clearVoicePlayback();
     var prev = this.data.turn;
@@ -785,6 +906,7 @@ Page({
     };
     var shown = held || turn;
     // 按下时一次 setData 写完展示与状态；按住期间禁止再改说话按钮相关字段。
+    // 对齐参考态：按下即红钮 + 振幅条占位，避免「假死」感（录音开始后再脉冲刷新）。
     this.setData({
       turn: turn,
       heldTurn: held,
@@ -797,9 +919,10 @@ Page({
       phase: 'starting',
       statusText: PHASE_LABEL.starting,
       canPlayVoice: false,
-      showVoiceMeter: false,
-      voiceMeter: 0,
-      voiceElapsed: '',
+      showVoiceMeter: true,
+      voiceMeter: 0.12,
+      voiceMeterPct: 12,
+      voiceElapsed: '0″',
     });
     this._capture
       .start()
@@ -813,10 +936,17 @@ Page({
           showVoiceMeter: true,
           statusText: PHASE_LABEL.recording,
         });
+        // starting 期间已松手/误 cancel：录音一就绪立刻送出，避免卡在红钮或来回切。
+        if (self._releasePending || !self._fingerDown) {
+          self._releasePending = false;
+          self.endHold({ fromCancel: false });
+        }
       })
       .catch(function (err) {
         if (!self._alive) return;
         self._holdSpeaker = '';
+        self._fingerDown = false;
+        self._releasePending = false;
         var code = err && err.code;
         var note =
           code === fieldAudio.MIC_READY_RETRY
@@ -826,6 +956,10 @@ Page({
           phase: 'idle',
           heldTurn: null,
           holdingSpeaker: '',
+          showVoiceMeter: false,
+          voiceMeter: 0,
+          voiceMeterPct: 0,
+          voiceElapsed: '',
           note: note,
         });
         self.refreshShown();
@@ -834,18 +968,17 @@ Page({
       });
   },
 
-  endHold() {
+  endHold(opts) {
     var self = this;
     var speaker = this._holdSpeaker;
     var turn = this.data.turn;
     var phase = this.data.phase;
     if (!this._capture) return;
     // 授权弹窗会打断 touch：松手时不要 cancel，让 ensureMicAuth 走完并提示「再次按住」。
-    if (
-      phase === 'starting' &&
-      this._capture.authPending
-    ) {
+    if (phase === 'starting' && this._capture.authPending) {
       this._holdSpeaker = '';
+      this._fingerDown = false;
+      this._releasePending = false;
       this.setData({
         holdingSpeaker: '',
       });
@@ -853,20 +986,15 @@ Page({
     }
     if (!speaker || !turn) return;
     if (phase === 'starting') {
-      this.cancelVoice();
-      this.setData({
-        phase: 'idle',
-        heldTurn: null,
-        holdingSpeaker: '',
-        note: '麦克风尚未就绪，请重新按住说话。',
-      });
-      this.refreshShown();
-      this.refreshStatus();
-      this.refreshSpeakButtons();
+      // 真松手或误 cancel：记 pending，等 onStart 后再 stop；勿立刻 abort（安卓会红蓝闪）。
+      this._releasePending = true;
+      this._fingerDown = false;
       return;
     }
     if (phase !== 'recording') return;
     this._holdSpeaker = '';
+    this._fingerDown = false;
+    this._releasePending = false;
     var gen = ++this._reqGen;
     this.setData({
       phase: 'recognizing',
@@ -950,11 +1078,15 @@ Page({
       })
       .catch(function (err) {
         if (!self._alive || gen !== self._reqGen) return;
+        self._holdSpeaker = '';
+        self._fingerDown = false;
+        self._releasePending = false;
         self.setData({
           busy: false,
           translating: false,
           phase: 'idle',
           heldTurn: null,
+          holdingSpeaker: '',
           note: (err && err.message) || '本次处理失败。',
         });
         self.refreshShown();
@@ -1028,6 +1160,8 @@ Page({
         });
         return self.persistConfirmed(updated).then(function () {
           if (!self._alive || gen !== self._reqGen) return;
+          // 必须同步 shownTurn：否则对侧仍显示「等待翻译」，
+          // 而 canPlayVoice 已按 turn.translated 亮起「准备朗读」。
           self.setData({
             turn: updated,
             savedTurnKey: self.turnIdentity(updated),
@@ -1037,6 +1171,7 @@ Page({
             phase: 'idle',
             note: '本轮已保存到节点现场话题。',
           });
+          self.refreshShown();
           self.refreshStatus();
           self.refreshSpeakButtons();
         });
@@ -1103,14 +1238,13 @@ Page({
               }
               return;
             }
-            // 对齐 App：展示带 controls 的播放器（可暂停）；autoplay 贴近原先自动开播体验
-            self._voicePath = path;
+            // 对齐 App 可暂停：InnerAudioContext + 暂停/继续（微信 <audio> 已废弃且真机常无控件）
             self.setData({
               busy: false,
               phase: 'idle',
-              voiceSrc: path,
               note: '',
             });
+            self.startInnerVoice(path);
             self.refreshStatus();
             self.refreshSpeakButtons();
           },

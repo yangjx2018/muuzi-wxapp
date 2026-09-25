@@ -91,8 +91,10 @@ describe('M-11 subjects depth + K-10 voice meter', () => {
     assert.match(cap, /format=aac 时禁止传 frameSize|禁止传 frameSize/);
     assert.doesNotMatch(cap, /onFrameRecorded/);
     assert.match(cap, /说话时间太短/);
-    assert.match(cap, /vibrateShort/);
-    assert.match(talk, /voiceMeter|showVoiceMeter/);
+    // 启动震动会在安卓上连带 touchcancel，已去掉；振幅条改 CSS 动画。
+    assert.doesNotMatch(cap, /vibrateShort\s*\(/);
+    assert.match(talk, /showVoiceMeter|voiceElapsed|_releasePending/);
     assert.match(wxml, /fc-voice-meter/);
+    assert.doesNotMatch(wxml, /voiceMeterPct/);
   });
 });

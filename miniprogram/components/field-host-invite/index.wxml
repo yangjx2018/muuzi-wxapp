@@ -99,8 +99,11 @@
     </view>
     <view wx:if="{{langHint}}" class="fc-availability">{{langHint}}</view>
 
+    <!-- 对齐 App .fc-chat：仅 max-height 42vh，无消息时不占死高度（Wx 曾写死 height:42vh 导致大片空白） -->
     <scroll-view
+      wx:if="{{chatMessages.length}}"
       class="fc-chat"
+      style="height: {{chatPanePx}}px;"
       scroll-y
       scroll-into-view="{{chatAnchor}}"
       scroll-with-animation
@@ -132,9 +135,11 @@
             <text class="fc-bubble-text {{item.translated ? 'fc-bubble-original' : ''}}">{{item.body}}</text>
           </view>
         </block>
-        <view wx:if="{{!chatMessages.length}}" class="fc-availability">客户页面就绪后即可收发文字。</view>
       </view>
     </scroll-view>
+    <view wx:else class="fc-chat-empty" role="log" aria-label="现场交流">
+      <view class="fc-availability">客户页面就绪后即可收发文字。</view>
+    </view>
 
     <view class="fc-chat-form">
       <textarea

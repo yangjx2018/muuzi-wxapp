@@ -43,8 +43,18 @@ function isScanChatMessage(message) {
   var body = String(message.body || '').trim();
   if (!body) return false;
   if (message.fieldKind === 'record') return false;
-  // 兼容未带回 fieldKind 的回显 / 旧快照
-  if (/^(\*\s*)?现场交流\s*·/.test(body)) return false;
+  // 兼容未带回 fieldKind 的回显 / 旧快照 / 编辑前缀 / 多种间隔号
+  if (/^(\*\s*)?现场交流\s*[·•・‧]/.test(body)) return false;
+  if (/现场交流\s*[·•・‧]/.test(body) && /的设备记录/.test(body)) {
+    return false;
+  }
+  if (
+    /(本人发言|对方发言)/.test(body) &&
+    /的设备记录/.test(body) &&
+    /原文[（(]/.test(body)
+  ) {
+    return false;
+  }
   return true;
 }
 

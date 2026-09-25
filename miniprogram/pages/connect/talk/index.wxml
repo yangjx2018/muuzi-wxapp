@@ -25,7 +25,7 @@
       <button
         class="fc-mode {{scan ? 'selected' : ''}}"
         aria-pressed="{{scan}}"
-        disabled="{{busy || translating}}"
+        disabled="{{busy || translating || blockScanSwitch}}"
         bindtap="setModeScan"
       >扫码交流</button>
     </view>
@@ -43,8 +43,9 @@
 
     <block wx:elif="{{!topicAccess && !recoveryError}}">
       <view class="fc-scan-card">
-        <view class="fc-availability" role="status">正在创建本次话题…建好后立刻可以开始交流。</view>
-        <button class="fc-link-btn" bindtap="setModeScan">不等了，先用扫码交流</button>
+        <view class="fc-spinner" aria-hidden="true"></view>
+        <view class="fc-scan-card-text" role="status">正在创建本次话题…建好后立刻可以开始交流。</view>
+        <button class="fc-link-btn" bindtap="skipWaitToScan">不等了，先用扫码交流</button>
       </view>
     </block>
 
@@ -128,16 +129,17 @@
           hover-class="none"
           data-speaker="guest"
           catchtouchstart="onHoldStart"
+          catchtouchmove="onHoldMove"
           catchtouchend="onHoldEnd"
-          catchtouchcancel="onHoldEnd"
+          catchtouchcancel="onHoldCancel"
         >{{speakGuestLabel}}</view>
         <view
-          class="fc-voice-meter {{showVoiceMeter && turn && turn.speaker === 'guest' ? 'fc-voice-meter-on' : ''}}"
+          class="fc-voice-meter {{holdingSpeaker === 'guest' && showVoiceMeter ? 'fc-voice-meter-on' : ''}}"
           aria-hidden="true"
         >
-          <view class="fc-voice-meter-fill" style="width: {{voiceMeter * 100}}%;"></view>
+          <view class="fc-voice-meter-fill"></view>
         </view>
-        <view class="fc-voice-elapsed">{{showVoiceMeter && turn && turn.speaker === 'guest' ? voiceElapsed : ''}}</view>
+        <view class="fc-voice-elapsed">{{holdingSpeaker === 'guest' && showVoiceMeter ? voiceElapsed : ''}}</view>
         <button
           class="fc-card-refresh"
           disabled="{{busy || translating || recoveryError || phase === 'starting' || phase === 'recording'}}"
@@ -203,16 +205,17 @@
           hover-class="none"
           data-speaker="mine"
           catchtouchstart="onHoldStart"
+          catchtouchmove="onHoldMove"
           catchtouchend="onHoldEnd"
-          catchtouchcancel="onHoldEnd"
+          catchtouchcancel="onHoldCancel"
         >{{speakMineLabel}}</view>
         <view
-          class="fc-voice-meter {{showVoiceMeter && turn && turn.speaker === 'mine' ? 'fc-voice-meter-on' : ''}}"
+          class="fc-voice-meter {{holdingSpeaker === 'mine' && showVoiceMeter ? 'fc-voice-meter-on' : ''}}"
           aria-hidden="true"
         >
-          <view class="fc-voice-meter-fill" style="width: {{voiceMeter * 100}}%;"></view>
+          <view class="fc-voice-meter-fill"></view>
         </view>
-        <view class="fc-voice-elapsed">{{showVoiceMeter && turn && turn.speaker === 'mine' ? voiceElapsed : ''}}</view>
+        <view class="fc-voice-elapsed">{{holdingSpeaker === 'mine' && showVoiceMeter ? voiceElapsed : ''}}</view>
         <button
           class="fc-card-refresh"
           disabled="{{busy || translating || recoveryError || phase === 'starting' || phase === 'recording'}}"
@@ -228,17 +231,19 @@
         class="fc-link-btn"
         bindtap="openFieldRoom"
       >查看现场频道</button>
-      <!-- 对齐 App FieldTalk：voiceUrl + <audio controls>，可暂停/继续 -->
-      <audio
+      <!-- 对齐 App 可暂停朗读：微信官方废弃 <audio>，用 InnerAudio + 暂停/继续 -->
+      <view
         wx:if="{{voiceSrc}}"
-        class="fc-audio"
-        src="{{voiceSrc}}"
-        controls
-        autoplay
-        name="播放译文"
-        binderror="onVoiceError"
-        bindended="onVoiceEnded"
-      ></audio>
+        class="fc-audio-bar"
+        role="group"
+        aria-label="播放译文"
+      >
+        <text class="fc-audio-status">{{voicePlaying ? '正在播放译文朗读' : (voicePaused ? '朗读已暂停' : '朗读已结束 · 可再听')}}</text>
+        <view class="fc-audio-actions">
+          <button class="fc-link-btn" bindtap="toggleVoicePause">{{voicePlaying ? '暂停' : '继续'}}</button>
+          <button class="fc-link-btn" bindtap="clearVoicePlayback">关闭</button>
+        </view>
+      </view>
       <button
         class="fc-card-refresh"
         disabled="{{busy || translating}}"

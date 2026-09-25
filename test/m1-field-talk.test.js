@@ -84,9 +84,14 @@ describe('M1.4 FieldTalk text path', () => {
     assert.match(wxml, /继续交流/);
     assert.match(wxml, /我已告知对方，开启语音/);
     assert.match(wxml, /不等了，先用扫码交流/);
+    assert.match(wxml, /skipWaitToScan/);
+    assert.match(wxml, /blockScanSwitch/);
     assert.match(wxml, /正在准备现场话题|正在创建本次话题/);
+    assert.match(wxml, /fc-spinner/);
     assert.match(wxml, /field-host-invite/);
     assert.match(wxss, /\.fc-save/);
+    assert.match(wxss, /\.fc-spinner/);
+    assert.match(wxss, /@keyframes\s+fc-spin/);
     assert.match(wxss, /border-radius:\s*999rpx/);
     assert.match(js, /话题已创建 · 自动保存/);
     assert.match(js, /轮流按住说话/);
@@ -96,6 +101,9 @@ describe('M1.4 FieldTalk text path', () => {
     assert.match(js, /translateFieldText/);
     assert.match(js, /speechRequest/);
     assert.match(js, /confirmOrTranslate/);
+    assert.match(js, /skipWaitToScan/);
+    assert.match(js, /applyScanMode/);
+    assert.match(js, /hasUnsavedDraft/);
     assert.match(js, /openEndDialog/);
     assert.match(js, /saveFieldRecord/);
     assert.match(js, /openFieldTopic/);
@@ -104,6 +112,40 @@ describe('M1.4 FieldTalk text path', () => {
     assert.match(js, /_reqGen\s*\+=\s*1/);
     assert.match(js, /cancelVoice/);
     assert.match(js, /pages\/connect\/host\/index/);
+  });
+
+  it('confirmOrTranslate refreshes shownTurn after save (same-lang 等待翻译回归)', () => {
+    const js = fs.readFileSync(
+      path.join(__dirname, '..', 'miniprogram/pages/connect/talk/index.js'),
+      'utf8'
+    );
+    const start = js.indexOf('confirmOrTranslate()');
+    const end = js.indexOf('playSynthesis()');
+    assert.ok(start >= 0 && end > start, 'confirmOrTranslate block bounds');
+    const body = js.slice(start, end);
+    const persistIdx = body.indexOf('persistConfirmed(updated)');
+    const refreshIdx = body.indexOf('refreshShown()', persistIdx);
+    assert.ok(persistIdx >= 0, 'must persist confirmed turn');
+    assert.ok(
+      refreshIdx > persistIdx,
+      'must refreshShown after persist so 对侧不再卡在「等待翻译」'
+    );
+  });
+
+  it('skipWaitToScan bypasses draft gate (话题准备中可进扫码)', () => {
+    const js = fs.readFileSync(
+      path.join(__dirname, '..', 'miniprogram/pages/connect/talk/index.js'),
+      'utf8'
+    );
+    const wxml = fs.readFileSync(
+      path.join(__dirname, '..', 'miniprogram/pages/connect/talk/index.wxml'),
+      'utf8'
+    );
+    assert.match(wxml, /bindtap="skipWaitToScan"/);
+    assert.match(wxml, /blockScanSwitch/);
+    assert.match(js, /skipWaitToScan\(\)\s*\{\s*this\.applyScanMode\(\);\s*\}/);
+    assert.match(js, /setModeScan\(\)[\s\S]*?hasUnsavedDraft\(\)[\s\S]*?skipWaitToScan\(\)/);
+    assert.match(js, /请先确认当前文字，或清空后再切换扫码交流/);
   });
 
   it('host invite page embeds FieldHostInvite component', () => {

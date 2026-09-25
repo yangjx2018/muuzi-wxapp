@@ -36,6 +36,8 @@ var listeners = [];
 var fieldOwnerKey = '';
 var homeserverResolvedFor = '';
 var homeserverResolving = false;
+var directsReconciled = false;
+var directReconcileToken = 0;
 
 function emptySnap() {
   return {
@@ -118,6 +120,8 @@ function isReady() {
 function stop() {
   workspacesToken += 1;
   workspacesStarted = false;
+  directsReconciled = false;
+  directReconcileToken += 1;
   if (unsub) {
     unsub();
     unsub = null;
@@ -333,7 +337,13 @@ function ensureStarted() {
   unsub = client.subscribe(function (state) {
     var next = mergeClientState(state);
     emit(next);
-    if (next.ready) startWorkspaces(next.userId || snap.matrixUserId);
+    if (next.ready) {
+      startWorkspaces(next.userId || snap.matrixUserId);
+      if (!directsReconciled) {
+        directsReconciled = true;
+        reconcileMissingDirects();
+      }
+    }
   });
   client.start();
   return client;
@@ -342,7 +352,18 @@ function ensureStarted() {
 function createDirectMessage(input) {
   if (!direct) return Promise.reject(new Error('消息服务尚未就绪'));
   return direct.createDirectMessage(input).then(function (result) {
-    if (result && result.roomId) ensureLocalJoined(result.roomId);
+    if (result && result.roomId) {
+      var peer = '';
+      try {
+        var dmMap = matrixRooms.directMap(
+          (client && client.getAccountData()) || {}
+        );
+        peer = dmMap[result.roomId] || '';
+      } catch (e) {
+        peer = '';
+      }
+      ensureLocalJoined(result.roomId, peer);
+    }
     return result;
   });
 }
@@ -356,17 +377,93 @@ function respondToInvite(roomId, accept) {
 }
 
 /** 创建/接受后立刻可进会话页，不等下一轮 sync */
-function ensureLocalJoined(roomId) {
+function ensureLocalJoined(roomId, peerId) {
   if (!client || !roomId) return;
   var table = client.getStore();
   if (!table) return;
   var room = table[roomId];
   if (!room) {
-    table[roomId] = matrixRooms.emptyRoom(roomId, 'join');
+    room = matrixRooms.emptyRoom(roomId, 'join');
+    table[roomId] = room;
   } else {
     room.membership = 'join';
   }
+  // 补 cosmac.dm，避免空壳房间被当成「未命名频道」
+  if (peerId && !matrixRooms.stateContent(room, 'cosmac.dm', '')) {
+    matrixRooms.hydrateJoinedRoom(table, roomId, [
+      {
+        type: 'cosmac.dm',
+        state_key: '',
+        content: { v: 1, peer_id: peerId },
+      },
+    ]);
+  }
   if (typeof client.notify === 'function') client.notify();
+}
+
+/**
+ * sync 漏掉的私信：以 m.direct + joined_rooms 为准，拉 /state 补进内存表。
+ * 对齐「同账号登录后好友仍在」——不得要求用户重新添加。
+ */
+function reconcileMissingDirects() {
+  if (!client || !api) return Promise.resolve(0);
+  var token = ++directReconcileToken;
+  var accountData = client.getAccountData() || Object.create(null);
+  var dmMap = matrixRooms.directMap(accountData);
+  var roomIds = Object.keys(dmMap);
+  if (!roomIds.length) return Promise.resolve(0);
+  var store = client.getStore() || Object.create(null);
+  var missing = [];
+  for (var i = 0; i < roomIds.length; i++) {
+    var rid = roomIds[i];
+    var room = store[rid];
+    if (!room || room.membership === 'leave') {
+      missing.push(rid);
+      continue;
+    }
+    // 空壳（无成员且无 dm state）也补全，否则列表名/分类不对
+    var hasDm = !!matrixRooms.stateContent(room, 'cosmac.dm', '');
+    var peer = dmMap[rid];
+    if (!hasDm && peer) {
+      missing.push(rid);
+    }
+  }
+  if (!missing.length) return Promise.resolve(0);
+
+  return api
+    .getJoinedRooms()
+    .then(function (joined) {
+      if (token !== directReconcileToken || !client) return 0;
+      var joinedSet = Object.create(null);
+      for (var j = 0; j < (joined || []).length; j++) {
+        joinedSet[joined[j]] = true;
+      }
+      var targets = missing.filter(function (id) {
+        return joinedSet[id];
+      });
+      if (!targets.length) return 0;
+      var table = client.getStore();
+      return Promise.all(
+        targets.map(function (roomId) {
+          return api.roomState(roomId).then(
+            function (events) {
+              if (token !== directReconcileToken || !client) return;
+              matrixRooms.hydrateJoinedRoom(table, roomId, events);
+            },
+            function () {
+              /* 单房失败不阻断 */
+            }
+          );
+        })
+      ).then(function () {
+        if (token !== directReconcileToken || !client) return 0;
+        if (typeof client.notify === 'function') client.notify();
+        return targets.length;
+      });
+    })
+    .catch(function () {
+      return 0;
+    });
 }
 
 function deleteAiSession(roomId) {
@@ -640,6 +737,7 @@ module.exports = {
   stop: stop,
   resetForSignOut: resetForSignOut,
   clearPersistedSync: clearPersistedSync,
+  reconcileMissingDirects: reconcileMissingDirects,
   subscribe: subscribe,
   getSnapshot: getSnapshot,
   isReady: isReady,

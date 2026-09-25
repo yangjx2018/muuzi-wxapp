@@ -1,8 +1,10 @@
 const session = require('../../../services/session');
 const matrixRuntime = require('../../../services/matrixRuntime');
 const matrixMedia = require('../../../services/matrixMedia');
+const attachFilePick = require('../../../services/attachFilePick');
 const e2ee = require('../../../services/matrixE2ee');
 const deepLink = require('../../../services/messageDeepLink');
+const navChrome = require('../../../utils/navChrome');
 
 var EMOJI_GROUPS = [
   {
@@ -76,9 +78,10 @@ function mediaSrc(msg, cache) {
   return '';
 }
 
-function decorateMessages(list, replyMap, mediaCache) {
+function decorateMessages(list, replyMap, mediaCache, mediaFailed) {
   var out = [];
   var cache = mediaCache || Object.create(null);
+  var failed = mediaFailed || Object.create(null);
   for (var i = 0; i < (list || []).length; i++) {
     var msg = list[i];
     var replyPreview = '';
@@ -90,6 +93,7 @@ function decorateMessages(list, replyMap, mediaCache) {
     var isVideo = kind === 'video';
     var isFile = kind === 'file' || kind === 'audio';
     var src = isImage || isVideo || isFile ? mediaSrc(msg, cache) : '';
+    var mxc = (msg.attachment && msg.attachment.mxc) || '';
     var senderLabel = String(
       msg.senderName || msg.sender || ''
     ).replace(/^@/, '');
@@ -110,9 +114,10 @@ function decorateMessages(list, replyMap, mediaCache) {
         mediaPending: !!(
           (isImage || isVideo || isFile) &&
           !src &&
-          msg.attachment &&
-          msg.attachment.mxc
+          mxc &&
+          !failed[mxc]
         ),
+        mediaFailed: !!(mxc && failed[mxc] && !src),
         fileLabel: isFile
           ? (msg.attachment && msg.attachment.name) || msg.body || '附件'
           : '',
@@ -151,6 +156,7 @@ Page({
     displayMessages: [],
     expandedInput: false,
     showAttachMenu: false,
+    showFilePickPanel: false,
     settingsOpen: false,
     settingsLoading: false,
     settingsBusy: false,
@@ -163,10 +169,14 @@ Page({
     settingsCanTopic: false,
     settingsCanInvite: false,
     settingsMembers: [],
+    settingsScrollPx: 480,
     removeTarget: '',
+    memberMenuId: '',
     keyboardHeight: 0,
+    statusBarPx: 20,
     contactOpen: true,
     contactIdentity: null,
+    ownUserId: '',
     contactRemark: '',
     contactNodeRemark: '',
     contactNotice: '',
@@ -188,7 +198,17 @@ Page({
     this._roomId = roomId;
     this._mediaCache = Object.create(null);
     this._mediaLoading = Object.create(null);
-    this.setData({ roomId: roomId });
+    this._mediaFailed = Object.create(null);
+    var chrome = { statusBarPx: 20 };
+    try {
+      chrome = navChrome.measureNavChrome();
+    } catch (e) {
+      /* keep default */
+    }
+    this.setData({
+      roomId: roomId,
+      statusBarPx: chrome.statusBarPx || 20,
+    });
   },
 
   onBack() {
@@ -212,11 +232,16 @@ Page({
 
   onToggleAttachMenu() {
     if (this.data.encrypted) {
-      this.setData({ error: e2ee.ATTACH_BLOCKED, showAttachMenu: false });
+      this.setData({
+        error: e2ee.ATTACH_BLOCKED,
+        showAttachMenu: false,
+        showFilePickPanel: false,
+      });
       return;
     }
     this.setData({
       showAttachMenu: !this.data.showAttachMenu,
+      showFilePickPanel: false,
       showEmoji: false,
     });
   },
@@ -295,7 +320,8 @@ Page({
     var messages = decorateMessages(
       detail.messages,
       replyMap,
-      this._mediaCache || Object.create(null)
+      this._mediaCache || Object.create(null),
+      this._mediaFailed || Object.create(null)
     );
     var chatTab = this.data.chatTab || 'messages';
     var displayMessages =
@@ -351,24 +377,40 @@ Page({
       var mxc = msg.attachment.mxc;
       if (this._mediaCache[mxc] || this._mediaLoading[mxc]) continue;
       this._mediaLoading[mxc] = true;
-      (function (key) {
+      (function (key, mime) {
         matrixMedia
           .downloadToTemp({
             homeserver: homeserver,
             accessToken: accessToken,
             mxc: key,
+            mimetype: mime,
           })
           .then(function (path) {
             delete self._mediaLoading[key];
+            delete self._mediaFailed[key];
             if (!self._alive) return;
             self._mediaCache[key] = path;
             self.refresh();
           })
           .catch(function () {
             delete self._mediaLoading[key];
+            if (!self._alive) return;
+            self._mediaFailed[key] = true;
+            self.refresh();
           });
-      })(mxc);
+      })(mxc, (msg.attachment && msg.attachment.mimetype) || '');
     }
+  },
+
+  onRetryMedia(e) {
+    var mxc =
+      (e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.mxc) ||
+      '';
+    if (!mxc) return;
+    delete this._mediaFailed[mxc];
+    delete this._mediaLoading[mxc];
+    delete this._mediaCache[mxc];
+    this.refresh();
   },
 
   maybeMarkRead(messages) {
@@ -411,6 +453,7 @@ Page({
     this.setData({
       showEmoji: !this.data.showEmoji,
       showAttachMenu: false,
+      showFilePickPanel: false,
     });
   },
 
@@ -452,7 +495,7 @@ Page({
   },
 
   onPickPhotos() {
-    this.setData({ showAttachMenu: false });
+    this.setData({ showAttachMenu: false, showFilePickPanel: false });
     if (this.data.sending) return;
     if (this.data.encrypted) {
       this.setData({ error: e2ee.ATTACH_BLOCKED });
@@ -469,7 +512,30 @@ Page({
   },
 
   onPickDocs() {
-    this.setData({ showAttachMenu: false });
+    if (this.data.sending) return;
+    if (this.data.encrypted) {
+      this.setData({
+        error: e2ee.ATTACH_BLOCKED,
+        showAttachMenu: false,
+        showFilePickPanel: false,
+      });
+      return;
+    }
+    // 先进入页内「文件选择」说明面板，再调微信会话文件选择器。
+    // 避免一点「文件」就静默跳进会话/好友列表，被当成加好友。
+    this.setData({
+      showAttachMenu: false,
+      showFilePickPanel: true,
+      showEmoji: false,
+    });
+  },
+
+  closeFilePickPanel() {
+    this.setData({ showFilePickPanel: false });
+  },
+
+  confirmPickChatFile() {
+    this.setData({ showFilePickPanel: false });
     if (this.data.sending) return;
     if (this.data.encrypted) {
       this.setData({ error: e2ee.ATTACH_BLOCKED });
@@ -497,7 +563,12 @@ Page({
       });
       return;
     }
-    this.setData({ sending: true, error: '', showEmoji: false });
+    this.setData({
+      sending: true,
+      error: '',
+      showEmoji: false,
+      showFilePickPanel: false,
+    });
     matrixRuntime
       .sendAttachment(this._roomId, file)
       .then(function () {
@@ -611,21 +682,21 @@ Page({
       this.setData({ error: '当前基础库不支持选择文件' });
       return;
     }
+    var opts = attachFilePick.chooseMessageFileOptions();
     wx.chooseMessageFile({
-      count: 1,
-      type: 'file',
+      count: opts.count,
+      type: opts.type,
+      extension: opts.extension,
       success: function (res) {
-        var file = (res.tempFiles || [])[0];
-        if (!file || !file.path) {
+        var picked = attachFilePick.normalizeMessageFile(
+          (res.tempFiles || [])[0],
+          matrixMedia
+        );
+        if (!picked) {
           self.setData({ error: '未选择文件' });
           return;
         }
-        self.sendPicked({
-          filePath: file.path,
-          name: file.name || matrixMedia.basename(file.path, 'file'),
-          size: file.size,
-          mimetype: matrixMedia.attachmentMime('', file.name || file.path),
-        });
+        self.sendPicked(picked);
       },
       fail: function (err) {
         var msg = (err && err.errMsg) || '';
@@ -636,17 +707,30 @@ Page({
   },
 
   onPreviewImage(e) {
-    var src = e.currentTarget.dataset.src || '';
+    var src =
+      (e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.src) ||
+      '';
     if (!src) return;
     var urls = [];
-    var messages = this.data.messages || [];
+    var messages = this.data.displayMessages || this.data.messages || [];
     for (var i = 0; i < messages.length; i++) {
       if (messages[i].imageSrc) urls.push(messages[i].imageSrc);
     }
+    if (!urls.length) urls = [src];
     wx.previewImage({
       current: src,
-      urls: urls.length ? urls : [src],
+      urls: urls,
     });
+  },
+
+  onImageError(e) {
+    var mxc =
+      (e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.mxc) ||
+      '';
+    if (!mxc) return;
+    delete this._mediaCache[mxc];
+    this._mediaFailed[mxc] = true;
+    this.refresh();
   },
 
   onOpenFile(e) {
@@ -713,11 +797,30 @@ Page({
   },
 
   openSettings() {
+    var sys = {};
+    try {
+      sys = wx.getSystemInfoSync() || {};
+    } catch (e) {
+      sys = {};
+    }
+    var winH = Number(sys.windowHeight) || 640;
+    // 对齐 App settingsOverlay：约 80dvh 可滚；头/备注区外留给 body
+    var scrollPx = Math.max(280, Math.floor(winH * 0.72) - 72);
+    var ownId = '';
+    try {
+      var snap = session.snapshot();
+      ownId = (snap && snap.matrixUserId) || '';
+    } catch (e2) {
+      ownId = '';
+    }
     this.setData({
       settingsOpen: true,
+      settingsScrollPx: scrollPx,
       settingsError: '',
       settingsNotice: '',
       removeTarget: '',
+      memberMenuId: '',
+      ownUserId: ownId,
       contactNotice: '',
       contactFailed: false,
       contactCopyNotice: '',
@@ -732,6 +835,7 @@ Page({
     this.setData({
       settingsOpen: false,
       removeTarget: '',
+      memberMenuId: '',
       settingsError: '',
       settingsNotice: '',
       contactIdentity: null,
@@ -861,16 +965,48 @@ Page({
       .readRoomSettings(this._roomId)
       .then(function (value) {
         if (!self._alive) return;
-        self.setData({
+        var members = value.members || [];
+        var ownId = self.data.ownUserId || '';
+        // 私信：成员列表不展示本机账号，避免「私信里还多出一个用户 B」的误导；
+        // 对端资料走 ContactDetails（对齐 App 私信主路径）。
+        var shownMembers = members;
+        if (self.data.isDirect && ownId) {
+          shownMembers = members.filter(function (m) {
+            return m && m.id !== ownId;
+          });
+        }
+        var patch = {
           settingsLoading: false,
           settingsName: value.name || '',
           settingsTopic: value.topic || '',
           settingsCanName: !!value.canName,
           settingsCanTopic: !!value.canTopic,
           settingsCanInvite: !!value.canInvite,
-          settingsMembers: value.members || [],
+          settingsMembers: shownMembers,
           settingsError: '',
-        });
+        };
+        // 若私信尚未拿到 contactIdentity，用对端成员补齐，保证资料区可见
+        if (
+          self.data.isDirect &&
+          !self.data.contactIdentity &&
+          shownMembers.length
+        ) {
+          var peer = shownMembers[0];
+          if (peer && peer.id) {
+            try {
+              var rebuilt = matrixRuntime.getContactIdentity(self._roomId);
+              if (rebuilt) {
+                patch.contactIdentity = rebuilt;
+                patch.contactOpen = true;
+                patch.contactRemark = rebuilt.remark || '';
+                patch.contactNodeRemark = rebuilt.nodeRemark || '';
+              }
+            } catch (e) {
+              /* ignore */
+            }
+          }
+        }
+        self.setData(patch);
       })
       .catch(function (err) {
         if (!self._alive) return;
@@ -879,6 +1015,14 @@ Page({
           settingsError: (err && err.message) || '读取失败',
         });
       });
+  },
+
+  toggleMemberMenu(e) {
+    var id = e.currentTarget.dataset.id || '';
+    if (!id || this.data.settingsBusy) return;
+    this.setData({
+      memberMenuId: this.data.memberMenuId === id ? '' : id,
+    });
   },
 
   onSettingsName(e) {
@@ -950,12 +1094,12 @@ Page({
   askRemoveMember(e) {
     var id = e.currentTarget.dataset.id || '';
     if (!id) return;
-    this.setData({ removeTarget: id });
+    this.setData({ removeTarget: id, memberMenuId: '' });
   },
 
   cancelRemoveMember() {
     if (this.data.settingsBusy) return;
-    this.setData({ removeTarget: '' });
+    this.setData({ removeTarget: '', memberMenuId: '' });
   },
 
   confirmRemoveMember() {
@@ -970,8 +1114,14 @@ Page({
           var next = (self.data.settingsMembers || []).filter(function (m) {
             return m.id !== target;
           });
-          self.setData({ settingsMembers: next, removeTarget: '' });
+          self.setData({
+            settingsMembers: next,
+            removeTarget: '',
+            memberMenuId: '',
+          });
         });
     }, '成员已移出');
   },
+
+  noop() {},
 });

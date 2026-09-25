@@ -1,8 +1,6 @@
 {
   "navigationBarTitleText": "会话",
   "disableScroll": true,
-  "usingComponents": {
-    "status-pad": "/components/status-pad/index"
-  },
+  "usingComponents": {},
   "navigationStyle": "custom"
 }

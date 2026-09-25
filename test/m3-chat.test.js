@@ -267,6 +267,16 @@ describe('M3.4 chat text path', () => {
     assert.match(roomWxml, /bindkeyboardheightchange="onKeyboardHeight"/);
     assert.match(roomJs, /onKeyboardHeight/);
     assert.match(roomJs, /keyboardHeight/);
+    // 自定义导航：状态栏 padding 进 chat-page，避免 status-pad+100vh 裁掉发送栏
+    assert.doesNotMatch(roomWxml, /<status-pad/);
+    assert.match(roomWxml, /statusBarPx/);
+    assert.match(roomJs, /statusBarPx/);
+    const roomWxss = fs.readFileSync(
+      path.join(root, 'miniprogram/pages/messages/room/index.wxss'),
+      'utf8'
+    );
+    assert.match(roomWxss, /\.chat-composer[\s\S]*?flex-shrink:\s*0/);
+    assert.match(roomWxss, /\.chat-tools[\s\S]*?min-height:\s*64rpx/);
     const roomJson = JSON.parse(
       fs.readFileSync(
         path.join(root, 'miniprogram/pages/messages/room/index.json'),
@@ -274,5 +284,6 @@ describe('M3.4 chat text path', () => {
       )
     );
     assert.equal(roomJson.disableScroll, true);
+    assert.ok(!roomJson.usingComponents || !roomJson.usingComponents['status-pad']);
   });
 });

@@ -23,6 +23,18 @@ function emptyRoom(roomId, membership) {
   };
 }
 
+/** 用 /state 事件补全本地房间（对账 m.direct 漏房） */
+function hydrateJoinedRoom(store, roomId, stateEvents) {
+  if (!store || !roomId) return null;
+  var room = store[roomId] || emptyRoom(roomId, 'join');
+  room.membership = 'join';
+  if (Array.isArray(stateEvents)) {
+    for (var i = 0; i < stateEvents.length; i++) putState(room, stateEvents[i]);
+  }
+  store[roomId] = room;
+  return room;
+}
+
 function stateKey(type, key) {
   return String(type) + '\0' + String(key == null ? '' : key);
 }
@@ -46,11 +58,53 @@ function stateContent(room, type, key) {
 function eventKey(ev) {
   if (!ev) return '';
   if (typeof ev.event_id === 'string' && ev.event_id) return ev.event_id;
+  return txnKeyOf(ev);
+}
+
+/** 本地回显与 sync 回执共用：transaction_id 可能在顶层或 unsigned */
+function txnKeyOf(ev) {
+  if (!ev) return '';
   if (typeof ev.transaction_id === 'string' && ev.transaction_id) {
     return 'txn:' + ev.transaction_id;
   }
-  if (ev._localId) return String(ev._localId);
+  if (ev._txnId) return 'txn:' + String(ev._txnId);
+  if (
+    ev.unsigned &&
+    typeof ev.unsigned.transaction_id === 'string' &&
+    ev.unsigned.transaction_id
+  ) {
+    return 'txn:' + ev.unsigned.transaction_id;
+  }
+  if (ev._localId && String(ev._localId).indexOf('txn:') === 0) {
+    return String(ev._localId);
+  }
   return '';
+}
+
+/**
+ * 合并本地乐观事件与 homeserver 回执，避免同一条消息显示两次；
+ * 保留本机 _previewPath，否则图/视频会在回执后一直「加载中」。
+ */
+function mergeTimelineEvent(prev, incoming) {
+  if (!prev) return incoming;
+  if (!incoming) return prev;
+  var out = Object.assign({}, prev, incoming);
+  if (prev._previewPath && !incoming._previewPath) {
+    out._previewPath = prev._previewPath;
+  }
+  if (!out.transaction_id && prev.transaction_id) {
+    out.transaction_id = prev.transaction_id;
+  }
+  if (!out._txnId && prev._txnId) {
+    out._txnId = prev._txnId;
+  }
+  if (!out._localId && prev._localId) {
+    out._localId = prev._localId;
+  }
+  if (incoming.event_id && out._delivery === 'sending') {
+    out._delivery = 'sent';
+  }
+  return out;
 }
 
 function applyTimeline(room, events, opts) {
@@ -58,9 +112,14 @@ function applyTimeline(room, events, opts) {
   if (!Array.isArray(events) || !events.length) return;
   var next = room.timeline.slice();
   var seen = Object.create(null);
+  function indexEvent(i, ev) {
+    var ek = eventKey(ev);
+    var tk = txnKeyOf(ev);
+    if (ek) seen[ek] = i;
+    if (tk) seen[tk] = i;
+  }
   for (var i = 0; i < next.length; i++) {
-    var k = eventKey(next[i]);
-    if (k) seen[k] = i;
+    indexEvent(i, next[i]);
   }
   for (var j = 0; j < events.length; j++) {
     var ev = events[j];
@@ -69,13 +128,29 @@ function applyTimeline(room, events, opts) {
       putState(room, ev);
     }
     var key = eventKey(ev);
-    if (key && seen[key] !== undefined) {
-      next[seen[key]] = ev;
+    var tk = txnKeyOf(ev);
+    var idx =
+      key && seen[key] !== undefined
+        ? seen[key]
+        : tk && seen[tk] !== undefined
+          ? seen[tk]
+          : undefined;
+    if (idx !== undefined) {
+      next[idx] = mergeTimelineEvent(next[idx], ev);
+      indexEvent(idx, next[idx]);
       continue;
     }
-    if (opts.prepend) next.unshift(ev);
-    else next.push(ev);
-    if (key) seen[key] = opts.prepend ? 0 : next.length - 1;
+    if (opts.prepend) {
+      next.unshift(ev);
+      var seenKeys = Object.keys(seen);
+      for (var s = 0; s < seenKeys.length; s++) {
+        seen[seenKeys[s]] = seen[seenKeys[s]] + 1;
+      }
+      indexEvent(0, ev);
+    } else {
+      next.push(ev);
+      indexEvent(next.length - 1, ev);
+    }
   }
   if (next.length > 120) {
     next = opts.prepend ? next.slice(0, 120) : next.slice(next.length - 120);
@@ -622,10 +697,16 @@ function visibleMessage(event, ownUserId) {
     fieldKind = 'audience';
   }
 
+  var txnId =
+    event.transaction_id ||
+    event._txnId ||
+    (event.unsigned && event.unsigned.transaction_id) ||
+    '';
+
   return {
-    id: event.event_id || event._localId || event.transaction_id || '',
+    id: event.event_id || event._localId || (txnId ? 'txn:' + txnId : ''),
     eventId: event.event_id || '',
-    txnId: event.transaction_id || event._txnId || '',
+    txnId: txnId || '',
     sender: event.sender || '',
     body: body,
     timestamp: Number(event.origin_server_ts) || Number(event._ts) || 0,
@@ -765,6 +846,7 @@ module.exports = {
   AI_SESSION_STATE: AI_SESSION_STATE,
   WORKSPACE_STATE: WORKSPACE_STATE,
   emptyRoom: emptyRoom,
+  hydrateJoinedRoom: hydrateJoinedRoom,
   applySyncRooms: applySyncRooms,
   applyAccountData: applyAccountData,
   applyTimeline: applyTimeline,

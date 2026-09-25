@@ -75,13 +75,17 @@ function parseMxc(mxc) {
   return { server: server, mediaId: mediaId };
 }
 
-function downloadPath(homeserver, mxc) {
+function downloadPath(homeserver, mxc, authed) {
   var parts = parseMxc(mxc);
   if (!parts) return '';
   var base = String(homeserver || '').replace(/\/$/, '');
+  // 对齐 App MSC3916：优先认证媒体；老节点再退回 media/v3
+  var prefix = authed
+    ? '/_matrix/client/v1/media/download/'
+    : '/_matrix/media/v3/download/';
   return (
     base +
-    '/_matrix/media/v3/download/' +
+    prefix +
     encodeURIComponent(parts.server) +
     '/' +
     encodeURIComponent(parts.mediaId)
@@ -215,39 +219,196 @@ function uploadContent(opts) {
   });
 }
 
+function shouldFallbackMedia(err) {
+  var code = err && err.statusCode;
+  // 404/400：认证端点不存在；401/403：部分节点要求换端点；无码：downloadFile 丢 header 等
+  return !code || code === 400 || code === 401 || code === 403 || code === 404;
+}
+
+function writeArrayBufferTemp(buffer, ext) {
+  return new Promise(function (resolve, reject) {
+    if (typeof wx === 'undefined' || !wx.getFileSystemManager) {
+      reject(new Error('当前环境无法保存附件'));
+      return;
+    }
+    var root =
+      (wx.env && wx.env.USER_DATA_PATH) ||
+      (typeof wx.env === 'object' && wx.env.USER_DATA_PATH) ||
+      '';
+    if (!root) {
+      reject(new Error('附件载入失败'));
+      return;
+    }
+    var name =
+      'mx_media_' +
+      Date.now() +
+      '_' +
+      Math.random().toString(36).slice(2, 8) +
+      (ext || '');
+    var filePath = root + '/' + name;
+    wx.getFileSystemManager().writeFile({
+      filePath: filePath,
+      data: buffer,
+      success: function () {
+        resolve(filePath);
+      },
+      fail: function () {
+        reject(new Error('附件载入失败'));
+      },
+    });
+  });
+}
+
 /**
- * 将 mxc 下载为本地临时路径，供 image / video / openDocument 使用
+ * 用 wx.request(arraybuffer) 拉媒体再落盘。
+ * 微信真机上 wx.downloadFile 常丢 Authorization，导致「图片/视频载入失败」。
+ */
+function requestMediaBytes(url, accessToken, requestFn) {
+  var header = accessToken
+    ? { Authorization: 'Bearer ' + accessToken }
+    : {};
+  if (typeof requestFn === 'function') {
+    return requestFn({ url: url, header: header, responseType: 'arraybuffer' });
+  }
+  return new Promise(function (resolve, reject) {
+    wx.request({
+      url: url,
+      header: header,
+      responseType: 'arraybuffer',
+      success: function (res) {
+        if (
+          res.statusCode >= 200 &&
+          res.statusCode < 300 &&
+          res.data
+        ) {
+          resolve(res.data);
+          return;
+        }
+        var err = new Error('附件载入失败');
+        err.statusCode = res.statusCode;
+        reject(err);
+      },
+      fail: function () {
+        reject(new Error('附件载入失败'));
+      },
+    });
+  });
+}
+
+function downloadViaRequest(url, accessToken, requestFn, ext) {
+  return requestMediaBytes(url, accessToken, requestFn).then(function (buf) {
+    return writeArrayBufferTemp(buf, ext);
+  });
+}
+
+/**
+ * 将 mxc 下载为本地临时路径，供 image / video / openDocument 使用。
+ * 对齐 App：先试 /_matrix/client/v1/media/download（需 Bearer），再退回 media/v3。
+ * 生产路径优先 wx.request（可靠带 Authorization），再退 wx.downloadFile。
  */
 function downloadToTemp(opts) {
   opts = opts || {};
   var homeserver = opts.homeserver;
   var accessToken = opts.accessToken || '';
   var mxc = opts.mxc;
-  var url = downloadPath(homeserver, mxc);
-  if (!url) {
+  var authedUrl = downloadPath(homeserver, mxc, true);
+  var legacyUrl = downloadPath(homeserver, mxc, false);
+  if (!authedUrl && !legacyUrl) {
     return Promise.reject(new Error('附件地址无效'));
   }
+  var ext = '';
+  if (opts.mimetype && String(opts.mimetype).indexOf('image/') === 0) {
+    ext = '.jpg';
+  } else if (opts.mimetype && String(opts.mimetype).indexOf('video/') === 0) {
+    ext = '.mp4';
+  }
+
+  // 单测可注入 downloadFile，保持旧契约
   if (typeof opts.downloadFile === 'function') {
-    return opts.downloadFile({
-      url: url,
-      header: { Authorization: 'Bearer ' + accessToken },
+    return opts
+      .downloadFile({
+        url: authedUrl,
+        header: { Authorization: 'Bearer ' + accessToken },
+      })
+      .catch(function (err) {
+        if (!shouldFallbackMedia(err) || !legacyUrl || legacyUrl === authedUrl) {
+          throw err;
+        }
+        return opts.downloadFile({
+          url: legacyUrl,
+          header: { Authorization: 'Bearer ' + accessToken },
+        });
+      });
+  }
+
+  function wxDownload(url, withBearer) {
+    return new Promise(function (resolve, reject) {
+      if (typeof wx === 'undefined' || typeof wx.downloadFile !== 'function') {
+        reject(new Error('附件载入失败'));
+        return;
+      }
+      var header = withBearer
+        ? { Authorization: 'Bearer ' + accessToken }
+        : {};
+      var finalUrl = url;
+      // downloadFile 丢 header 时的兜底：legacy 端点允许 query token（对齐部分节点）
+      if (!withBearer && accessToken && url.indexOf('?') < 0) {
+        finalUrl = url + '?access_token=' + encodeURIComponent(accessToken);
+      }
+      wx.downloadFile({
+        url: finalUrl,
+        header: header,
+        success: function (res) {
+          if (
+            res.statusCode >= 200 &&
+            res.statusCode < 300 &&
+            res.tempFilePath
+          ) {
+            resolve(res.tempFilePath);
+            return;
+          }
+          var err = new Error('附件载入失败');
+          err.statusCode = res.statusCode;
+          reject(err);
+        },
+        fail: function () {
+          reject(new Error('附件载入失败'));
+        },
+      });
     });
   }
-  return new Promise(function (resolve, reject) {
-    wx.downloadFile({
-      url: url,
-      header: { Authorization: 'Bearer ' + accessToken },
-      success: function (res) {
-        if (res.statusCode >= 200 && res.statusCode < 300 && res.tempFilePath) {
-          resolve(res.tempFilePath);
-          return;
-        }
-        reject(new Error('附件载入失败'));
-      },
-      fail: function () {
-        reject(new Error('附件载入失败'));
-      },
+
+  function tryChain(url, next) {
+    return downloadViaRequest(
+      url,
+      accessToken,
+      opts.request,
+      ext
+    ).catch(function (err) {
+      if (!shouldFallbackMedia(err)) throw err;
+      return wxDownload(url, true).catch(function (err2) {
+        if (!shouldFallbackMedia(err2)) throw err2;
+        if (typeof next === 'function') return next(err2);
+        throw err2;
+      });
     });
+  }
+
+  return tryChain(authedUrl, function () {
+    if (!legacyUrl || legacyUrl === authedUrl) {
+      return Promise.reject(new Error('附件载入失败'));
+    }
+    // 对齐 App legacy：先无 Bearer；再带 token query / Bearer
+    return downloadViaRequest(legacyUrl, '', opts.request, ext)
+      .catch(function () {
+        return downloadViaRequest(legacyUrl, accessToken, opts.request, ext);
+      })
+      .catch(function () {
+        return wxDownload(legacyUrl, false);
+      })
+      .catch(function () {
+        return wxDownload(legacyUrl, true);
+      });
   });
 }
 

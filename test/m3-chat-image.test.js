@@ -34,6 +34,187 @@ describe('K-01 chat attachments', () => {
       media.downloadPath('https://hs.example', 'mxc://hs.example/abc'),
       /\/_matrix\/media\/v3\/download\/hs\.example\/abc$/
     );
+    assert.match(
+      media.downloadPath('https://hs.example', 'mxc://hs.example/abc', true),
+      /\/_matrix\/client\/v1\/media\/download\/hs\.example\/abc$/
+    );
+  });
+
+  it('downloadToTemp prefers authenticated media then falls back', async () => {
+    const calls = [];
+    await assert.rejects(
+      () =>
+        media.downloadToTemp({
+          homeserver: 'https://hs.example',
+          accessToken: 'tok',
+          mxc: 'not-an-mxc',
+          downloadFile: function () {
+            return Promise.resolve('/tmp/x');
+          },
+        }),
+      /附件地址无效/
+    );
+    const path = await media.downloadToTemp({
+      homeserver: 'https://hs.example',
+      accessToken: 'tok',
+      mxc: 'mxc://hs.example/abc',
+      downloadFile: function (opts) {
+        calls.push(opts.url);
+        if (/client\/v1\/media/.test(opts.url)) {
+          var err = new Error('missing');
+          err.statusCode = 404;
+          return Promise.reject(err);
+        }
+        assert.match(opts.header.Authorization, /Bearer tok/);
+        return Promise.resolve('/tmp/file.jpg');
+      },
+    });
+    assert.equal(path, '/tmp/file.jpg');
+    assert.equal(calls.length, 2);
+    assert.match(calls[0], /client\/v1\/media\/download/);
+    assert.match(calls[1], /media\/v3\/download/);
+  });
+
+  it('downloadToTemp prefers wx.request bytes then writes temp file', async () => {
+    const prevWx = global.wx;
+    const writes = [];
+    global.wx = {
+      env: { USER_DATA_PATH: '/tmp/ud' },
+      getFileSystemManager() {
+        return {
+          writeFile(opts) {
+            writes.push(opts.filePath);
+            opts.success && opts.success();
+          },
+        };
+      },
+    };
+    try {
+      const path = await media.downloadToTemp({
+        homeserver: 'https://hs.example',
+        accessToken: 'tok',
+        mxc: 'mxc://hs.example/abc',
+        mimetype: 'image/jpeg',
+        request: function (opts) {
+          assert.match(opts.url, /client\/v1\/media\/download/);
+          assert.match(opts.header.Authorization, /Bearer tok/);
+          assert.equal(opts.responseType, 'arraybuffer');
+          return Promise.resolve(new ArrayBuffer(8));
+        },
+      });
+      assert.match(path, /^\/tmp\/ud\/mx_media_/);
+      assert.match(path, /\.jpg$/);
+      assert.equal(writes.length, 1);
+    } finally {
+      global.wx = prevWx;
+    }
+  });
+
+  it('downloadToTemp falls back to legacy when authed request returns 404', async () => {
+    const prevWx = global.wx;
+    global.wx = {
+      env: { USER_DATA_PATH: '/tmp/ud' },
+      getFileSystemManager() {
+        return {
+          writeFile(opts) {
+            opts.success && opts.success();
+          },
+        };
+      },
+    };
+    try {
+      const urls = [];
+      const path = await media.downloadToTemp({
+        homeserver: 'https://hs.example',
+        accessToken: 'tok',
+        mxc: 'mxc://hs.example/abc',
+        request: function (opts) {
+          urls.push(opts.url);
+          if (/client\/v1\/media/.test(opts.url)) {
+            var err = new Error('missing');
+            err.statusCode = 404;
+            return Promise.reject(err);
+          }
+          return Promise.resolve(new ArrayBuffer(4));
+        },
+      });
+      assert.match(path, /^\/tmp\/ud\/mx_media_/);
+      assert.equal(urls.length, 2);
+      assert.match(urls[1], /media\/v3\/download/);
+    } finally {
+      global.wx = prevWx;
+    }
+  });
+
+  it('applyTimeline merges local echo by unsigned.transaction_id and keeps preview', () => {
+    const room = rooms.emptyRoom('!r:ex', 'join');
+    const txn = 'client-txn-1';
+    rooms.upsertLocalEvent(room, {
+      type: 'm.room.message',
+      sender: '@me:ex',
+      content: {
+        msgtype: 'm.image',
+        body: 'a.jpg',
+        url: '',
+        info: { mimetype: 'image/jpeg' },
+      },
+      transaction_id: txn,
+      _txnId: txn,
+      _localId: 'txn:' + txn,
+      _delivery: 'sending',
+      _previewPath: '/tmp/a.jpg',
+      _ts: 1,
+    });
+    rooms.applyTimeline(room, [
+      {
+        type: 'm.room.message',
+        event_id: '$img1',
+        sender: '@me:ex',
+        content: {
+          msgtype: 'm.image',
+          body: 'a.jpg',
+          url: 'mxc://hs.example/mid',
+          info: { mimetype: 'image/jpeg' },
+        },
+        unsigned: { transaction_id: txn },
+      },
+    ]);
+    assert.equal(room.timeline.length, 1);
+    const msgs = rooms.listMessages(room, '@me:ex');
+    assert.equal(msgs.length, 1);
+    assert.equal(msgs[0].id, '$img1');
+    assert.equal(msgs[0].body, '[图片]');
+    assert.equal(msgs[0].previewPath, '/tmp/a.jpg');
+    assert.equal(msgs[0].attachment.mxc, 'mxc://hs.example/mid');
+    assert.equal(msgs[0].delivery, 'sent');
+  });
+
+  it('applyTimeline dedupes text local echo (emoji 重复显示回归)', () => {
+    const room = rooms.emptyRoom('!r:ex', 'join');
+    const txn = 'emoji-txn';
+    rooms.upsertLocalEvent(room, {
+      type: 'm.room.message',
+      sender: '@me:ex',
+      content: { msgtype: 'm.text', body: '😅' },
+      transaction_id: txn,
+      _txnId: txn,
+      _localId: 'txn:' + txn,
+      _delivery: 'sending',
+      _ts: 1,
+    });
+    rooms.applyTimeline(room, [
+      {
+        type: 'm.room.message',
+        event_id: '$e1',
+        sender: '@me:ex',
+        content: { msgtype: 'm.text', body: '😅' },
+        unsigned: { transaction_id: txn },
+      },
+    ]);
+    const msgs = rooms.listMessages(room, '@me:ex');
+    assert.equal(msgs.length, 1);
+    assert.equal(msgs[0].body, '😅');
+    assert.equal(msgs[0].id, '$e1');
   });
 
   it('visibleMessage maps m.image with dimensions and previewPath', () => {
@@ -286,16 +467,58 @@ describe('K-01 chat attachments', () => {
     assert.match(roomJs, /sendAttachment/);
     assert.match(roomJs, /chooseMedia|chooseImage|chooseMessageFile/);
     assert.match(roomJs, /pickVideo|pickFile/);
+    assert.match(roomJs, /showFilePickPanel/);
+    assert.match(roomJs, /confirmPickChatFile/);
+    assert.match(roomJs, /attachFilePick/);
     assert.match(roomJs, /downloadToTemp/);
+    assert.match(roomJs, /_mediaFailed/);
+    assert.match(roomJs, /mediaFailed/);
     assert.match(roomWxml, /item\.isImage/);
     assert.match(roomWxml, /item\.isVideo/);
     assert.match(roomWxml, /item\.isFile/);
+    assert.match(roomWxml, /图片载入失败/);
+    assert.match(roomWxml, /视频载入失败/);
+    assert.match(roomWxml, /点此重试|onRetryMedia/);
+    assert.match(roomJs, /onRetryMedia/);
+    assert.match(roomJs, /statusBarPx/);
+    assert.match(roomJs, /navChrome/);
+    // 状态栏垫高必须在 chat-page 内，禁止 status-pad 兄弟节点 + 100vh 裁掉底部发送栏
+    assert.doesNotMatch(roomWxml, /<status-pad/);
+    assert.match(roomWxml, /padding-top:\s*\{\{statusBarPx\}\}px/);
+    assert.match(roomWxml, /catchtap="onPreviewImage"/);
+    assert.match(roomWxml, /mode="aspectFill"/);
+    assert.match(roomJs, /displayMessages/);
+    assert.match(roomJs, /previewImage/);
+    assert.match(roomJs, /onImageError/);
+    const roomWxss = fs.readFileSync(
+      path.join(root, 'miniprogram/pages/messages/room/index.wxss'),
+      'utf8'
+    );
+    assert.match(roomWxss, /\.chat-image\s*\{[^}]*min-width:\s*200rpx/s);
+    assert.match(roomWxss, /\.chat-image\s*\{[^}]*min-height:\s*200rpx/s);
+    assert.match(roomWxss, /\.chat-image\s*\{[^}]*width:\s*440rpx/s);
+    assert.match(roomWxss, /\.chat-composer\s*\{[^}]*flex-shrink:\s*0/s);
+    assert.match(roomWxss, /\.chat-input\s*\{[^}]*min-height:\s*48rpx/s);
     assert.match(
       fs.readFileSync(
         path.join(root, 'miniprogram/services/matrixRuntime.js'),
         'utf8'
       ),
       /sendAttachment/
+    );
+    assert.match(
+      fs.readFileSync(
+        path.join(root, 'miniprogram/services/matrixRooms.js'),
+        'utf8'
+      ),
+      /unsigned\.transaction_id/
+    );
+    assert.match(
+      fs.readFileSync(
+        path.join(root, 'miniprogram/services/matrixMedia.js'),
+        'utf8'
+      ),
+      /client\/v1\/media\/download/
     );
   });
 });

@@ -143,4 +143,31 @@ describe('M-07 room settings', () => {
     assert.match(js, /saveContactLabels/);
     assert.match(js, /getContactIdentity/);
   });
+
+  it('DM settings hide self member and use scrollable centered panel', () => {
+    const wxml = fs.readFileSync(
+      path.join(root, 'miniprogram/pages/messages/room/index.wxml'),
+      'utf8'
+    );
+    const js = fs.readFileSync(
+      path.join(root, 'miniprogram/pages/messages/room/index.js'),
+      'utf8'
+    );
+    const wxss = fs.readFileSync(
+      path.join(root, 'miniprogram/pages/messages/room/index.wxss'),
+      'utf8'
+    );
+    // 私信成员列表过滤本机账号
+    assert.match(js, /isDirect && ownId/);
+    assert.match(js, /m\.id !== ownId/);
+    assert.match(js, /settingsScrollPx/);
+    assert.match(wxml, /settingsScrollPx/);
+    assert.match(wxml, /toggleMemberMenu/);
+    assert.match(wxml, /···/);
+    // 居中遮罩 + 可滚（非贴底不可滑抽屉）
+    assert.match(wxss, /align-items:\s*center/);
+    assert.match(wxss, /z-index:\s*1000/);
+    assert.match(wxss, /max-height:\s*80vh/);
+    assert.match(wxss, /env\(safe-area-inset-bottom\)/);
+  });
 });

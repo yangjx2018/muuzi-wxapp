@@ -187,7 +187,6 @@ function createDirectActions(opts) {
     var dmMap = rooms.directMap
       ? rooms.directMap(accountData)
       : Object.create(null);
-    // fallback if directMap not exported — rebuild
     if (!rooms.directMap) {
       dmMap = Object.create(null);
       var raw = accountData['m.direct'];
@@ -201,14 +200,48 @@ function createDirectActions(opts) {
         });
       }
     }
+
+    // 1) 对齐 App：m.direct[peer] 直接命中（lazy_load 时成员列表可能为空）
+    var mapped = accountData['m.direct'];
+    if (mapped && typeof mapped === 'object' && Array.isArray(mapped[peer])) {
+      for (var m = 0; m < mapped[peer].length; m++) {
+        var mappedId = mapped[peer][m];
+        var mappedRoom = store[mappedId];
+        if (
+          mappedRoom &&
+          (mappedRoom.membership === 'join' ||
+            mappedRoom.membership === 'invite')
+        ) {
+          return mappedRoom;
+        }
+      }
+    }
+
     var ids = Object.keys(store);
     for (var i = 0; i < ids.length; i++) {
       var room = store[ids[i]];
       if (!room) continue;
       if (room.membership !== 'join' && room.membership !== 'invite') continue;
       if (!rooms.isHumanDirect(room, userId, dmMap)) continue;
+
+      // 2) cosmac.dm.peer_id（对齐 App candidates.find by DM_STATE）
+      var dmState = rooms.stateContent
+        ? rooms.stateContent(room, DM_STATE, '')
+        : null;
+      if (
+        dmState &&
+        typeof dmState.peer_id === 'string' &&
+        dmState.peer_id === peer
+      ) {
+        return room;
+      }
+
+      // 3) 成员 / heroes
       var others = memberIds(room, userId);
       if (others.length === 1 && others[0] === peer) {
+        return room;
+      }
+      if (dmMap[room.roomId] === peer) {
         return room;
       }
     }

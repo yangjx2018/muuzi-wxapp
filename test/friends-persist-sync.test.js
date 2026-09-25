@@ -252,4 +252,85 @@ describe('friends persist across cold start', () => {
     assert.ok(item);
     assert.equal(item.kind, 'direct');
   });
+
+  it('findExisting hits m.direct even when members not lazy-loaded', () => {
+    const matrixDirect = require('../miniprogram/services/matrixDirect');
+    const ownId = '@me:node.example';
+    const peerId = '@friend:node.example';
+    const roomId = '!dm-lazy:node.example';
+    const store = Object.create(null);
+    store[roomId] = rooms.emptyRoom(roomId, 'join');
+    // 仅自己在 state，对端未 lazy 出来
+    store[roomId].state['m.room.member\0' + ownId] = {
+      type: 'm.room.member',
+      state_key: ownId,
+      sender: ownId,
+      content: { membership: 'join' },
+    };
+    const accountData = {
+      'm.direct': { [peerId]: [roomId] },
+    };
+    const actions = matrixDirect.createDirectActions({
+      homeserver: 'https://node.example',
+      accessToken: 'tok',
+      userId: ownId,
+      getStore: function () {
+        return store;
+      },
+      getAccountData: function () {
+        return accountData;
+      },
+      request: function () {
+        return Promise.reject(new Error('should not create'));
+      },
+    });
+    return actions.createDirectMessage('friend').then(function (result) {
+      assert.equal(result.roomId, roomId);
+    });
+  });
+
+  it('hydrateJoinedRoom restores direct from state events', () => {
+    const ownId = '@me:ex';
+    const peerId = '@p:ex';
+    const store = Object.create(null);
+    rooms.hydrateJoinedRoom(store, '!h:ex', [
+      {
+        type: 'cosmac.dm',
+        state_key: '',
+        content: { v: 1, peer_id: peerId },
+      },
+      {
+        type: 'm.room.member',
+        state_key: ownId,
+        content: { membership: 'join' },
+      },
+      {
+        type: 'm.room.member',
+        state_key: peerId,
+        content: { membership: 'join', displayname: '好友' },
+      },
+      {
+        type: 'm.room.join_rules',
+        state_key: '',
+        content: { join_rule: 'invite' },
+      },
+    ]);
+    const list = rooms.listJoined(store, ownId, {
+      'm.direct': { [peerId]: ['!h:ex'] },
+    });
+    assert.equal(list.length, 1);
+    assert.equal(list[0].kind, 'direct');
+    assert.match(String(list[0].name || ''), /好友|p/);
+  });
+
+  it('runtime reconciles missing directs after ready', () => {
+    const src = fs.readFileSync(
+      path.join(__dirname, '../miniprogram/services/matrixRuntime.js'),
+      'utf8'
+    );
+    assert.match(src, /reconcileMissingDirects/);
+    assert.match(src, /getJoinedRooms/);
+    assert.match(src, /hydrateJoinedRoom/);
+    assert.match(src, /directsReconciled/);
+  });
 });

@@ -1,5 +1,7 @@
-<status-pad />
-<view class="chat-page" style="padding-bottom: {{keyboardHeight}}px;">
+<view
+  class="chat-page"
+  style="padding-top: {{statusBarPx}}px; padding-bottom: {{keyboardHeight}}px;"
+>
   <!-- 对齐 App chatHeader：返回 + 会话名 + 更多（自定义导航后必须自带返回） -->
   <view class="chat-header">
     <view class="chat-header-back" bindtap="onBack" aria-label="对话列表" hover-class="none">
@@ -66,7 +68,7 @@
             <text class="chat-sender-time">{{item.timeLabel}}</text>
           </view>
           <view
-            class="chat-bubble {{item.own ? 'own' : ''}} {{item.failed ? 'failed' : ''}}"
+            class="chat-bubble {{item.own ? 'own' : ''}} {{item.failed ? 'failed' : ''}} {{item.isImage || item.isVideo ? 'media-only' : ''}}"
             data-id="{{item.eventId || item.id}}"
             data-event-id="{{item.eventId}}"
             data-body="{{item.body}}"
@@ -78,11 +80,20 @@
                 wx:if="{{item.imageSrc}}"
                 class="chat-image"
                 src="{{item.imageSrc}}"
-                mode="widthFix"
+                mode="aspectFill"
+                lazy-load
+                show-menu-by-longpress
                 data-src="{{item.imageSrc}}"
-                bindtap="onPreviewImage"
+                catchtap="onPreviewImage"
+                binderror="onImageError"
+                data-mxc="{{item.attachment.mxc}}"
               />
-              <view wx:else class="chat-image-placeholder">{{item.mediaPending ? '图片加载中…' : '[图片]'}}</view>
+              <view
+                wx:else
+                class="chat-image-placeholder {{item.mediaFailed ? 'can-retry' : ''}}"
+                data-mxc="{{item.attachment.mxc}}"
+                bindtap="onRetryMedia"
+              >{{item.mediaPending ? '图片加载中…' : (item.mediaFailed ? '图片载入失败，点此重试' : '[图片]')}}</view>
             </block>
             <block wx:elif="{{item.isVideo}}">
               <video
@@ -93,7 +104,12 @@
                 show-center-play-btn
                 object-fit="contain"
               />
-              <view wx:else class="chat-image-placeholder">{{item.mediaPending ? '视频加载中…' : '[视频]'}}</view>
+              <view
+                wx:else
+                class="chat-image-placeholder {{item.mediaFailed ? 'can-retry' : ''}}"
+                data-mxc="{{item.attachment.mxc}}"
+                bindtap="onRetryMedia"
+              >{{item.mediaPending ? '视频加载中…' : (item.mediaFailed ? '视频载入失败，点此重试' : '[视频]')}}</view>
             </block>
             <block wx:elif="{{item.isFile}}">
               <view
@@ -158,7 +174,16 @@
   <view wx:if="{{showAttachMenu}}" class="chat-attach-menu">
     <view class="chat-attach-btn" bindtap="onPickPhotos">照片与视频</view>
     <view class="chat-attach-btn" bindtap="onPickDocs">文件</view>
-    <text class="chat-attach-hint">照片与视频：选择媒体；文件：选择文档等附件。</text>
+    <text class="chat-attach-hint">照片与视频：相册或拍摄；文件：从微信聊天记录选文档（可先发到「文件传输助手」）。</text>
+  </view>
+
+  <view wx:if="{{showFilePickPanel}}" class="chat-file-pick">
+    <view class="chat-file-pick-title">选择文件</view>
+    <text class="chat-file-pick-desc">微信小程序只能从聊天记录里选文档，下一页会先列出会话。把文件发到「文件传输助手」后再选最省事。无法直接打开手机文件管理器。</text>
+    <view class="chat-file-pick-actions">
+      <view class="chat-attach-btn chat-file-pick-primary" bindtap="confirmPickChatFile">从聊天记录选择</view>
+      <view class="chat-attach-btn" bindtap="closeFilePickPanel">取消</view>
+    </view>
   </view>
 
   <view class="chat-composer {{expandedInput ? 'expanded' : ''}} {{keyboardHeight ? 'kb-open' : ''}}">
@@ -174,6 +199,7 @@
     <view class="chat-input-field">
       <textarea
         class="chat-input"
+        style="min-height: 24px;"
         value="{{draft}}"
         bindinput="onDraftInput"
         maxlength="10000"
@@ -210,8 +236,13 @@
     </view>
   </view>
 
-  <view wx:if="{{settingsOpen}}" class="chat-settings-mask">
-    <view class="chat-settings-panel">
+  <view
+    wx:if="{{settingsOpen}}"
+    class="chat-settings-mask"
+    catchtouchmove="noop"
+    bindtap="closeSettings"
+  >
+    <view class="chat-settings-panel" catchtap="noop">
       <view class="chat-settings-head">
         <view class="chat-settings-title">{{isDirect ? '会话设置' : '群设置'}}</view>
         <view class="chat-settings-close" bindtap="closeSettings" aria-label="关闭">
@@ -230,7 +261,13 @@
       <block wx:elif="{{settingsError && !settingsMembers.length && !settingsName && !settingsTopic}}">
         <button class="chat-settings-btn-ghost" bindtap="loadSettings">重新加载</button>
       </block>
-      <scroll-view wx:else class="chat-settings-body" scroll-y>
+      <scroll-view
+        wx:else
+        class="chat-settings-body"
+        scroll-y
+        style="height: {{settingsScrollPx}}px;"
+        enable-flex
+      >
         <view wx:if="{{contactIdentity}}" class="chat-contact">
           <view class="chat-contact-summary" bindtap="toggleContactOpen">
             <text>{{contactOpen ? '▼' : '▶'}} 联系人资料与备注</text>
@@ -348,22 +385,31 @@
           <view class="chat-settings-member">
             <view class="chat-settings-member-info">
               <view class="chat-settings-member-name">
-                {{contactIdentity && contactIdentity.userId === item.id ? contactIdentity.name : item.name}}
+                {{item.id === ownUserId ? '我' : (contactIdentity && contactIdentity.userId === item.id ? contactIdentity.name : item.name)}}
               </view>
               <view wx:if="{{item.invited}}" class="chat-settings-member-tag">待接受邀请</view>
               <view class="chat-settings-member-id">{{item.id}}</view>
             </view>
-            <button
-              wx:if="{{item.canRemove}}"
-              class="chat-settings-btn-ghost"
-              data-id="{{item.id}}"
-              disabled="{{settingsBusy}}"
-              bindtap="askRemoveMember"
-            >移出</button>
+            <block wx:if="{{item.canRemove}}">
+              <button
+                class="chat-settings-member-more"
+                data-id="{{item.id}}"
+                disabled="{{settingsBusy}}"
+                bindtap="toggleMemberMenu"
+                aria-label="成员操作"
+              >···</button>
+              <button
+                wx:if="{{memberMenuId === item.id}}"
+                class="chat-settings-btn-danger"
+                data-id="{{item.id}}"
+                disabled="{{settingsBusy}}"
+                bindtap="askRemoveMember"
+              >移出</button>
+            </block>
           </view>
         </block>
 
-        <view wx:if="{{settingsCanInvite}}" class="chat-settings-field">
+        <view wx:if="{{settingsCanInvite}}" class="chat-settings-field chat-settings-field-last">
           <text class="chat-settings-label">邀请成员</text>
           <input
             class="chat-settings-input"

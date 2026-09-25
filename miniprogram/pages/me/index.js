@@ -91,8 +91,18 @@ Page({
 
   noop() {},
 
+  /** 对齐 App ProfileShareSheet：以 published 快照为准，published_at 作兼容回退。 */
   isPagePublished(page) {
-    return !!(page && (page.published_at || page.published));
+    if (!page) return false;
+    if (page.published && typeof page.published === 'object') return true;
+    return !!page.published_at;
+  },
+
+  missingShareAvailability() {
+    if (this.data.slug) {
+      return '这份主页仍是草稿，发布后才能生成可访问的链接和二维码。';
+    }
+    return '请先设置并发布主页后再分享。';
   },
 
   applyShareUrl(url, extras) {
@@ -100,11 +110,7 @@ Page({
       {
         shareUrl: url || '',
         shareMissing: false,
-        shareAvailability: url
-          ? ''
-          : this.data.slug
-            ? '这份主页仍是草稿，发布后才能生成可访问的链接和二维码。'
-            : '请先设置并发布主页后再分享。',
+        shareAvailability: url ? '' : this.missingShareAvailability(),
       },
       extras || {}
     );
@@ -117,12 +123,14 @@ Page({
   },
 
   /**
-   * 对齐 App ProfileShareSheet：无 initialUrl 时总是重新拉 page + resolve。
-   * 已发布但 share-link 失败时回退候选 https 地址（对齐 edit-home.refreshPageAddress）。
+   * 对齐 App ProfileShareSheet + usePageAddress：
+   * - 有 initialUrl / pageUrl 时直接用并再 resolve 精化
+   * - 否则拉 creator.slug / page，已发布则 resolve；失败时保留候选 https
    */
-  resolveShareForSheet() {
+  resolveShareForSheet(seedUrl) {
     var self = this;
-    var existing = this.data.pageUrl || this.data.shareUrl || '';
+    var existing =
+      seedUrl || this.data.pageUrl || this.data.shareUrl || '';
     if (existing) {
       this.applyShareUrl(existing);
       pageAddress
@@ -132,7 +140,7 @@ Page({
           self.applyShareUrl(resolved);
         })
         .catch(function () {
-          /* 保留已有候选地址 */
+          /* 保留已有候选地址（对齐 edit-home） */
         });
       return;
     }
@@ -154,9 +162,11 @@ Page({
         if (!self._alive || !self.data.shareOpen) return;
         var page = bundle.page;
         var opened = bundle.opened;
+        // 对齐 App ProfileScreen：slug 优先 creator.slug；page_url 可反推
         var slug =
           (opened && opened.creator && opened.creator.slug) ||
           (page && page.slug) ||
+          profileShare.slugFromShareUrl((page && page.page_url) || '') ||
           self.data.slug ||
           '';
         var name =
@@ -177,32 +187,43 @@ Page({
         }
         self.setData(patch);
 
-        if (!slug) {
+        if (!slug && !(page && page.page_url)) {
           self.setData({
             shareAvailability: '请先设置并发布主页后再分享。',
           });
           return;
         }
-        if (!self.isPagePublished(page)) {
+
+        var candidate =
+          (page && page.page_url) ||
+          (slug ? creator.pageUrlFor(slug) : '');
+        if (!candidate) {
           self.setData({
-            shareAvailability:
-              '这份主页仍是草稿，发布后才能生成可访问的链接和二维码。',
+            shareAvailability: '请先设置并发布主页后再分享。',
           });
           return;
         }
+        var published = self.isPagePublished(page);
 
-        var candidate =
-          (page && page.page_url) || creator.pageUrlFor(slug);
+        // 对齐 App usePageAddress：有候选就 resolve；草稿则 share-link 失败后不再硬塞假链
         return pageAddress
           .resolveShareAddress(candidate)
           .then(function (resolved) {
             if (!self._alive || !self.data.shareOpen) return;
-            self.applyShareUrl(resolved);
+            self.applyShareUrl(resolved, slug ? { slug: slug } : {});
           })
           .catch(function () {
             if (!self._alive || !self.data.shareOpen) return;
-            // 已发布：保留官方候选链，选项可复制/二维码/打开
-            self.applyShareUrl(candidate);
+            if (published && candidate) {
+              // 已发布但官方 share-link 暂不可用：保留候选，选项可复制/二维码/打开
+              self.applyShareUrl(candidate, slug ? { slug: slug } : {});
+              return;
+            }
+            self.setData({
+              shareUrl: '',
+              shareAvailability:
+                '这份主页仍是草稿，发布后才能生成可访问的链接和二维码。',
+            });
           });
       })
       .catch(function () {
@@ -219,7 +240,9 @@ Page({
     var snap = session.snapshot();
     var gen = ++this._gen;
     var fallbackName = localpart(snap.matrixUserId);
-    self.setData({
+    // 分享面板打开时勿清空已解析地址，避免 onShow 重入把「可用」冲成「暂不可用」
+    var keepShare = !!this.data.shareOpen;
+    var patch = {
       loading: true,
       platformError: '',
       userId: snap.matrixUserId || '',
@@ -227,14 +250,19 @@ Page({
         ((snap.node && (snap.node.company_name || snap.node.brandName)) ||
           '') +
         (snap.nodeDomain ? ' · ' + snap.nodeDomain : ''),
-      displayName: fallbackName,
-      portraitLetter: (fallbackName || 'M').slice(0, 1).toUpperCase(),
-      addressLabel: '设置你的个人主页地址',
-      pageUrl: '',
-      slug: '',
-      verified: false,
-      portrait: '',
-    });
+      displayName: keepShare ? this.data.displayName : fallbackName,
+      portraitLetter: keepShare
+        ? this.data.portraitLetter
+        : (fallbackName || 'M').slice(0, 1).toUpperCase(),
+      verified: keepShare ? this.data.verified : false,
+      portrait: keepShare ? this.data.portrait : '',
+    };
+    if (!keepShare) {
+      patch.addressLabel = '设置你的个人主页地址';
+      patch.pageUrl = '';
+      patch.slug = '';
+    }
+    self.setData(patch);
 
     creator
       .loadCreatorSession(snap)
@@ -258,10 +286,11 @@ Page({
           bundle[1].status === 'fulfilled' ? bundle[1].value : null;
         var opened =
           bundle[2].status === 'fulfilled' ? bundle[2].value : null;
-        // 对齐 App：slug 优先取 creator.slug
+        // 对齐 App：slug 优先取 creator.slug；page_url 可反推
         var slug =
           (opened && opened.creator && opened.creator.slug) ||
           (page && page.slug) ||
+          profileShare.slugFromShareUrl((page && page.page_url) || '') ||
           '';
         var name =
           (page &&
@@ -282,28 +311,30 @@ Page({
           portraitLetter: (displayName || 'M').slice(0, 1).toUpperCase(),
           verified: verified,
           bio: displayName + ' · 我的 MuuZi 主页',
-          addressLabel: slug
+          addressLabel: slug || (page && page.page_url)
             ? '正在解析主页地址…'
             : '设置你的个人主页地址',
         });
 
-        var finishShareGate = function () {
+        var finishShareGate = function (resolvedUrl) {
           if (self._openShareWhenReady || self.data.shareOpen) {
             self._openShareWhenReady = false;
             if (self.data.shareOpen) {
-              self.resolveShareForSheet();
+              // 传入刚解析的 url，避开 setData 未刷进 this.data 的竞态
+              self.resolveShareForSheet(resolvedUrl || '');
             } else {
               self.openShare();
             }
           }
         };
 
-        if (!slug) {
-          finishShareGate();
+        var candidate =
+          (page && page.page_url) ||
+          (slug ? creator.pageUrlFor(slug) : '');
+        if (!candidate) {
+          finishShareGate('');
           return;
         }
-        var candidate =
-          (page && page.page_url) || creator.pageUrlFor(slug);
         var published = self.isPagePublished(page);
         return pageAddress
           .resolveShareAddress(candidate)
@@ -312,8 +343,9 @@ Page({
             self.setData({
               pageUrl: url,
               addressLabel: url,
+              slug: slug || profileShare.slugFromShareUrl(url) || self.data.slug,
             });
-            finishShareGate();
+            finishShareGate(url);
           })
           .catch(function () {
             if (!self._alive || self._gen !== gen) return;
@@ -323,13 +355,14 @@ Page({
                 pageUrl: candidate,
                 addressLabel: candidate,
               });
+              finishShareGate(candidate);
             } else {
               self.setData({
                 pageUrl: '',
                 addressLabel: '主页尚未发布，发布后可分享',
               });
+              finishShareGate('');
             }
-            finishShareGate();
           });
       })
       .catch(function (err) {
@@ -447,14 +480,28 @@ Page({
     this.setData({ shareOpen: false, shareBusy: false });
   },
 
-  requireShareUrl() {
+  requireShareUrl(actionLabel) {
     if (this.data.shareUrl) return true;
-    this.setData({ shareMissing: true });
+    var availability =
+      this.data.shareAvailability || this.missingShareAvailability();
+    this.setData({
+      shareMissing: true,
+      shareAvailability: availability,
+      shareNote: '',
+    });
+    // 对齐 App：缺链时必须有可见反馈，禁止「点了像没反应」
+    wx.showToast({
+      title: actionLabel
+        ? actionLabel + '需要已发布主页'
+        : '请先发布主页',
+      icon: 'none',
+      duration: 2200,
+    });
     return false;
   },
 
   copyShareUrl() {
-    if (!this.requireShareUrl()) return;
+    if (!this.requireShareUrl('复制链接')) return;
     var self = this;
     wx.setClipboardData({
       data: this.data.shareUrl,
@@ -495,20 +542,24 @@ Page({
 
   toggleQr() {
     var self = this;
-    if (!this.requireShareUrl()) return;
+    if (!this.requireShareUrl('二维码')) return;
     var next = !this.data.showQr;
     this.setData({ showQr: next });
     if (!next || this.data.qrImage) return;
-    qrcodeDraw
-      .drawUrlToTempFile(self, 'meShareQr', this.data.shareUrl)
-      .then(function (img) {
-        if (self.data.shareOpen) self.setData({ qrImage: img });
-      })
-      .catch(function () {
-        if (self.data.shareOpen) {
-          self.setData({ shareNote: '二维码暂时无法生成' });
-        }
-      });
+    // canvas 随 shareOpen 挂载；稍等节点就绪再画
+    setTimeout(function () {
+      if (!self.data.shareOpen || !self.data.showQr) return;
+      qrcodeDraw
+        .drawUrlToTempFile(self, 'meShareQr', self.data.shareUrl)
+        .then(function (img) {
+          if (self.data.shareOpen) self.setData({ qrImage: img });
+        })
+        .catch(function () {
+          if (self.data.shareOpen) {
+            self.setData({ shareNote: '二维码暂时无法生成' });
+          }
+        });
+    }, 60);
   },
 
   toggleShareCard() {
@@ -546,7 +597,7 @@ Page({
   },
 
   shareToOthers() {
-    if (!this.requireShareUrl()) return;
+    if (!this.requireShareUrl('分享')) return;
     // App: shareProfileLink → 系统分享；小程序由 open-type="share" 拉起好友分享
     var self = this;
     this.setData({ shareBusy: true, shareNote: '正在打开分享…' });
@@ -574,7 +625,7 @@ Page({
   },
 
   openSharePage() {
-    if (!this.requireShareUrl()) return;
+    if (!this.requireShareUrl('打开主页')) return;
     var self = this;
     this.setData({ shareNote: '正在打开主页…' });
     profileShare
@@ -620,7 +671,15 @@ Page({
   },
 
   goShop() {
-    wx.navigateTo({ url: '/pages/me/shop/index' });
+    wx.navigateTo({
+      url: '/pages/me/shop/index',
+      fail: function (err) {
+        wx.showToast({
+          title: (err && err.errMsg) || '无法打开店铺',
+          icon: 'none',
+        });
+      },
+    });
   },
 
   goCompose() {
@@ -628,15 +687,40 @@ Page({
   },
 
   goDesign() {
-    wx.navigateTo({ url: '/pages/me/edit-home/index' });
+    this.setData({ shareOpen: false, shareBusy: false });
+    wx.navigateTo({
+      url: '/pages/me/edit-home/index',
+      fail: function (err) {
+        wx.showToast({
+          title: (err && err.errMsg) || '无法打开设计页',
+          icon: 'none',
+        });
+      },
+    });
   },
 
   goLinks() {
-    wx.navigateTo({ url: '/pages/me/edit-home/index?section=links' });
+    wx.navigateTo({
+      url: '/pages/me/edit-home/index?section=links',
+      fail: function (err) {
+        wx.showToast({
+          title: (err && err.errMsg) || '无法打开链接编辑',
+          icon: 'none',
+        });
+      },
+    });
   },
 
   goSettings() {
-    wx.navigateTo({ url: '/pages/me/settings/index' });
+    wx.navigateTo({
+      url: '/pages/me/settings/index',
+      fail: function (err) {
+        wx.showToast({
+          title: (err && err.errMsg) || '无法打开设置',
+          icon: 'none',
+        });
+      },
+    });
   },
 
   dismissMissing() {

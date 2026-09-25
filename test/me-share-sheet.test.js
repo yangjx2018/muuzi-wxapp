@@ -35,27 +35,54 @@ describe('me share sheet address + actions', () => {
     assert.match(js, /resolveShareForSheet/);
     assert.match(js, /正在检查主页地址/);
     // 不得再在 350ms 后不管加载状态硬开分享
-    assert.doesNotMatch(js, /setTimeout\(function \(\) \{\s*if \(self\._alive\) self\.openShare/);
+    assert.doesNotMatch(
+      js,
+      /setTimeout\(function \(\) \{\s*if \(self\._alive\) self\.openShare/
+    );
     // 已发布时 resolve 失败须回退候选地址
-    assert.match(js, /已发布：保留官方候选链|pageUrl: candidate/);
-    // slug 优先 creator（对齐 App）
+    assert.match(js, /已发布但官方 share-link|pageUrl: candidate|applyShareUrl\(candidate\)/);
+    // slug 优先 creator（对齐 App）；page_url 可反推
     assert.match(
       js,
       /opened && opened\.creator && opened\.creator\.slug\) \|\|\s*\(page && page\.slug\)/
     );
+    assert.match(js, /slugFromShareUrl\(\(page && page\.page_url\)/);
+    // 缺链时必须 toast，禁止静默无反应
+    assert.match(js, /wx\.showToast/);
+    assert.match(js, /需要已发布主页/);
+    // onShow 重入不得冲掉分享面板已有地址
+    assert.match(js, /keepShare/);
+    // finishShareGate 传入刚解析 url，避开 setData 竞态
+    assert.match(js, /finishShareGate\(url\)|resolveShareForSheet\(resolvedUrl/);
   });
 
-  it('share sheet catchtap uses noop so option taps are not swallowed', () => {
+  it('share sheet uses view taps for options (not button) except open-type share', () => {
     const wxml = fs.readFileSync(
       path.join(root, 'miniprogram/pages/me/index.wxml'),
       'utf8'
     );
     assert.match(wxml, /catchtap="noop"/);
     assert.doesNotMatch(wxml, /catchtap="true"/);
-    assert.match(wxml, /bindtap="toggleQr"/);
-    assert.match(wxml, /bindtap="toggleShareCard"/);
-    assert.match(wxml, /bindtap="openSharePage"/);
+    // 真机：sheet 内 button 常点不动，选项改为 view
+    assert.match(
+      wxml,
+      /view\s+class="me-share-option"[\s\S]*?bindtap="toggleBio"/
+    );
+    assert.match(
+      wxml,
+      /view\s+class="me-share-option"[\s\S]*?bindtap="toggleQr"/
+    );
+    assert.match(
+      wxml,
+      /view\s+class="me-share-option"[\s\S]*?bindtap="toggleShareCard"/
+    );
+    assert.match(
+      wxml,
+      /view\s+class="me-share-option"[\s\S]*?bindtap="openSharePage"/
+    );
+    // 分享到… 仍须 button + open-type
     assert.match(wxml, /open-type="\{\{shareUrl \? 'share' : ''\}\}"/);
+    assert.match(wxml, /bindtap="shareToOthers"/);
   });
 
   it('share sheet UI tokens align with App ProfileShareSheet', () => {
@@ -67,11 +94,11 @@ describe('me share sheet address + actions', () => {
     assert.match(wxss, /app-accent-wash/);
     assert.match(wxss, /max-height:\s*87vh/);
     assert.match(wxss, /min-height:\s*92rpx/);
+    assert.match(wxss, /me-share-option-hover/);
   });
 
   it('resolveShareAddress keeps https candidate shape for official slug path', async () => {
     const url = profileShare.platformOrigin() + '/demo-creator';
-    // 不打真网：非法 path 会走 parse；这里只断言本地校验器接受官方候选
     assert.equal(profileShare.shareTextUrl(url), url);
     assert.equal(profileShare.slugFromShareUrl(url), 'demo-creator');
   });

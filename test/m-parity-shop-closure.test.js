@@ -95,13 +95,24 @@ describe('K-17/K-18 shop catalog + join watchClosure', () => {
       'utf8'
     );
     assert.match(js, /storefrontMarket/);
+    assert.match(js, /loadStoreTools/);
+    assert.match(js, /showMarketplace/);
+    assert.match(js, /retryCatalog/);
     assert.match(js, /fetchFeaturedDraft|saveFeaturedDraft/);
     assert.match(js, /publishStorefront|unpublishStorefront/);
     assert.match(js, /fetchStorefrontLinks|saveStorefrontLink/);
+    assert.match(wxml, /MY SHOP/);
+    assert.match(wxml, /你的独立店铺/);
+    assert.match(wxml, /统一管理店铺，在个人主页展示精选商品/);
+    assert.match(wxml, /添加到店铺/);
+    assert.match(wxml, /shop-tool/);
+    assert.match(wxml, /marketplace-connection/);
     assert.match(wxml, /商城连接/);
     assert.match(wxml, /实物好物/);
     assert.match(wxml, /保存精选草稿/);
     assert.match(wxml, /发布店铺|更新公开店铺/);
+    assert.match(wxml, /showMarketplace/);
+    assert.match(wxml, /retryCatalog/);
     // App 1:1 — gray rounded inputs + circular checkbox (no switch)
     assert.doesNotMatch(wxml, /<switch\b/);
     assert.match(wxml, /class="mp-check/);
@@ -113,6 +124,54 @@ describe('K-17/K-18 shop catalog + join watchClosure', () => {
     assert.match(wxss, /border-radius:\s*24rpx/);
     assert.match(wxss, /\.mp-check\.on/);
     assert.match(wxss, /\.mp-control\b/);
+    assert.match(wxss, /\.shop-kicker/);
+    assert.match(wxss, /\.shop-tool-title/);
+  });
+
+  it('contentCatalog loadStoreTools keeps store_* actions', () => {
+    const catalog = require('../miniprogram/services/contentCatalog');
+    const tools = catalog.normalizeStoreTools({
+      items: [
+        {
+          id: 'st-1',
+          enabled: true,
+          action: 'store_collection',
+          title: '商品合集',
+          description: '将店铺与商品整理成一个系列',
+        },
+        {
+          id: 'st-2',
+          enabled: true,
+          action: 'store_external',
+          title: '外部店铺与商品',
+          description: '关联你已有的店铺或商品链接',
+        },
+        {
+          id: 'st-3',
+          enabled: true,
+          action: 'store_marketplace',
+          title: 'GuDuu OS 独立商城',
+          description: '连接当前节点，选择商城店铺与精选商品',
+        },
+        {
+          id: 'home-ig',
+          enabled: true,
+          action: 'home',
+          type: 'links',
+          title: 'Instagram',
+        },
+        {
+          id: 'st-off',
+          enabled: false,
+          action: 'store_marketplace',
+          title: '关闭项',
+        },
+      ],
+    });
+    assert.equal(tools.length, 3);
+    assert.equal(tools[0].title, '商品合集');
+    assert.equal(tools[2].action, 'store_marketplace');
+    assert.equal(typeof catalog.loadStoreTools, 'function');
   });
 
   it('edit-home wires short link and IG/TikTok display', () => {

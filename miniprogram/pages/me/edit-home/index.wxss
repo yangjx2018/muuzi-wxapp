@@ -782,88 +782,7 @@
   color: var(--app-accent);
 }
 
-/* ===== 对齐 App EditHomeScreen SHARE / 发布底栏 ===== */
-.eh-eyebrow {
-  font-size: 20rpx;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: rgba(21, 23, 30, 0.45);
-  margin-bottom: 4rpx;
-}
-
-/* 对齐 App EditHomeScreen.module.css .editor .section + .shareRow + .ghost */
-.eh-share-section {
-  margin: 28rpx 0 0;
-  padding: 40rpx 32rpx;
-  background: var(--app-card);
-  border-radius: 40rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 32rpx;
-  box-sizing: border-box;
-  min-width: 0;
-}
-
-.eh-share-grid-row {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-  min-width: 0;
-}
-
-.eh-ghost-btn {
-  flex: 1;
-  align-self: stretch;
-  min-width: 0;
-  box-sizing: border-box;
-  padding: 20rpx 28rpx;
-  border-radius: 28rpx;
-  background: var(--app-card);
-  border: 1rpx solid var(--app-line);
-  font-size: 26rpx;
-  line-height: 1.35;
-  color: var(--app-ink);
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.eh-ghost-busy {
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-.eh-short-code {
-  flex: 1;
-  min-width: 0;
-  box-sizing: border-box;
-  padding: 20rpx 24rpx;
-  border-radius: 24rpx;
-  background: var(--app-card);
-  border: 1rpx solid var(--app-line);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 26rpx;
-  line-height: 1.35;
-  color: var(--app-ink);
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.eh-share-hint-text {
-  font-size: 24rpx;
-  line-height: 1.55;
-  color: var(--app-muted);
-}
-
-.eh-publish-foot {
-  padding: 36rpx 0 calc(28rpx + env(safe-area-inset-bottom));
-  display: flex;
-  flex-direction: column;
-  gap: 20rpx;
-}
+/* SHARE / 发布底栏样式见文末 .eh-editor 对齐块 */
 
 .eh-btn-publish {
   width: 100%;
@@ -1394,11 +1313,16 @@
   box-shadow: 0 2rpx 8rpx rgba(21, 23, 30, 0.08);
 }
 
-.eh-preview-brand-m {
-  font-size: 28rpx;
-  font-weight: 700;
-  color: #316bfa;
-  line-height: 1;
+.eh-preview-tools-spacer {
+  width: 60rpx;
+  height: 60rpx;
+}
+
+.eh-preview-brand-img {
+  width: 34rpx;
+  height: 34rpx;
+  display: block;
+  border-radius: 8rpx;
 }
 
 .eh-draft-badge {
@@ -1437,7 +1361,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  height: 160rpx;
+  top: 160rpx;
   background: linear-gradient(transparent 10%, rgba(255, 255, 255, 0.6) 62%, #fff 100%);
   pointer-events: none;
 }
@@ -1463,12 +1387,13 @@
 .eh-preview-hero {
   position: relative;
   z-index: 2;
-  margin-top: -100rpx;
+  margin-top: -112rpx;
   padding: 0 56rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16rpx;
+  gap: 20rpx;
+  text-align: center;
 }
 
 .eh-preview-avatar {
@@ -1510,16 +1435,26 @@
   max-width: 620rpx;
 }
 
-.eh-preview-cta {
-  margin: 12rpx auto 8rpx;
+.eh-preview-footer {
+  margin: 60rpx 40rpx 0;
+  padding: 40rpx 0 16rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 36rpx;
+}
+
+.eh-preview-join {
   max-width: 100%;
   padding: 20rpx 36rpx;
   border-radius: 48rpx;
   background: #f2f5fc;
   color: #316bfa;
-  text-align: center;
   font-size: 24rpx;
-  font-weight: 600;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 .eh-preview-section {
@@ -1575,18 +1510,10 @@
   font-size: 24rpx;
 }
 
-.eh-preview-brand-foot {
-  margin-top: 60rpx;
-  padding: 40rpx 40rpx 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20rpx;
-}
-
 .eh-preview-legal,
 .eh-preview-more {
   font-size: 20rpx;
+  line-height: 1.6;
   color: #7c8490;
   text-align: center;
 }
@@ -1846,5 +1773,599 @@
   height: 28rpx;
   flex: none;
   display: block;
+}
+
+/* ===== EditHome full-editor parity · 对齐 App EditHomeScreen.module.css ===== */
+
+/* App: .editor 下 .section = margin 14px 16px; padding 20px 16px; radius 20px; gap 16px */
+.eh-editor {
+  margin: 0 -32rpx;
+  padding-bottom: 8rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+
+.eh-section {
+  margin: 28rpx 32rpx 0;
+  padding: 40rpx 32rpx;
+  background: var(--app-card);
+  border-radius: 40rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 32rpx;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.eh-section-h2 {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: var(--app-ink);
+  line-height: 1.2;
+}
+
+.eh-topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24rpx;
+  margin: 8rpx 40rpx 0;
+  padding: 0 4rpx 12rpx;
+  flex-wrap: wrap;
+}
+
+.eh-topline-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+/* App .editor .address: inherit font, 12px, ink */
+.eh-topline-address {
+  font-size: 24rpx;
+  color: var(--app-ink);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+.eh-topline-meta {
+  font-size: 23rpx;
+  color: var(--app-muted);
+  line-height: 1.4;
+  margin-top: 2rpx;
+}
+
+/* App .status: mono 10px, letter-spacing, faint */
+.eh-topline-status {
+  flex: none;
+  font-size: 20rpx;
+  letter-spacing: 0.08em;
+  color: var(--app-faint);
+  padding-top: 6rpx;
+}
+
+.eh-cover-section {
+  /* inherits .eh-section */
+}
+
+/* App .coverPreview: aspect-ratio 3/1; radius 16px; accent-wash; 12px muted */
+.eh-cover-preview {
+  width: 100%;
+  aspect-ratio: 3 / 1;
+  height: auto;
+  border-radius: 32rpx;
+  overflow: hidden;
+  background: var(--app-accent-wash);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.eh-cover-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.eh-cover-placeholder {
+  font-size: 24rpx;
+  color: var(--app-muted);
+  padding: 24rpx;
+  text-align: center;
+  line-height: 1.45;
+}
+
+.eh-cover-slider {
+  margin: 0;
+  width: 100%;
+}
+
+/* App .ghost: card bg, line border, radius 14px, pad 10×14, 13px ink */
+.eh-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  width: auto;
+  margin: 0;
+  padding: 20rpx 28rpx;
+  border-radius: 28rpx;
+  background: var(--app-card) !important;
+  border: 1rpx solid var(--app-line) !important;
+  font-size: 26rpx;
+  line-height: 1.35;
+  color: var(--app-ink) !important;
+  font-weight: 400;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.eh-ghost::after {
+  border: none;
+}
+
+.eh-ghost[disabled] {
+  opacity: 0.5;
+}
+
+.eh-ghost-flex {
+  flex: 1;
+  display: flex;
+  align-self: stretch;
+  width: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eh-ghost-busy {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.eh-hint {
+  font-size: 23rpx;
+  line-height: 1.55;
+  color: var(--app-muted);
+}
+
+.eh-eyebrow {
+  font-size: 20rpx;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(21, 23, 30, 0.45);
+  margin: 0;
+}
+
+/* App .swatches gap 10px; .swatch 34px + 3px transparent border + inset white ring */
+.eh-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.eh-swatch {
+  width: 68rpx;
+  height: 68rpx;
+  border-radius: 50%;
+  border: 6rpx solid transparent;
+  box-shadow: inset 0 0 0 4rpx rgba(255, 255, 255, 0.7);
+  box-sizing: border-box;
+  flex: none;
+  padding: 0;
+}
+
+.eh-swatch-on {
+  border-color: var(--app-ink);
+}
+
+.eh-swatch-label {
+  margin-left: auto;
+  font-size: 25rpx;
+  color: var(--app-muted);
+}
+
+/* App .portraitRow gap 14px; .portrait 64×64 radius 20 */
+.eh-portrait-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 28rpx;
+}
+
+.eh-portrait-box {
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 40rpx;
+  background: var(--app-accent-wash);
+  color: var(--app-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  overflow: hidden;
+}
+
+.eh-portrait-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.eh-portrait-letter {
+  font-size: 44rpx;
+  font-weight: 600;
+  color: var(--app-accent);
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* App .editor .field: label 12px muted; control bg app-bg, radius 12, pad 13, 14px */
+.eh-field-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  min-width: 0;
+}
+
+.eh-field-box .eh-label {
+  display: block;
+  margin: 0;
+  font-size: 24rpx;
+  letter-spacing: 0;
+  color: var(--app-muted);
+}
+
+.eh-control {
+  width: 100%;
+  min-height: 88rpx;
+  box-sizing: border-box;
+  padding: 26rpx;
+  border-radius: 24rpx;
+  border: 1rpx solid var(--app-line);
+  background: var(--app-bg);
+  font-size: 28rpx;
+  color: var(--app-ink);
+  line-height: 1.4;
+}
+
+.eh-control-area {
+  min-height: 160rpx;
+  line-height: 1.5;
+}
+
+.eh-picker-value {
+  display: flex;
+  align-items: center;
+}
+
+.eh-profile-section {
+  /* inherits .eh-section */
+}
+
+.eh-profile-editor .eh-section {
+  border-radius: 44rpx;
+}
+
+/* App .profileEditor .portrait: 76px circle */
+.eh-profile-editor .eh-portrait-box {
+  width: 152rpx;
+  height: 152rpx;
+  border-radius: 50%;
+}
+
+.eh-profile-editor .eh-control {
+  font-size: 32rpx;
+}
+
+.eh-coop {
+  margin: 12rpx 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.eh-coop-intro {
+  padding: 28rpx 48rpx 8rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.eh-coop-h2 {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: var(--app-ink);
+  line-height: 1.3;
+}
+
+.eh-coop-lead {
+  font-size: 26rpx;
+  color: var(--app-muted);
+  line-height: 1.5;
+}
+
+.eh-coop-card {
+  /* inherits .eh-section */
+}
+
+.eh-coop-h3 {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 600;
+  margin: 0;
+}
+
+.eh-coop-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.eh-coop-count {
+  font-size: 22rpx;
+  color: var(--app-muted);
+}
+
+.eh-coop-empty {
+  margin: 0;
+  padding: 24rpx;
+  border-radius: 24rpx;
+  background: var(--app-bg);
+  color: var(--app-muted);
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+.eh-lang-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.eh-lang-chip {
+  padding: 14rpx 24rpx;
+  border-radius: 999rpx;
+  background: var(--app-bg);
+  border: 1rpx solid var(--app-line);
+  font-size: 24rpx;
+  color: var(--app-muted);
+}
+
+.eh-lang-chip-on {
+  background: var(--app-accent-wash);
+  border-color: var(--app-accent);
+  color: var(--app-accent);
+  font-weight: 600;
+}
+
+.eh-offer-item {
+  padding: 8rpx 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  border-top: 1rpx solid var(--app-line);
+}
+
+.eh-offer-pair {
+  display: flex;
+  gap: 16rpx;
+}
+
+.eh-offer-half {
+  flex: 1;
+  min-width: 0;
+}
+
+.eh-offer-note {
+  font-size: 20rpx;
+  color: var(--app-muted);
+  line-height: 1.45;
+}
+
+/* App .editor .socialRow */
+.eh-social-editor-row {
+  display: grid;
+  grid-template-columns: 180rpx minmax(0, 1fr) 68rpx;
+  gap: 16rpx;
+  align-items: center;
+  padding: 28rpx;
+  border: 1rpx solid var(--app-line);
+  border-radius: 32rpx;
+  box-sizing: border-box;
+}
+
+.eh-social-editor-row .eh-control {
+  min-height: 72rpx;
+  padding: 16rpx 20rpx;
+  font-size: 26rpx;
+}
+
+.eh-social-kind {
+  font-size: 26rpx;
+}
+
+.eh-social-url {
+  min-width: 0;
+}
+
+.eh-sections-head {
+  padding-bottom: 8rpx;
+  margin-bottom: 0;
+}
+
+.eh-block-card {
+  gap: 16rpx;
+}
+
+.eh-section-head {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.eh-section-type {
+  flex: none;
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  font-size: 19rpx;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--app-accent);
+  background: var(--app-accent-wash);
+}
+
+.eh-section-title {
+  flex: 1;
+  font-weight: 600;
+  min-width: 0;
+  min-height: 72rpx;
+  padding: 14rpx 18rpx;
+}
+
+.eh-item-field-label {
+  font-size: 21rpx;
+  color: var(--app-faint);
+}
+
+.eh-section-tools {
+  display: flex;
+  gap: 24rpx;
+  font-size: 24rpx;
+  color: var(--app-muted);
+}
+
+.eh-item {
+  padding: 18rpx;
+  border-radius: 22rpx;
+  background: var(--app-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+}
+
+.eh-add-section {
+  margin: 28rpx 32rpx 0;
+  align-self: stretch;
+  text-align: center;
+}
+
+.eh-preview-draft-row {
+  margin: 28rpx 32rpx 0;
+  display: flex;
+  flex-direction: row;
+}
+
+.eh-preview-draft-row .eh-ghost {
+  flex: 1;
+  align-self: stretch;
+}
+
+.eh-address-topline {
+  font-size: 24rpx;
+  color: var(--app-muted);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+.eh-share-section {
+  /* inherits .eh-section */
+}
+
+.eh-share-grid-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  min-width: 0;
+}
+
+.eh-short-code {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 20rpx 24rpx;
+  border-radius: 24rpx;
+  background: var(--app-card);
+  border: 1rpx solid var(--app-line);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 26rpx;
+  line-height: 1.35;
+  color: var(--app-ink);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eh-share-hint-text {
+  font-size: 24rpx;
+  line-height: 1.55;
+  color: var(--app-muted);
+}
+
+.eh-publish-foot {
+  padding: 36rpx 32rpx calc(28rpx + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.eh-avatar-canvas {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  width: 200px;
+  height: 200px;
+}
+
+/* Keep legacy list portrait helpers for linksOnly panel */
+.eh-portrait-block {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  margin-bottom: 24rpx;
+}
+
+.eh-portrait-ring {
+  position: relative;
+  flex: none;
+}
+
+.eh-portrait-meta {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.eh-portrait-title {
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.eh-portrait-hint {
+  font-size: 22rpx;
+  color: var(--app-muted);
+  line-height: 1.45;
+}
+
+.eh-portrait-actions {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  align-items: center;
 }
 

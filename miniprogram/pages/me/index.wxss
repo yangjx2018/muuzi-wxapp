@@ -169,6 +169,11 @@
   align-items: center;
   justify-content: center;
   gap: 10rpx;
+  box-sizing: border-box;
+}
+
+.me-tool-hover {
+  opacity: 0.82;
 }
 
 .me-tool::after {
@@ -585,8 +590,18 @@
   background: transparent;
   color: var(--app-ink);
   font-size: 28rpx;
-  border: none;
   box-sizing: border-box;
+  border: none;
+  line-height: 1.3;
+}
+
+.me-share-option-hover {
+  opacity: 0.72;
+}
+
+.me-share-option-label {
+  flex: 1;
+  min-width: 0;
 }
 
 .me-bio-editor {
@@ -607,11 +622,14 @@
 
 .me-mini-btn {
   margin: 8rpx 0;
+  padding: 20rpx 24rpx;
   background: var(--app-accent-wash);
   color: var(--app-accent);
   border-radius: 24rpx;
   font-size: 26rpx;
   border: none;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 .me-share-qr {

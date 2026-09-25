@@ -31,10 +31,106 @@ var SOCIAL_KINDS = [
 
 var STATUS_COPY = {
   saved: '已保存',
-  dirty: '有未保存修改',
-  saving: '正在保存…',
+  dirty: '未保存',
+  saving: '保存中…',
   failed: '保存失败',
 };
+
+var LANGUAGE_PAIRS = [
+  ['zh', '中文'],
+  ['en', '英语'],
+  ['ja', '日语'],
+  ['ko', '韩语'],
+  ['fr', '法语'],
+  ['de', '德语'],
+  ['es', '西班牙语'],
+  ['pt', '葡萄牙语'],
+  ['ru', '俄语'],
+  ['ar', '阿拉伯语'],
+];
+
+var AVATAR_STYLE_OPTIONS = [
+  { id: 'beam', label: '简约表情' },
+  { id: 'tapback', label: '立体人物' },
+];
+
+var CURRENCY_OPTIONS = [
+  { id: 'CNY', label: 'CNY · 人民币' },
+  { id: 'USD', label: 'USD · 美元' },
+];
+
+function publishedMetaText(publishedAt) {
+  if (!publishedAt) return '尚未发布 · 访客现在打不开';
+  try {
+    var d = new Date(publishedAt);
+    if (!isNaN(d.getTime())) {
+      return (
+        '已发布 · ' +
+        d.toLocaleString('zh-CN', { hour12: false })
+      );
+    }
+  } catch (e) {
+    /* ignore */
+  }
+  return '已发布';
+}
+
+function syncLanguageOptions(meta) {
+  var langs = (meta && meta.languages) || [];
+  return LANGUAGE_PAIRS.map(function (pair) {
+    return {
+      id: pair[0],
+      label: pair[1],
+      on: langs.indexOf(pair[0]) >= 0,
+    };
+  });
+}
+
+function metaForView(raw) {
+  var base = creator.mergeDraft({ profile_metadata: raw || {} }).profile_metadata;
+  return {
+    location: base.location,
+    languages: base.languages.slice(),
+    offers: base.offers.map(function (o) {
+      var yuan =
+        o.price_minor == null || !Number.isFinite(Number(o.price_minor))
+          ? ''
+          : String(Number(o.price_minor) / 100);
+      var lead =
+        o.lead_time_days == null || !Number.isFinite(Number(o.lead_time_days))
+          ? ''
+          : String(o.lead_time_days);
+      return {
+        label: o.label,
+        price_minor: o.price_minor,
+        currency: o.currency || 'CNY',
+        lead_time_days: o.lead_time_days,
+        priceYuan: yuan,
+        leadDays: lead,
+        currencyLabel:
+          o.currency === 'USD' ? 'USD · 美元' : 'CNY · 人民币',
+      };
+    }),
+    wants: base.wants.map(function (w) {
+      return { label: w.label };
+    }),
+  };
+}
+
+function avatarStyleIndexOf(id) {
+  for (var i = 0; i < AVATAR_STYLE_OPTIONS.length; i++) {
+    if (AVATAR_STYLE_OPTIONS[i].id === id) return i;
+  }
+  return 0;
+}
+
+function skinLabelOf(skinId) {
+  var opts = skins.skinOptions(skinId);
+  for (var i = 0; i < opts.length; i++) {
+    if (opts[i].selected) return opts[i].label;
+  }
+  return (skins.SKINS[skinId] && skins.SKINS[skinId].label) || '';
+}
 
 var SOCIAL_SHORTCUT_DEFAULTS = [
   { kind: 'instagram', label: 'Instagram', iconKind: 'instagram' },
@@ -336,8 +432,11 @@ Page({
     skinId: 'indigo',
     skinOptions: [],
     draft: creator.mergeDraft(null),
+    meta: metaForView(null),
+    languageOptions: syncLanguageOptions(null),
     portraitLetter: 'M',
     publishedAt: '',
+    publishedMetaCopy: publishedMetaText(''),
     pageUrl: '',
     addressDisplay: '发布后可分享',
     publishLabel: '发布到主页',
@@ -347,6 +446,13 @@ Page({
     publishFeedback: '',
     busy: false,
     uploadBusy: false,
+    avatarCanvasOn: false,
+    avatarStyle: 'beam',
+    avatarStyleOptions: AVATAR_STYLE_OPTIONS,
+    avatarStyleIndex: 0,
+    avatarStyleLabel: AVATAR_STYLE_OPTIONS[0].label,
+    currencyOptions: CURRENCY_OPTIONS,
+    skinLabel: skinLabelOf('indigo'),
     socialKinds: SOCIAL_KINDS.map(function (pair) {
       return { id: pair[0], label: pair[1] };
     }),
@@ -621,11 +727,15 @@ Page({
       token: this._token,
       slug: page.slug || '',
       draft: decorateDraft(draft, this._media),
+      meta: metaForView(draft.profile_metadata),
+      languageOptions: syncLanguageOptions(draft.profile_metadata),
       socialShortcuts: buildSocialShortcuts(draft),
       portraitLetter: portraitLetterOf(draft, page.slug),
       skinId: skinId,
       skinOptions: skins.skinOptions(skinId),
+      skinLabel: skinLabelOf(skinId),
       publishedAt: page.published_at || '',
+      publishedMetaCopy: publishedMetaText(page.published_at || ''),
       pageUrl: page.published_at
         ? creator.pageUrlFor(page.slug)
         : '',
@@ -674,6 +784,10 @@ Page({
       }
       self.setData({
         draft: decorateDraft(self._latestDraft, self._media),
+        meta: metaForView(self._latestDraft.profile_metadata),
+        languageOptions: syncLanguageOptions(
+          self._latestDraft.profile_metadata
+        ),
         shortLink: pageLink,
         shortLinkDisplay: pageLink ? stripHttps(pageLink.url) : '',
         shortLinkHint: shortLinkHintText(pageLink),
@@ -779,10 +893,13 @@ Page({
         }
         self.setData({
           draft: decorateDraft(draft, self._media),
+          meta: metaForView(draft.profile_metadata),
+          languageOptions: syncLanguageOptions(draft.profile_metadata),
           socialShortcuts: buildSocialShortcuts(draft),
           portraitLetter: portraitLetterOf(draft, self.data.slug),
           skinId: skin,
           skinOptions: skins.skinOptions(skin),
+          skinLabel: skinLabelOf(skin),
           status: 'saved',
           statusCopy: STATUS_COPY.saved,
           saveError: '',
@@ -809,10 +926,13 @@ Page({
     var revision = ++this._editRevision;
     this.setData({
       draft: decorateDraft(next, this._media),
+      meta: metaForView(next.profile_metadata),
+      languageOptions: syncLanguageOptions(next.profile_metadata),
       socialShortcuts: buildSocialShortcuts(next),
       portraitLetter: portraitLetterOf(next, this.data.slug),
       skinId: skinId,
       skinOptions: skins.skinOptions(skinId),
+      skinLabel: skinLabelOf(skinId),
       status: 'dirty',
       statusCopy: STATUS_COPY.dirty,
     });
@@ -874,6 +994,269 @@ Page({
           self.setData({ uploadBusy: false, busy: false });
         }
       });
+  },
+
+  pickCover() {
+    var self = this;
+    if (!this._token || this._portraitPending || this.data.busy) return;
+    this._portraitPending = true;
+    this.setData({ uploadBusy: true, saveError: '', busy: true });
+    pickFilePath()
+      .then(function (filePath) {
+        return creator.uploadImage(
+          self._token,
+          filePath,
+          'profile',
+          self.ownerKey() || undefined
+        );
+      })
+      .then(function (result) {
+        if (!self._alive) return;
+        self.updateDraft({ cover_url: result.url, cover_position: 50 });
+        wx.showToast({ title: '封面已更新', icon: 'success' });
+      })
+      .catch(function (err) {
+        if (!self._alive) return;
+        if (err && err.errMsg && /cancel/i.test(err.errMsg)) return;
+        self.setData({
+          saveError: (err && err.message) || '封面保存失败，请重试',
+        });
+      })
+      .then(function () {
+        self._portraitPending = false;
+        if (self._alive) {
+          self.setData({ uploadBusy: false, busy: false });
+        }
+      });
+  },
+
+  removeCover() {
+    this.updateDraft({ cover_url: '', cover_position: 50 });
+  },
+
+  onCoverPosition(e) {
+    var v = Number(e.detail && e.detail.value);
+    if (!Number.isFinite(v)) return;
+    this.updateDraft({
+      cover_position: Math.max(0, Math.min(100, Math.round(v))),
+    });
+  },
+
+  randomPortrait() {
+    var self = this;
+    if (!this._token || this._portraitPending || this.data.busy) return;
+    this._portraitPending = true;
+    // 离屏 canvas 会挡全页点击：仅绘制时短暂挂载
+    this.setData(
+      { uploadBusy: true, saveError: '', busy: true, avatarCanvasOn: true },
+      function () {
+        setTimeout(function () {
+          if (!self._alive) return;
+          var style = self.data.avatarStyle || 'beam';
+          var bg = style === 'tapback' ? '#9a9ef8' : '#ff97a8';
+          var ctx = wx.createCanvasContext('ehAvatarCanvas', self);
+          ctx.setFillStyle(bg);
+          ctx.fillRect(0, 0, 200, 200);
+          ctx.setFillStyle('#FFE8A3');
+          ctx.beginPath();
+          ctx.arc(100, 100, 70, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.setFillStyle('#333333');
+          ctx.beginPath();
+          ctx.arc(75, 85, 8, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(125, 85, 8, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.setStrokeStyle('#333333');
+          ctx.setLineWidth(4);
+          ctx.beginPath();
+          ctx.arc(100, 110, 30, 0.15 * Math.PI, 0.85 * Math.PI);
+          ctx.stroke();
+          ctx.draw(false, function () {
+            wx.canvasToTempFilePath(
+              {
+                canvasId: 'ehAvatarCanvas',
+                success: function (res) {
+                  creator
+                    .uploadImage(
+                      self._token,
+                      res.tempFilePath,
+                      'profile',
+                      self.ownerKey() || undefined
+                    )
+                    .then(function (result) {
+                      if (!self._alive) return;
+                      self.updateDraft({ portrait_url: result.url });
+                      wx.showToast({ title: '头像已更新', icon: 'success' });
+                    })
+                    .catch(function (err) {
+                      if (!self._alive) return;
+                      self.setData({
+                        saveError: (err && err.message) || '随机头像保存失败',
+                      });
+                    })
+                    .then(function () {
+                      self._portraitPending = false;
+                      if (self._alive) {
+                        self.setData({
+                          uploadBusy: false,
+                          busy: false,
+                          avatarCanvasOn: false,
+                        });
+                      }
+                    });
+                },
+                fail: function () {
+                  self._portraitPending = false;
+                  if (self._alive) {
+                    self.setData({
+                      uploadBusy: false,
+                      busy: false,
+                      avatarCanvasOn: false,
+                      saveError: '随机头像生成失败',
+                    });
+                  }
+                },
+              },
+              self
+            );
+          });
+        }, 60);
+      }
+    );
+  },
+
+  onAvatarStyle(e) {
+    var idx = Number(e.detail && e.detail.value);
+    var opt = AVATAR_STYLE_OPTIONS[idx] || AVATAR_STYLE_OPTIONS[0];
+    this.setData({
+      avatarStyle: opt.id,
+      avatarStyleIndex: avatarStyleIndexOf(opt.id),
+      avatarStyleLabel: opt.label,
+    });
+  },
+
+  patchMetadata(partial) {
+    var current =
+      (this._latestDraft && this._latestDraft.profile_metadata) || {};
+    var merged = Object.assign({}, current, partial || {});
+    this.updateDraft({ profile_metadata: merged });
+  },
+
+  onLocationInput(e) {
+    this.patchMetadata({ location: (e.detail && e.detail.value) || '' });
+  },
+
+  toggleLanguage(e) {
+    var id = e.currentTarget.dataset.id;
+    if (!id) return;
+    var current =
+      (this._latestDraft && this._latestDraft.profile_metadata) || {};
+    var langs = (current.languages || []).slice();
+    var at = langs.indexOf(id);
+    if (at >= 0) langs.splice(at, 1);
+    else langs.push(id);
+    this.patchMetadata({ languages: langs });
+  },
+
+  addOffer() {
+    var current =
+      (this._latestDraft && this._latestDraft.profile_metadata) || {};
+    var offers = (current.offers || []).slice();
+    if (offers.length >= 20) return;
+    offers.push({
+      label: '',
+      price_minor: null,
+      currency: 'CNY',
+      lead_time_days: null,
+    });
+    this.patchMetadata({ offers: offers });
+  },
+
+  onOfferField(e) {
+    var index = Number(e.currentTarget.dataset.index);
+    var field = e.currentTarget.dataset.field;
+    var raw = (e.detail && e.detail.value) || '';
+    var current =
+      (this._latestDraft && this._latestDraft.profile_metadata) || {};
+    var offers = (current.offers || []).slice();
+    if (!offers[index]) return;
+    var next = Object.assign({}, offers[index]);
+    if (field === 'label') {
+      next.label = raw;
+    } else if (field === 'price') {
+      var trimmed = String(raw).trim();
+      if (trimmed === '') {
+        next.price_minor = null;
+      } else {
+        var yuan = Number(trimmed);
+        if (!Number.isFinite(yuan) || yuan < 0) return;
+        next.price_minor = Math.round(yuan * 100);
+      }
+    } else if (field === 'lead') {
+      var leadTrim = String(raw).trim();
+      if (leadTrim === '') {
+        next.lead_time_days = null;
+      } else {
+        var days = Number(leadTrim);
+        if (!Number.isFinite(days) || days < 1) return;
+        next.lead_time_days = Math.round(days);
+      }
+    } else {
+      return;
+    }
+    offers[index] = next;
+    this.patchMetadata({ offers: offers });
+  },
+
+  onOfferCurrency(e) {
+    var index = Number(e.currentTarget.dataset.index);
+    var opt = CURRENCY_OPTIONS[Number(e.detail && e.detail.value)];
+    if (!opt) return;
+    var current =
+      (this._latestDraft && this._latestDraft.profile_metadata) || {};
+    var offers = (current.offers || []).slice();
+    if (!offers[index]) return;
+    offers[index] = Object.assign({}, offers[index], { currency: opt.id });
+    this.patchMetadata({ offers: offers });
+  },
+
+  removeOffer(e) {
+    var index = Number(e.currentTarget.dataset.index);
+    var current =
+      (this._latestDraft && this._latestDraft.profile_metadata) || {};
+    var offers = (current.offers || []).slice();
+    offers.splice(index, 1);
+    this.patchMetadata({ offers: offers });
+  },
+
+  addWant() {
+    var current =
+      (this._latestDraft && this._latestDraft.profile_metadata) || {};
+    var wants = (current.wants || []).slice();
+    if (wants.length >= 20) return;
+    wants.push({ label: '' });
+    this.patchMetadata({ wants: wants });
+  },
+
+  onWantInput(e) {
+    var index = Number(e.currentTarget.dataset.index);
+    var current =
+      (this._latestDraft && this._latestDraft.profile_metadata) || {};
+    var wants = (current.wants || []).slice();
+    if (!wants[index]) return;
+    wants[index] = { label: (e.detail && e.detail.value) || '' };
+    this.patchMetadata({ wants: wants });
+  },
+
+  removeWant(e) {
+    var index = Number(e.currentTarget.dataset.index);
+    var current =
+      (this._latestDraft && this._latestDraft.profile_metadata) || {};
+    var wants = (current.wants || []).slice();
+    wants.splice(index, 1);
+    this.patchMetadata({ wants: wants });
   },
 
   onSocialKind(e) {
@@ -1398,6 +1781,7 @@ Page({
         self.setData({
           slug: slug,
           publishedAt: publishedAt,
+          publishedMetaCopy: publishedMetaText(publishedAt),
           pageUrl: url,
           publishFeedback: self.data.isOrg
             ? '企业主页已发布，可使用分享按钮分享链接。'
@@ -2029,16 +2413,19 @@ Page({
     var next = !this.data.showShareQr;
     this.setData({ showShareQr: next });
     if (!next || this.data.shareQrImage) return;
-    qrcodeDraw
-      .drawUrlToTempFile(self, 'ehShareQr', this.data.shareUrl)
-      .then(function (img) {
-        if (self.data.shareOpen) self.setData({ shareQrImage: img });
-      })
-      .catch(function () {
-        if (self.data.shareOpen) {
-          self.setData({ shareNote: '二维码暂时无法生成' });
-        }
-      });
+    setTimeout(function () {
+      if (!self.data.shareOpen || !self.data.showShareQr) return;
+      qrcodeDraw
+        .drawUrlToTempFile(self, 'ehShareQr', self.data.shareUrl)
+        .then(function (img) {
+          if (self.data.shareOpen) self.setData({ shareQrImage: img });
+        })
+        .catch(function () {
+          if (self.data.shareOpen) {
+            self.setData({ shareNote: '二维码暂时无法生成' });
+          }
+        });
+    }, 60);
   },
 
   toggleShareCard() {

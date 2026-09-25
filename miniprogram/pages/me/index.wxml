@@ -39,7 +39,7 @@
   <view class="me-address">{{addressLabel}}</view>
 
   <view class="me-tools" aria-label="主页管理">
-    <button class="me-tool" bindtap="goShop">
+    <view class="me-tool" bindtap="goShop" hover-class="me-tool-hover" hover-stay-time="80">
       <image
         class="me-tool-ico"
         src="/assets/icon-ui-nav-people-accent.png"
@@ -47,8 +47,8 @@
         aria-hidden="true"
       />
       <text>商品</text>
-    </button>
-    <button class="me-tool" bindtap="goDesign">
+    </view>
+    <view class="me-tool" bindtap="goDesign" hover-class="me-tool-hover" hover-stay-time="80">
       <image
         class="me-tool-ico"
         src="/assets/icon-ui-list-tool-accent.png"
@@ -56,8 +56,8 @@
         aria-hidden="true"
       />
       <text>设计</text>
-    </button>
-    <button class="me-tool" bindtap="goSettings">
+    </view>
+    <view class="me-tool" bindtap="goSettings" hover-class="me-tool-hover" hover-stay-time="80">
       <image
         class="me-tool-ico"
         src="/assets/icon-ui-gear-accent.png"
@@ -65,7 +65,7 @@
         aria-hidden="true"
       />
       <text>设置</text>
-    </button>
+    </view>
   </view>
 
   <view class="me-editors" aria-label="主页与商铺编辑">
@@ -177,7 +177,7 @@
         <text class="me-current-name">{{displayName}}</text>
         <text class="me-current-sub">MuuZi · 让更多人遇见你</text>
       </view>
-      <button class="me-copy-address" bindtap="copyShareUrl">
+      <view class="me-copy-address" bindtap="copyShareUrl" hover-class="me-share-option-hover" hover-stay-time="80">
         <text class="me-copy-address-text">{{shareUrl || '主页地址暂不可用'}}</text>
         <image
           class="me-share-row-ico"
@@ -185,43 +185,62 @@
           mode="aspectFit"
           aria-hidden="true"
         />
-      </button>
+      </view>
       <view wx:if="{{!shareUrl && !shareMissing}}" class="me-sheet-hint" role="status">{{shareAvailability}}</view>
       <view wx:if="{{shareNote}}" class="me-sheet-hint" role="status">{{shareNote}}</view>
 
-      <button class="me-share-option" bindtap="toggleBio">
+      <!-- 选项用 view+bindtap（对齐 edit-home）：真机 button 在 sheet/catchtouchmove 下常点不动 -->
+      <view
+        class="me-share-option"
+        bindtap="toggleBio"
+        hover-class="me-share-option-hover"
+        hover-stay-time="80"
+        aria-expanded="{{showBio}}"
+      >
         <image class="me-share-row-ico" src="/assets/icon-ui-list-accent.png" mode="aspectFit" aria-hidden="true" />
         <text class="me-share-option-label">添加到社交简介</text>
         <image class="me-share-chevron" src="/assets/icon-ui-chevron-muted.png" mode="aspectFit" aria-hidden="true" />
-      </button>
+      </view>
       <view wx:if="{{showBio}}" class="me-bio-editor">
         <textarea class="me-bio-input" maxlength="300" value="{{bio}}" bindinput="onBio" />
         <view class="me-sheet-hint">{{shareUrl || '发布后可附带主页链接'}}</view>
-        <button class="me-mini-btn" bindtap="copyBio">复制简介</button>
+        <view class="me-mini-btn" bindtap="copyBio" hover-class="me-share-option-hover" hover-stay-time="80">复制简介</view>
       </view>
 
       <view wx:if="{{shareMissing && !shareUrl}}" class="me-bio-editor" role="status">
         <view class="me-sheet-hint">{{shareAvailability}}</view>
-        <button class="me-mini-btn" bindtap="goDesign">查看主页草稿</button>
-        <button class="me-mini-btn" bindtap="dismissMissing">知道了</button>
+        <view class="me-mini-btn" bindtap="goDesign" hover-class="me-share-option-hover" hover-stay-time="80">查看主页草稿</view>
+        <view class="me-mini-btn" bindtap="dismissMissing" hover-class="me-share-option-hover" hover-stay-time="80">知道了</view>
       </view>
 
-      <button class="me-share-option" bindtap="toggleQr">
+      <view
+        class="me-share-option"
+        bindtap="toggleQr"
+        hover-class="me-share-option-hover"
+        hover-stay-time="80"
+        aria-expanded="{{showQr}}"
+      >
         <image class="me-share-row-ico" src="/assets/icon-ui-expand-accent.png" mode="aspectFit" aria-hidden="true" />
         <text class="me-share-option-label">主页二维码</text>
         <image class="me-share-chevron" src="/assets/icon-ui-chevron-muted.png" mode="aspectFit" aria-hidden="true" />
-      </button>
+      </view>
       <view wx:if="{{showQr}}" class="me-share-qr">
         <image wx:if="{{qrImage}}" class="me-qr-img" src="{{qrImage}}" mode="aspectFit" />
         <view wx:else class="me-sheet-hint">正在生成二维码…</view>
         <view class="me-sheet-hint">扫码打开你的 MuuZi 主页</view>
       </view>
 
-      <button class="me-share-option" bindtap="toggleShareCard">
+      <view
+        class="me-share-option"
+        bindtap="toggleShareCard"
+        hover-class="me-share-option-hover"
+        hover-stay-time="80"
+        aria-expanded="{{showShareCard}}"
+      >
         <image class="me-share-row-ico" src="/assets/icon-ui-person-accent.png" mode="aspectFit" aria-hidden="true" />
         <text class="me-share-option-label">数字名片</text>
         <image class="me-share-chevron" src="/assets/icon-ui-chevron-muted.png" mode="aspectFit" aria-hidden="true" />
-      </button>
+      </view>
       <view wx:if="{{showShareCard}}" class="me-share-card">
         <text class="me-share-card-name">{{displayName || slug || '我的主页'}}</text>
         <text class="me-share-card-url">{{shareUrl || '主页地址待发布'}}</text>
@@ -234,19 +253,31 @@
         open-type="{{shareUrl ? 'share' : ''}}"
         bindtap="shareToOthers"
         disabled="{{shareBusy}}"
+        hover-class="me-share-option-hover"
       >
         <image class="me-share-row-ico" src="/assets/icon-ui-share-accent.png" mode="aspectFit" aria-hidden="true" />
         <text class="me-share-option-label">{{shareBusy ? '正在打开分享…' : '分享到…'}}</text>
         <image class="me-share-chevron" src="/assets/icon-ui-chevron-muted.png" mode="aspectFit" aria-hidden="true" />
       </button>
 
-      <button class="me-share-option" bindtap="openSharePage">
+      <view
+        class="me-share-option"
+        bindtap="openSharePage"
+        hover-class="me-share-option-hover"
+        hover-stay-time="80"
+      >
         <image class="me-share-row-ico" src="/assets/icon-ui-link-accent.png" mode="aspectFit" aria-hidden="true" />
         <text class="me-share-option-label">打开主页</text>
         <image class="me-share-arrow" src="/assets/icon-ui-arrow-right-accent.png" mode="aspectFit" aria-hidden="true" />
-      </button>
+      </view>
     </view>
   </view>
 
-  <canvas canvas-id="meShareQr" class="me-qr-canvas" style="width:{{280}}px;height:{{280}}px;"></canvas>
+  <!-- 离屏 canvas 会挡点击：仅分享面板打开时挂载 -->
+  <canvas
+    wx:if="{{shareOpen}}"
+    canvas-id="meShareQr"
+    class="me-qr-canvas"
+    style="width:280px;height:280px;"
+  ></canvas>
 </view>

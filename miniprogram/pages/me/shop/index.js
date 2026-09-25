@@ -1,6 +1,7 @@
 const session = require('../../../services/session');
 const creator = require('../../../services/creator');
 const market = require('../../../services/storefrontMarket');
+const contentCatalog = require('../../../services/contentCatalog');
 
 Page({
   data: {
@@ -19,6 +20,9 @@ Page({
     homepageProducts: 0,
     pageLink: '',
     shopLink: '',
+    storeTools: [],
+    storeToolsReady: false,
+    showMarketplace: false,
     stores: [],
     selectedStoreId: '',
     selectedStoreLabel: '',
@@ -58,7 +62,24 @@ Page({
 
   load() {
     var self = this;
-    self.setData({ loading: true, error: '', note: '', catalogNote: '' });
+    self.setData({
+      loading: true,
+      error: '',
+      note: '',
+      catalogNote: '',
+      storeToolsReady: false,
+    });
+    contentCatalog.loadStoreTools().then(function (tools) {
+      if (!self._alive) return;
+      var showMarketplace = tools.some(function (t) {
+        return t.action === 'store_marketplace';
+      });
+      self.setData({
+        storeTools: tools,
+        storeToolsReady: true,
+        showMarketplace: showMarketplace,
+      });
+    });
     creator
       .loadCreatorSession(session.snapshot())
       .then(function (opened) {
@@ -149,7 +170,10 @@ Page({
             break;
           }
         }
-        if (!selectedStore && stores[0]) selectedStore = stores[0];
+        if (!selectedStore && stores[0]) {
+          selectedStore = stores[0];
+          selected = stores[0].id;
+        }
         self.setData({
           stores: stores,
           selectedStoreId: selected,
@@ -159,6 +183,7 @@ Page({
               (selectedStore.entity_type === 'personal' ? '个人' : '企业')
             : '',
           catalogBusy: false,
+          catalogNote: '',
         });
         if (selected) self.loadProducts(selected, true);
       })
@@ -167,6 +192,7 @@ Page({
         self.setData({
           stores: [],
           selectedStoreId: '',
+          selectedStoreLabel: '',
           products: [],
           catalogBusy: false,
           catalogNote: (err && err.message) || '商品目录暂不可用',
@@ -174,6 +200,26 @@ Page({
       });
   },
 
+  retryCatalog() {
+    this.setData({ catalogNote: '', stores: [], products: [] });
+    this.loadCatalog();
+  },
+
+  onStoreTool(e) {
+    var action = e.currentTarget.dataset.action || '';
+    if (action === 'store_marketplace') {
+      this.scrollToMarketplace();
+      return;
+    }
+    this.goEditHome();
+  },
+
+  scrollToMarketplace() {
+    wx.pageScrollTo({
+      selector: '#marketplace-connection',
+      duration: 300,
+    });
+  },
   loadProducts(storeId, reset, cursorsOverride) {
     var self = this;
     if (!storeId) return;

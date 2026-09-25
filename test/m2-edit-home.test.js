@@ -103,7 +103,9 @@ describe('M2.3 edit-home / avatar / publish', () => {
     assert.doesNotMatch(wxml, /eh-preview-back-pill/);
     assert.doesNotMatch(wxml, /eh-plane/);
     assert.match(wxml, /在 MuuZi 上加入/);
+    assert.match(wxml, /eh-preview-footer|eh-preview-join/);
     assert.match(wxml, /eh-preview-cover|eh-preview-page|eh-preview-brand/);
+    assert.doesNotMatch(wxml, /eh-preview-cta/);
     assert.match(wxml, /reloadCatalog|重新加载|addFormFields/);
     assert.match(wxml, /分享我的 MuuZi|添加到社交简介|主页二维码|数字名片|分享到/);
     assert.match(wxml, /eh-share-card|保存联系人名片/);
@@ -128,8 +130,54 @@ describe('M2.3 edit-home / avatar / publish', () => {
     assert.match(wxml, /eh-btn-publish|发布到|eh-share-picker|分享此地址/);
     assert.match(wxml, /模板、自定义域名、作品库在网页版 Studio 里/);
     assert.doesNotMatch(wxml, /复制 Studio 链接|复制链接|刷新短链接|生成主页短链接|发布主页/);
-    assert.match(wxml, /添加链接区块|addLinksSection|pickCatalogEntry|submitAddForm/);
-    assert.match(wxml, /社交账号|eh-social-row/);
+    assert.match(wxml, /添加链接区块|新建区块|addLinksSection|pickCatalogEntry|submitAddForm/);
+    assert.match(wxml, /社交账号|LINKS · 社交链接|eh-social-row/);
+  });
+
+  it('full-editor EditHome matches App scroll order and shared preview', () => {
+    const js = fs.readFileSync(
+      path.join(root, 'miniprogram/pages/me/edit-home/index.js'),
+      'utf8'
+    );
+    const wxml = fs.readFileSync(
+      path.join(root, 'miniprogram/pages/me/edit-home/index.wxml'),
+      'utf8'
+    );
+    assert.match(wxml, /主页封面/);
+    assert.match(wxml, /让合适的合作找到你/);
+    assert.match(wxml, /PROFILE · 资料|PROFILE/);
+    assert.match(wxml, /LINKS · 社交链接/);
+    assert.match(wxml, /SECTIONS · 区块/);
+    assert.match(wxml, /随机换一个/);
+    assert.match(wxml, /添加一张代表你的封面/);
+    assert.match(wxml, /上下取景|cover_position|onCoverPosition/);
+    assert.match(wxml, /eh-swatch|主页配色/);
+    assert.match(wxml, /eh-editor|eh-portrait-box|eh-ghost|eh-control/);
+    assert.match(wxml, /ehAvatarCanvas/);
+    const wxss = fs.readFileSync(
+      path.join(root, 'miniprogram/pages/me/edit-home/index.wxss'),
+      'utf8'
+    );
+    assert.match(wxss, /aspect-ratio:\s*3\s*\/\s*1/);
+    assert.match(wxss, /width:\s*68rpx/);
+    assert.match(wxss, /border-radius:\s*40rpx/);
+    assert.match(wxss, /\.eh-ghost[\s\S]*var\(--app-ink\)/);
+    assert.match(wxss, /\.eh-control[\s\S]*var\(--app-bg\)/);
+    const linksOnlyIdx = wxml.indexOf("phase === 'editing' && linksOnly");
+    const fullEditorIdx = wxml.indexOf('完整编辑 / 个人资料');
+    const previewIdx = wxml.indexOf('wx:if="{{previewOpen}}"');
+    assert.ok(linksOnlyIdx >= 0, 'linksOnly branch present');
+    assert.ok(fullEditorIdx > linksOnlyIdx, 'full editor after linksOnly');
+    assert.ok(
+      previewIdx > fullEditorIdx,
+      'previewOpen after full-editor block (page root)'
+    );
+    assert.equal((wxml.match(/wx:if="\{\{previewOpen\}\}"/g) || []).length, 1);
+    assert.match(js, /STATUS_COPY[\s\S]*未保存/);
+    assert.match(js, /保存中…/);
+    assert.match(js, /pickCover|removeCover|onCoverPosition|randomPortrait/);
+    assert.match(js, /patchMetadata|syncLanguageOptions|publishedMetaText/);
+    assert.match(js, /avatarStyleOptions|languageOptions|publishedMetaCopy/);
   });
 
   it('contentCatalog normalizes and filters like App', () => {

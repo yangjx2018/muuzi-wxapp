@@ -92,7 +92,7 @@ Page({
   },
 
   goLogin() {
-    wx.navigateBack({ fail: () => wx.reLaunch({ url: '/pages/auth/login/index' }) });
+    wx.reLaunch({ url: '/pages/auth/login/index' });
   },
 
   goRecover() {

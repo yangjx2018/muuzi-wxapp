@@ -1,1 +1,7 @@
-{ "navigationBarTitleText": "新密码", "navigationStyle": "custom" }
+{
+  "navigationBarTitleText": "新密码",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "app-banner": "/components/app-banner/index"
+  }
+}

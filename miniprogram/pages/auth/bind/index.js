@@ -56,16 +56,29 @@ Page({
   },
 
   onIdentifier(e) {
-    this.setData({ identifier: e.detail.value, error: '', failMode: false });
-    this.refreshReady();
+    var identifier = e.detail.value;
+    var d = this.data;
+    this.setData({
+      identifier: identifier,
+      error: '',
+      failMode: false,
+      ready: rules.validLogin(identifier, d.password) && !d.busy,
+    });
   },
 
   onPassword(e) {
-    this.setData({ password: e.detail.value, error: '', failMode: false });
-    this.refreshReady();
+    var password = e.detail.value;
+    var d = this.data;
+    this.setData({
+      password: password,
+      error: '',
+      failMode: false,
+      ready: rules.validLogin(d.identifier, password) && !d.busy,
+    });
   },
 
   togglePassword() {
+    // 禁止 focus="{{false}}" 绑定：部分机型会锁死输入框
     this.setData({ showPassword: !this.data.showPassword });
   },
 

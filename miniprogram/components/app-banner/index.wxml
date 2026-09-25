@@ -7,7 +7,7 @@
         <view
           wx:if="{{showBack}}"
           class="app-banner-back"
-          bindtap="onBack"
+          catchtap="onBack"
           aria-label="{{backLabel}}"
           hover-class="none"
         >

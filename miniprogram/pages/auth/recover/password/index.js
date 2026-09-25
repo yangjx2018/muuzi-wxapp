@@ -36,11 +36,21 @@ Page({
   },
 
   onPassword(e) {
-    this.setData({ password: e.detail.value, error: '' });
-    this.refreshReady();
+    var password = e.detail.value;
+    var d = this.data;
+    var strong = rules.validNewPassword(password);
+    var matches = password.length > 0 && password === d.confirmation;
+    this.setData({
+      password: password,
+      error: '',
+      strong: strong,
+      matches: matches,
+      ready: strong && matches && !d.busy,
+    });
   },
 
   togglePassword() {
+    // 禁止 focus="{{false}}" 绑定：部分机型会锁死输入框
     this.setData({ showPassword: !this.data.showPassword });
   },
 
@@ -49,8 +59,17 @@ Page({
   },
 
   onConfirm(e) {
-    this.setData({ confirmation: e.detail.value, error: '' });
-    this.refreshReady();
+    var confirmation = e.detail.value;
+    var d = this.data;
+    var strong = rules.validNewPassword(d.password);
+    var matches = d.password.length > 0 && d.password === confirmation;
+    this.setData({
+      confirmation: confirmation,
+      error: '',
+      strong: strong,
+      matches: matches,
+      ready: strong && matches && !d.busy,
+    });
   },
 
   async onSubmit() {

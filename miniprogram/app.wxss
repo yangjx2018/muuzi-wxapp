@@ -23,24 +23,84 @@ page {
   min-height: 100vh;
   background: var(--app-bg);
   padding-bottom: calc(60rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+/* 顶栏固定：结构对齐 app-banner（左内容 + 右侧胶囊占位） */
+.auth-header-spacer {
+  width: 100%;
+  flex-shrink: 0;
 }
 
 .auth-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  box-sizing: border-box;
+  background: var(--app-bg);
+  border-bottom: 1rpx solid var(--app-line);
+}
+
+.auth-header-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12rpx 0 20rpx;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.auth-header-left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.auth-header-right {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  box-sizing: border-box;
+}
+
+/* 与胶囊同高的返回「<」 */
+.auth-nav-back {
+  width: 56rpx;
+  height: 56rpx;
+  margin-left: -6rpx;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 20rpx;
-  padding: calc(16rpx + env(safe-area-inset-top)) 40rpx 24rpx;
-  border-bottom: 1rpx solid var(--app-line);
-  background: var(--app-bg);
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.auth-nav-back:active {
+  opacity: 0.55;
+}
+
+.auth-nav-back-glyph {
+  font-size: 36rpx;
+  line-height: 1;
+  font-weight: 400;
+  color: var(--app-ink);
 }
 
 .auth-mark {
-  width: 56rpx;
-  height: 56rpx;
-  border-radius: 18rpx;
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 14rpx;
   background: var(--app-grad);
   color: #fff;
-  font-size: 28rpx;
+  font-size: 22rpx;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -57,42 +117,45 @@ page {
 
 .auth-wordmark {
   display: flex;
-  align-items: baseline;
-  gap: 16rpx;
+  align-items: center;
+  gap: 12rpx;
   min-width: 0;
   flex: 1;
 }
 
 .auth-wordmark-name {
-  font-size: 34rpx;
+  font-size: 32rpx;
   font-weight: 600;
+  line-height: 1;
 }
 
 .auth-wordmark-section {
-  font-size: 18rpx;
+  font-size: 17rpx;
   letter-spacing: 0.1em;
   color: var(--app-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1;
 }
 
 .auth-status {
-  font-size: 18rpx;
+  font-size: 17rpx;
   letter-spacing: 0.08em;
   color: var(--app-online);
   flex-shrink: 0;
+  line-height: 1;
 }
 
 .auth-gear {
-  width: 56rpx;
-  height: 56rpx;
-  margin-left: 8rpx;
+  width: 48rpx;
+  height: 48rpx;
+  margin-left: 4rpx;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 16rpx;
+  border-radius: 14rpx;
   color: var(--app-muted);
 }
 
@@ -101,9 +164,9 @@ page {
 }
 
 .auth-ico-gear {
-  width: 28rpx;
-  height: 28rpx;
-  border: 3rpx solid currentColor;
+  width: 24rpx;
+  height: 24rpx;
+  border: 2rpx solid currentColor;
   border-radius: 50%;
   box-sizing: border-box;
   position: relative;
@@ -212,12 +275,23 @@ page {
   box-sizing: border-box;
 }
 
+/* 密文外观：不用 password 属性，避免华为安全键盘；普通键盘 + CSS 圆点 */
+.field-input-secure.is-masked {
+  -webkit-text-security: disc;
+  text-security: disc;
+}
+
 .field-reveal {
   position: absolute;
-  right: 12rpx;
+  right: 8rpx;
   top: 50%;
   transform: translateY(-50%);
-  padding: 12rpx 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72rpx;
+  height: 72rpx;
+  padding: 0;
   border-radius: 16rpx;
   color: var(--app-accent);
 }
@@ -226,9 +300,10 @@ page {
   background: var(--app-accent-wash);
 }
 
-.field-reveal-text {
-  font-size: 22rpx;
-  letter-spacing: 0.04em;
+.field-reveal-icon {
+  width: 36rpx;
+  height: 36rpx;
+  display: block;
 }
 
 .field-input-placeholder {
@@ -335,6 +410,13 @@ button.btn-primary::after {
 
 .footer-action {
   color: var(--app-accent);
+  display: inline-flex;
+  align-items: center;
+  padding: 8rpx 4rpx;
+}
+
+.footer-action:active {
+  opacity: 0.65;
 }
 
 .legal-note {
@@ -403,6 +485,11 @@ button.btn-primary::after {
   font-size: 22rpx;
   color: var(--app-accent);
   flex-shrink: 0;
+  padding: 12rpx 8rpx;
+}
+
+.node-change:active {
+  opacity: 0.65;
 }
 
 .node-picker {

@@ -39,16 +39,37 @@ Page({
   },
 
   onUsername(e) {
-    this.setData({ username: String(e.detail.value || '').toLowerCase(), error: '' });
-    this.refreshReady();
+    var username = String(e.detail.value || '').toLowerCase();
+    var d = this.data;
+    var strong = rules.validNewPassword(d.password);
+    var matches = d.password.length > 0 && d.password === d.confirmation;
+    var nameOk = rules.validUsername(username);
+    this.setData({
+      username: username,
+      error: '',
+      strong: strong,
+      matches: matches,
+      ready: strong && matches && nameOk && !d.busy,
+    });
   },
 
   onPassword(e) {
-    this.setData({ password: e.detail.value, error: '' });
-    this.refreshReady();
+    var password = e.detail.value;
+    var d = this.data;
+    var strong = rules.validNewPassword(password);
+    var matches = password.length > 0 && password === d.confirmation;
+    var nameOk = rules.validUsername(d.username);
+    this.setData({
+      password: password,
+      error: '',
+      strong: strong,
+      matches: matches,
+      ready: strong && matches && nameOk && !d.busy,
+    });
   },
 
   togglePassword() {
+    // 禁止 focus="{{false}}" 绑定：部分机型会锁死输入框
     this.setData({ showPassword: !this.data.showPassword });
   },
 
@@ -57,8 +78,18 @@ Page({
   },
 
   onConfirm(e) {
-    this.setData({ confirmation: e.detail.value, error: '' });
-    this.refreshReady();
+    var confirmation = e.detail.value;
+    var d = this.data;
+    var strong = rules.validNewPassword(d.password);
+    var matches = d.password.length > 0 && d.password === confirmation;
+    var nameOk = rules.validUsername(d.username);
+    this.setData({
+      confirmation: confirmation,
+      error: '',
+      strong: strong,
+      matches: matches,
+      ready: strong && matches && nameOk && !d.busy,
+    });
   },
 
   async onSubmit() {

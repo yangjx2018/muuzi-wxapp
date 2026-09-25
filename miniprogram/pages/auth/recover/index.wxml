@@ -1,16 +1,11 @@
 <view class="auth-page">
-  <view class="auth-header">
-    <view class="auth-mark">
-      <image class="auth-mark-img" src="/assets/logo-muu.png" mode="aspectFit" />
-    </view>
-    <view class="auth-wordmark">
-      <text class="auth-wordmark-name">MuuZi</text>
-      <text class="auth-wordmark-section">// 账号找回</text>
-    </view>
-    <text class="auth-status">RECOVERY / OPEN</text>
-  </view>
+  <app-banner
+    section="账号找回"
+    show-back
+    auto-back="{{false}}"
+    bind:back="goLogin"
+  />
   <view class="auth-body">
-    <text class="auth-back" bindtap="goLogin">← 返回登录</text>
     <view class="auth-step">AUTH.RECOVERY / 01</view>
     <view class="auth-title">重设你的\n密码</view>
     <view class="auth-lead">输入 MuuZi ID 绑定的邮箱。我们会寄送 6 位数验证码，通过后才能建立新密码。</view>
@@ -25,7 +20,7 @@
             <text class="node-domain">{{node.domain}}</text>
           </view>
         </view>
-        <text class="node-change" bindtap="onChangeNode">更换节点</text>
+        <view class="node-change" catchtap="onChangeNode" hover-class="none">更换节点</view>
       </view>
     </block>
     <view wx:else class="node-picker">
@@ -43,7 +38,7 @@
     <view wx:if="{{error}}" class="auth-notice error" style="margin-top:28rpx">{{error}}</view>
     <view class="footer-link">
       <text class="footer-prompt">想起来了？</text>
-      <text class="footer-action" bindtap="goLogin">回去登录</text>
+      <view class="footer-action" catchtap="goLogin" hover-class="none">回去登录</view>
     </view>
     <view class="legal-note">为了保护账号，无论这个邮箱是否已注册，页面都会走到下一步。</view>
     <view class="status-strip"><text>STEP 1 / 3</text><text></text></view>

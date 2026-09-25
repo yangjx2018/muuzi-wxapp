@@ -1,6 +1,11 @@
 const navChrome = require('../../utils/navChrome');
 
 Component({
+  options: {
+    // 与 json.virtualHost 双保险：去掉组件宿主节点，避免 fixed 顶栏撑满挡住下层点击
+    virtualHost: true,
+  },
+
   properties: {
     /** 分区名，对齐 App AppBanner section */
     section: { type: String, value: '' },
@@ -20,24 +25,42 @@ Component({
   },
 
   data: {
-    statusBarPx: 20,
-    navBarPx: 44,
-    bannerPadPx: 64,
-    capsuleGapPx: 96,
+    // iPhone 刘海常见默认；attached 后立刻按胶囊实测覆盖
+    statusBarPx: 48,
+    navBarPx: 32,
+    bannerPadPx: 80,
+    capsuleGapPx: 100,
   },
 
   lifetimes: {
     attached() {
-      this.setData(navChrome.measureNavChrome());
+      this.applyChrome();
+    },
+    ready() {
+      this.applyChrome();
+      // DevTools / 部分机型首帧胶囊 rect 为 0，短延迟再测一次
+      var self = this;
+      setTimeout(function () {
+        self.applyChrome();
+      }, 64);
     },
   },
 
   methods: {
+    applyChrome() {
+      try {
+        this.setData(navChrome.measureNavChrome());
+      } catch (e) {
+        /* ignore */
+      }
+    },
+
     onBack() {
       this.triggerEvent('back');
-      if (!this.data.autoBack) return;
-      var url = this.data.fallbackUrl || '/pages/connect/index';
-      var asTab = this.data.fallbackTab !== false;
+      // 严格读 properties，避免 data 里字符串 "false" 被当成真
+      if (this.properties.autoBack !== true) return;
+      var url = this.properties.fallbackUrl || '/pages/connect/index';
+      var asTab = this.properties.fallbackTab !== false;
       wx.navigateBack({
         fail: function () {
           if (asTab) {

@@ -1,17 +1,5 @@
 <view class="auth-page">
-  <view class="auth-header">
-    <view class="auth-mark">
-      <image class="auth-mark-img" src="/assets/logo-muu.png" mode="aspectFit" />
-    </view>
-    <view class="auth-wordmark">
-      <text class="auth-wordmark-name">MuuZi</text>
-      <text class="auth-wordmark-section">// {{section}}</text>
-    </view>
-    <text class="auth-status">{{statusText}}</text>
-    <view class="auth-gear" catchtap="onGear" aria-label="设置">
-      <view class="auth-ico-gear" aria-hidden="true"></view>
-    </view>
-  </view>
+  <app-banner section="{{section}}" />
 
   <view class="auth-body">
     <view class="auth-step">AUTH / 001</view>
@@ -60,22 +48,31 @@
     <view class="field">
       <text class="field-label">密码</text>
       <view class="field-secure">
-        <input
-          class="field-input field-input-secure"
-          password="{{!showPassword}}"
-          value="{{password}}"
-          bindinput="onPassword"
-          confirm-type="done"
-          bindconfirm="onLoginTap"
-        />
-        <view
-          class="field-reveal"
-          catchtap="togglePassword"
-          aria-label="{{showPassword ? '隐藏密码' : '显示密码'}}"
-        >
-          <text class="field-reveal-text">{{showPassword ? '隐藏' : '显示'}}</text>
+          <input
+            class="field-input field-input-secure {{showPassword ? '' : 'is-masked'}}"
+            type="text"
+            value="{{password}}"
+            hold-keyboard="{{true}}"
+            always-embed="{{true}}"
+            adjust-position="{{true}}"
+            cursor-spacing="48"
+            bindinput="onPassword"
+            confirm-type="done"
+            bindconfirm="onLoginTap"
+          />
+          <view
+            class="field-reveal"
+            catchtap="togglePassword"
+            aria-label="{{showPassword ? '隐藏密码' : '显示密码'}}"
+          >
+            <image
+              class="field-reveal-icon"
+              src="{{showPassword ? '/assets/icon-ui-eye-open.svg' : '/assets/icon-ui-eye-closed.svg'}}"
+              mode="aspectFit"
+              aria-hidden="true"
+            />
+          </view>
         </view>
-      </view>
     </view>
     <view wx:if="{{stepUpHint}}" class="field">
       <text class="field-label">邮箱安全验证码 · {{stepUpHint}}</text>
@@ -152,11 +149,15 @@
           <text class="field-label">密码</text>
           <view class="field-secure">
             <input
-              class="field-input field-input-secure"
-              password="{{!showBindPassword}}"
+              class="field-input field-input-secure {{showBindPassword ? '' : 'is-masked'}}"
+              type="text"
               placeholder="请输入密码"
               placeholder-class="field-input-placeholder"
               value="{{bindPassword}}"
+              hold-keyboard="{{true}}"
+              always-embed="{{true}}"
+              adjust-position="{{true}}"
+              cursor-spacing="48"
               bindinput="onBindPassword"
             />
             <view
@@ -164,7 +165,12 @@
               catchtap="toggleBindPassword"
               aria-label="{{showBindPassword ? '隐藏密码' : '显示密码'}}"
             >
-              <text class="field-reveal-text">{{showBindPassword ? '隐藏' : '显示'}}</text>
+              <image
+                class="field-reveal-icon"
+                src="{{showBindPassword ? '/assets/icon-ui-eye-open.svg' : '/assets/icon-ui-eye-closed.svg'}}"
+                mode="aspectFit"
+                aria-hidden="true"
+              />
             </view>
           </view>
         </view>

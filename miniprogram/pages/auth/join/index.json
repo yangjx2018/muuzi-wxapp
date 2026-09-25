@@ -1,1 +1,7 @@
-{ "navigationBarTitleText": "建立账号", "navigationStyle": "custom" }
+{
+  "navigationBarTitleText": "建立账号",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "app-banner": "/components/app-banner/index"
+  }
+}

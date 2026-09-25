@@ -88,6 +88,7 @@ Page({
   },
 
   goLogin() {
-    wx.navigateBack({ fail: () => wx.reLaunch({ url: '/pages/auth/login/index' }) });
+    // 认证回流：不依赖页面栈深度，避免 navigateBack 无上一页时看似无响应
+    wx.reLaunch({ url: '/pages/auth/login/index' });
   },
 });

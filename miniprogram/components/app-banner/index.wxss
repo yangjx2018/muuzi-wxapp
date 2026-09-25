@@ -1,12 +1,18 @@
-/* 对齐 App AppBanner.module.css */
+/* 对齐 App AppBanner.module.css
+ *
+ * virtualHost 下去掉宿主节点后，root 不再挡住下层；
+ * 再加 pointer-events 双保险（fixed 顶栏只自己接收点击）。
+ */
 .app-banner-root {
   position: relative;
   width: 100%;
+  pointer-events: none;
 }
 
 .app-banner-spacer {
   width: 100%;
   flex-shrink: 0;
+  pointer-events: none;
 }
 
 .app-banner {
@@ -17,6 +23,7 @@
   z-index: 100;
   background: var(--app-bg, #f4f5f8);
   box-sizing: border-box;
+  pointer-events: auto;
 }
 
 .app-banner-row {
@@ -36,6 +43,8 @@
 
 .app-banner-side-right {
   justify-content: flex-end;
+  /* 右侧只占位避开胶囊，不抢点击 */
+  pointer-events: none;
 }
 
 .app-banner-back {
@@ -45,6 +54,7 @@
   align-items: center;
   justify-content: center;
   margin-left: -8rpx;
+  pointer-events: auto;
 }
 
 .app-banner-back-img {

@@ -80,21 +80,39 @@ Page({
   },
 
   onIdentifier(e) {
+    var identifier = e.detail.value;
+    var d = this.data;
+    var ready =
+      Boolean(d.node) &&
+      rules.validLogin(identifier, d.password) &&
+      (!d.stepUpHint || rules.validCode(d.securityCode));
+    // 一次 setData：避免输入过程连环 setData 干扰相邻密码框焦点
     this.setData({
-      identifier: e.detail.value,
+      identifier: identifier,
       securityCode: '',
       stepUpHint: '',
       error: '',
+      ready: ready,
     });
-    this.refreshReady();
   },
 
   onPassword(e) {
-    this.setData({ password: e.detail.value, error: '' });
-    this.refreshReady();
+    var password = e.detail.value;
+    var d = this.data;
+    var ready =
+      Boolean(d.node) &&
+      rules.validLogin(d.identifier, password) &&
+      (!d.stepUpHint || rules.validCode(d.securityCode));
+    // 密文框禁止二次 setData；且不得用原生 password（华为安全键盘）
+    this.setData({
+      password: password,
+      error: '',
+      ready: ready,
+    });
   },
 
   togglePassword() {
+    // 禁止 focus="{{false}}" 绑定：部分机型会锁死输入框，点了不弹键盘
     this.setData({ showPassword: !this.data.showPassword });
   },
 
@@ -112,11 +130,15 @@ Page({
   },
 
   onSecurityCode(e) {
-    const v = String(e.detail.value || '')
+    var v = String(e.detail.value || '')
       .replace(/\D/g, '')
       .slice(0, 6);
-    this.setData({ securityCode: v, error: '' });
-    this.refreshReady();
+    var d = this.data;
+    var ready =
+      Boolean(d.node) &&
+      rules.validLogin(d.identifier, d.password) &&
+      (!d.stepUpHint || rules.validCode(v));
+    this.setData({ securityCode: v, error: '', ready: ready });
   },
 
   onChangeNode() {
@@ -302,13 +324,23 @@ Page({
   noop() {},
 
   onBindAccount(e) {
-    this.setData({ bindAccount: e.detail.value, bindError: '' });
-    this.refreshBindReady();
+    var bindAccount = e.detail.value;
+    var d = this.data;
+    this.setData({
+      bindAccount: bindAccount,
+      bindError: '',
+      bindReady: rules.validLogin(bindAccount, d.bindPassword) && !d.bindBusy,
+    });
   },
 
   onBindPassword(e) {
-    this.setData({ bindPassword: e.detail.value, bindError: '' });
-    this.refreshBindReady();
+    var bindPassword = e.detail.value;
+    var d = this.data;
+    this.setData({
+      bindPassword: bindPassword,
+      bindError: '',
+      bindReady: rules.validLogin(d.bindAccount, bindPassword) && !d.bindBusy,
+    });
   },
 
   async onBindConfirm() {

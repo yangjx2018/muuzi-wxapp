@@ -1,1 +1,7 @@
-{ "navigationBarTitleText": "找回密码", "navigationStyle": "custom" }
+{
+  "navigationBarTitleText": "找回密码",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "app-banner": "/components/app-banner/index"
+  }
+}

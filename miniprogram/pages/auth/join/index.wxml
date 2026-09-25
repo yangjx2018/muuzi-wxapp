@@ -1,16 +1,11 @@
 <view class="auth-page">
-  <view class="auth-header">
-    <view class="auth-mark">
-      <image class="auth-mark-img" src="/assets/logo-muu.png" mode="aspectFit" />
-    </view>
-    <view class="auth-wordmark">
-      <text class="auth-wordmark-name">MuuZi</text>
-      <text class="auth-wordmark-section">// 建立账号</text>
-    </view>
-    <text class="auth-status">SESSION / READY</text>
-  </view>
+  <app-banner
+    section="建立账号"
+    show-back
+    auto-back="{{false}}"
+    bind:back="goLogin"
+  />
   <view class="auth-body">
-    <text class="auth-back" bindtap="goLogin">← 返回登录</text>
     <view class="auth-step">AUTH.REGISTER / 01</view>
     <view class="auth-title">建立你的\nMuuZi ID</view>
     <view class="auth-lead">我们会先验证这个邮箱，再建立你的账号、主页与分身 Muu 的身份。</view>
@@ -24,7 +19,7 @@
             <text class="node-domain">{{node.domain}}</text>
           </view>
         </view>
-        <text class="node-change" bindtap="onChangeNode">更换节点</text>
+        <view class="node-change" catchtap="onChangeNode" hover-class="none">更换节点</view>
       </view>
     </block>
     <view wx:else class="node-picker">
@@ -44,11 +39,11 @@
     <view wx:if="{{error}}" class="auth-notice error" style="margin-top:28rpx">{{error}}</view>
     <view class="footer-link">
       <text class="footer-prompt">已经有 MuuZi ID？</text>
-      <text class="footer-action" bindtap="goLogin">直接登录</text>
+      <view class="footer-action" catchtap="goLogin" hover-class="none">直接登录</view>
     </view>
     <view class="footer-link">
       <text class="footer-prompt">已有账号但忘了密码？</text>
-      <text class="footer-action" bindtap="goRecover">找回密码</text>
+      <view class="footer-action" catchtap="goRecover" hover-class="none">找回密码</view>
     </view>
     <view class="legal-note">个人身份在 MuuZi 中称为主理人。建立账号即表示你同意 MuuZi 的服务条款与隐私政策。</view>
     <view class="status-strip"><text>STEP 1 / 3</text><text></text></view>

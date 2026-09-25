@@ -1,4 +1,7 @@
 {
   "navigationBarTitleText": "登录",
-  "navigationStyle": "custom"
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "app-banner": "/components/app-banner/index"
+  }
 }

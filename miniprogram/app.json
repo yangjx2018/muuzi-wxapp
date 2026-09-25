@@ -18,6 +18,7 @@
     "pages/messages/room/index",
     "pages/me/index",
     "pages/me/open-home/index",
+    "pages/me/open-link/index",
     "pages/me/settings/index",
     "pages/me/edit-home/index",
     "pages/me/profile/index",

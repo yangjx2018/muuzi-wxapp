@@ -1,0 +1,25 @@
+<app-banner section="打开" show-back />
+
+<web-view
+  wx:if="{{embedAllowed && embedUrl}}"
+  src="{{embedUrl}}"
+  binderror="onWebViewError"
+></web-view>
+
+<scroll-view wx:else scroll-y class="ol-page" enhanced show-scrollbar="{{false}}">
+  <view class="ol-card">
+    <view class="ol-eyebrow">OPEN · 查看</view>
+    <view class="ol-title">{{title || '打开链接'}}</view>
+    <view wx:if="{{note}}" class="ol-note">{{note}}</view>
+    <view wx:if="{{displayUrl}}" class="ol-url">{{displayUrl}}</view>
+    <view class="ol-hint">{{hint}}</view>
+
+    <button
+      wx:if="{{canRetryEmbed}}"
+      class="ol-btn ol-btn-primary"
+      bindtap="retryEmbed"
+    >在小程序内打开</button>
+
+    <button class="ol-btn" bindtap="copyForBrowser">复制并到浏览器打开</button>
+  </view>
+</scroll-view>

@@ -324,6 +324,48 @@ function loadContentCatalog() {
     });
 }
 
+/** 对齐 App StorefrontSettingsScreen storeTools（store_* action，不进主页内容目录） */
+var STORE_TOOL_ACTIONS = {
+  store_collection: true,
+  store_external: true,
+  store_marketplace: true,
+};
+
+function normalizeStoreTools(catalog) {
+  var raw = catalog && catalog.items;
+  if (!Array.isArray(raw)) return [];
+  var out = [];
+  for (var i = 0; i < raw.length; i++) {
+    var v = raw[i];
+    if (!v || typeof v !== 'object') continue;
+    if (v.enabled !== true) continue;
+    if (!STORE_TOOL_ACTIONS[v.action]) continue;
+    if (typeof v.id !== 'string' || typeof v.title !== 'string') continue;
+    out.push({
+      id: v.id,
+      action: v.action,
+      title: v.title,
+      description: typeof v.description === 'string' ? v.description : '',
+    });
+  }
+  return out;
+}
+
+function loadStoreTools() {
+  return http
+    .request({
+      url: config.PLATFORM_API + '/api/public/settings',
+      method: 'GET',
+      timeout: 15000,
+    })
+    .then(function (data) {
+      return normalizeStoreTools(data && data.content_catalog);
+    })
+    .catch(function () {
+      return [];
+    });
+}
+
 /** Align ContentCatalogPicker.module.css data-brand backgrounds. */
 function brandClass(brandOrIcon) {
   var key = String(brandOrIcon || '').toLowerCase();
@@ -377,6 +419,8 @@ module.exports = {
   filterCatalog: filterCatalog,
   categoryPills: categoryPills,
   loadContentCatalog: loadContentCatalog,
+  loadStoreTools: loadStoreTools,
+  normalizeStoreTools: normalizeStoreTools,
   brandClass: brandClass,
   catalogIconSrc: catalogIconSrc,
 };

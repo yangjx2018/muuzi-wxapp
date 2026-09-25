@@ -96,11 +96,15 @@ function homeOpenPlan(url) {
 function openHomePage(url) {
   var href = shareTextUrl(url);
   var slug = slugFromShareUrl(href);
+  var forceCopy = !canEmbedHomeUrl(href);
   var target =
     '/pages/me/open-home/index?' +
     (slug
       ? 'slug=' + encodeURIComponent(slug)
       : 'url=' + encodeURIComponent(href));
+  if (forceCopy) {
+    target += (target.indexOf('?') >= 0 ? '&' : '?') + 'force=copy';
+  }
   return new Promise(function (resolve, reject) {
     wx.navigateTo({
       url: target,

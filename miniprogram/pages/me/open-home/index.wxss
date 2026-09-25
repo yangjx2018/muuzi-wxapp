@@ -1,27 +1,28 @@
-/* 对齐 App EditHome / ProfileShare「打开主页」回退壳：卡片 + ghost/primary 语言 */
+/* 对齐 App「看成品」公开页 hero-profile（server render-page.js） */
+
 .oh-page {
-  min-height: 100vh;
+  height: 100vh;
   box-sizing: border-box;
-  padding: 48rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
-  background: var(--app-bg, #f4f5f8);
+  background: #fff;
 }
 
 .oh-loading {
   font-size: 26rpx;
-  color: var(--app-muted, #666c80);
+  color: #666c80;
   line-height: 1.5;
-  padding: 32rpx 8rpx;
+  padding: 48rpx 40rpx;
 }
 
 .oh-card {
   display: flex;
   flex-direction: column;
-  gap: 32rpx;
-  margin: 0;
+  gap: 28rpx;
+  margin: 24rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
   padding: 40rpx 32rpx;
-  background: var(--app-card, #ffffff);
+  background: #fff;
   border-radius: 40rpx;
   box-sizing: border-box;
+  border: 1rpx solid #e9edf4;
 }
 
 .oh-eyebrow {
@@ -29,13 +30,13 @@
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: rgba(21, 23, 30, 0.45);
-  margin-bottom: -12rpx;
+  margin-bottom: -8rpx;
 }
 
 .oh-title {
   font-size: 36rpx;
   font-weight: 600;
-  color: var(--app-ink, #15171e);
+  color: #15171e;
   line-height: 1.35;
 }
 
@@ -43,10 +44,10 @@
   box-sizing: border-box;
   padding: 20rpx 24rpx;
   border-radius: 24rpx;
-  background: var(--app-card, #ffffff);
-  border: 1rpx solid var(--app-line, rgba(21, 23, 30, 0.08));
+  background: #f2f5fc;
+  border: 1rpx solid #e9edf4;
   font-size: 26rpx;
-  color: var(--app-ink, #15171e);
+  color: #15171e;
   line-height: 1.5;
   overflow-wrap: anywhere;
   word-break: break-all;
@@ -54,8 +55,14 @@
 
 .oh-hint {
   font-size: 24rpx;
-  color: var(--app-muted, #666c80);
+  color: #666c80;
   line-height: 1.55;
+}
+
+.oh-copied {
+  font-size: 24rpx;
+  color: #316bfa;
+  line-height: 1.4;
 }
 
 .oh-btn {
@@ -63,7 +70,7 @@
   margin: 0;
   padding: 28rpx 36rpx;
   border-radius: 32rpx;
-  background: var(--app-grad, linear-gradient(160deg, #6a99fe, #2f6df4));
+  background: linear-gradient(160deg, #6a99fe, #2f6df4);
   color: #fff;
   font-size: 28rpx;
   font-weight: 500;
@@ -73,4 +80,516 @@
 
 .oh-btn::after {
   border: none;
+}
+
+/* —— hero-profile 成品预览 —— */
+.oh-preview {
+  position: relative;
+  margin: 0;
+  padding: 0 0 8rpx;
+  background: #fff;
+  color: #20232b;
+  min-height: 70vh;
+}
+
+.oh-preview-tools {
+  position: absolute;
+  top: 28rpx;
+  left: 32rpx;
+  right: 32rpx;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* 圆形品牌 / 分享钮：对齐 .hero-profile .page-brand / .page-share */
+.oh-preview-brand,
+.oh-preview-share {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2rpx 8rpx rgba(21, 23, 30, 0.08);
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  line-height: 1;
+}
+
+.oh-preview-tools-spacer {
+  width: 60rpx;
+  height: 60rpx;
+}
+
+.oh-preview-brand-img {
+  width: 34rpx;
+  height: 34rpx;
+  display: block;
+  border-radius: 8rpx;
+}
+
+.oh-preview-share::after {
+  border: none;
+}
+
+.oh-preview-share-hover {
+  opacity: 0.85;
+}
+
+.oh-preview-share-img {
+  width: 34rpx;
+  height: 34rpx;
+  display: block;
+}
+
+/* 三栏封面：对齐 .profile-cover */
+.oh-preview-cover {
+  display: flex;
+  gap: 16rpx;
+  height: 504rpx;
+  padding: 116rpx 36rpx 0;
+  overflow: hidden;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.oh-preview-cover::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 160rpx;
+  background: linear-gradient(transparent 10%, rgba(255, 255, 255, 0.6) 62%, #fff 100%);
+  pointer-events: none;
+}
+
+.oh-preview-panel {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border-radius: 48rpx 48rpx 0 0;
+}
+
+.oh-preview-panel-a {
+  background: linear-gradient(145deg, #dce8f7, #91b1b8);
+}
+
+.oh-preview-panel-b {
+  background: linear-gradient(150deg, #edf0d4, #a0b9ac);
+}
+
+.oh-preview-panel-c {
+  background: linear-gradient(145deg, #e3d9d2, #abc0de);
+}
+
+.oh-preview-hero {
+  position: relative;
+  z-index: 2;
+  margin-top: -112rpx;
+  padding: 0 56rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20rpx;
+  text-align: center;
+}
+
+.oh-preview-avatar {
+  width: 176rpx;
+  height: 176rpx;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 8rpx solid #fff;
+  background: #eef2fb;
+  box-sizing: border-box;
+}
+
+.oh-preview-avatar-img {
+  width: 100%;
+  height: 100%;
+}
+
+.oh-portrait-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 60rpx;
+  font-weight: 500;
+  color: #316bfa;
+  background: #eef2fb;
+}
+
+.oh-preview-name {
+  margin-top: 20rpx;
+  font-size: 52rpx;
+  font-weight: 500;
+  color: #20232b;
+  line-height: 1.25;
+  letter-spacing: -1.4rpx;
+}
+
+.oh-preview-bio {
+  font-size: 26rpx;
+  font-weight: 400;
+  color: #737982;
+  line-height: 1.65;
+  max-width: 620rpx;
+}
+
+/* 社交圆钮：对齐 .hero-profile .socials / .social */
+.oh-preview-socials {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20rpx;
+  padding: 16rpx 0 8rpx;
+}
+
+.oh-preview-social {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background: #f4f6fa;
+  border: 2rpx solid #e9edf4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.oh-preview-social-img {
+  width: 36rpx;
+  height: 36rpx;
+  display: block;
+}
+
+.oh-preview-section {
+  margin: 28rpx 36rpx 0;
+  padding: 0;
+}
+
+.oh-preview-section-title {
+  display: block;
+  margin: 0 8rpx 16rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #8b929c;
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+
+/* 链接卡：白底描边，对齐公开页 .link */
+.oh-preview-link-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 20rpx;
+  padding: 28rpx 32rpx;
+  margin-bottom: 16rpx;
+  border-radius: 32rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1rpx solid #e9edf4;
+  box-shadow: 0 2rpx 10rpx rgba(32, 35, 43, 0.04);
+  box-sizing: border-box;
+}
+
+.oh-preview-link-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.oh-preview-link-label {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #20232b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oh-preview-link-note {
+  font-size: 22rpx;
+  color: #8b929c;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oh-preview-link-arrow {
+  flex: none;
+  font-size: 24rpx;
+  color: #316bfa;
+}
+
+.oh-link-thumb {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 16rpx;
+  flex: none;
+  background: #eef2fb;
+}
+
+/* 店铺网格 · 对齐 App .shop-grid / .product */
+.oh-shop-grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.oh-product {
+  width: calc(50% - 8rpx);
+  box-sizing: border-box;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1rpx solid #e9edf4;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.oh-product-img {
+  width: 100%;
+  aspect-ratio: 1;
+  background: #eef2fb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.oh-product-img-el {
+  width: 100%;
+  height: 100%;
+}
+
+.oh-product-ph {
+  font-size: 24rpx;
+  color: #8b929c;
+}
+
+.oh-product-body {
+  padding: 16rpx 18rpx 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.oh-product-title {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #20232b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oh-product-note {
+  font-size: 20rpx;
+  color: #8b929c;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oh-product-price {
+  margin-top: 8rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #20232b;
+}
+
+.oh-product-buy {
+  font-size: 22rpx;
+  font-weight: 500;
+  color: #316bfa;
+}
+
+/* 音频卡 · 对齐 App track / AudioPlayer */
+.oh-audio-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 20rpx;
+  padding: 24rpx 28rpx;
+  margin-bottom: 16rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1rpx solid #e9edf4;
+}
+
+.oh-audio-playing {
+  border-color: #316bfa;
+  background: #f2f5fc;
+}
+
+.oh-audio-play {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background: #316bfa;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  flex: none;
+}
+
+.oh-audio-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.oh-audio-title {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #20232b;
+}
+
+.oh-audio-meta {
+  font-size: 22rpx;
+  color: #8b929c;
+}
+
+/* 自定义笔记卡 · 对齐 App .note-card */
+.oh-note-card {
+  padding: 28rpx 32rpx;
+  margin-bottom: 16rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1rpx solid #e9edf4;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.oh-note-img {
+  width: 100%;
+  border-radius: 16rpx;
+  margin-bottom: 8rpx;
+}
+
+.oh-note-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #20232b;
+}
+
+.oh-note-body {
+  font-size: 26rpx;
+  line-height: 1.55;
+  color: #69717b;
+  white-space: pre-wrap;
+}
+
+.oh-note-cta {
+  margin-top: 8rpx;
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #316bfa;
+}
+
+/* 视频封面卡 */
+.oh-video-card {
+  margin-bottom: 16rpx;
+  border-radius: 28rpx;
+  overflow: hidden;
+  background: #15171e;
+}
+
+.oh-video-cover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #2a2e38;
+}
+
+.oh-video-cover-img {
+  width: 100%;
+  height: 100%;
+}
+
+.oh-video-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  color: #15171e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+}
+
+.oh-video-title {
+  display: block;
+  padding: 16rpx 20rpx;
+  font-size: 26rpx;
+  color: #fff;
+}
+
+/* 页脚：加入 CTA + 法律，对齐 .hero-profile .footer */
+.oh-preview-footer {
+  margin: 60rpx 40rpx 0;
+  padding: 40rpx 0 16rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 36rpx;
+}
+
+.oh-preview-join {
+  max-width: 100%;
+  padding: 20rpx 36rpx;
+  border-radius: 48rpx;
+  background: #f2f5fc;
+  color: #316bfa;
+  font-size: 24rpx;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.oh-preview-legal,
+.oh-preview-more {
+  font-size: 20rpx;
+  line-height: 1.6;
+  color: #7c8490;
+  text-align: center;
+}
+
+/* 复制回退底栏：独立于公开页视觉 */
+.oh-copy-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  margin: 8rpx 32rpx calc(40rpx + env(safe-area-inset-bottom));
+  padding: 28rpx 28rpx 32rpx;
+  background: #f7f8fb;
+  border-radius: 28rpx;
+  border: 1rpx solid #e9edf4;
+  box-sizing: border-box;
 }

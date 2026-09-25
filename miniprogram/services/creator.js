@@ -154,11 +154,65 @@ var EMPTY_DRAFT = {
   headline: '',
   bio: '',
   portrait_url: '',
+  cover_url: '',
+  cover_position: 50,
+  profile_metadata: {
+    location: '',
+    languages: [],
+    offers: [],
+    wants: [],
+  },
   socials: [],
   muu_enabled: false,
   show_branding: true,
   sections: [],
 };
+
+function emptyMetadata() {
+  return {
+    location: '',
+    languages: [],
+    offers: [],
+    wants: [],
+  };
+}
+
+function mergeMetadata(raw) {
+  var src = raw && typeof raw === 'object' ? raw : {};
+  var languages = Array.isArray(src.languages)
+    ? src.languages.filter(function (x) {
+        return typeof x === 'string' && x;
+      })
+    : [];
+  var offers = Array.isArray(src.offers)
+    ? src.offers.map(function (o) {
+        o = o || {};
+        return {
+          label: typeof o.label === 'string' ? o.label : '',
+          price_minor:
+            o.price_minor == null || o.price_minor === ''
+              ? null
+              : Number(o.price_minor),
+          currency: o.currency === 'USD' ? 'USD' : 'CNY',
+          lead_time_days:
+            o.lead_time_days == null || o.lead_time_days === ''
+              ? null
+              : Number(o.lead_time_days),
+        };
+      })
+    : [];
+  var wants = Array.isArray(src.wants)
+    ? src.wants.map(function (w) {
+        return { label: typeof (w && w.label) === 'string' ? w.label : '' };
+      })
+    : [];
+  return {
+    location: typeof src.location === 'string' ? src.location : '',
+    languages: languages,
+    offers: offers,
+    wants: wants,
+  };
+}
 
 function mergeDraft(draft) {
   var next = Object.assign({}, EMPTY_DRAFT, draft || {});
@@ -167,6 +221,11 @@ function mergeDraft(draft) {
   next.bio = typeof next.bio === 'string' ? next.bio : '';
   next.portrait_url =
     typeof next.portrait_url === 'string' ? next.portrait_url : '';
+  next.cover_url = typeof next.cover_url === 'string' ? next.cover_url : '';
+  var pos = Number(next.cover_position);
+  next.cover_position =
+    Number.isFinite(pos) && pos >= 0 && pos <= 100 ? pos : 50;
+  next.profile_metadata = mergeMetadata(next.profile_metadata);
   next.socials = Array.isArray(next.socials) ? next.socials : [];
   next.sections = Array.isArray(next.sections) ? next.sections : [];
   next.muu_enabled = !!next.muu_enabled;

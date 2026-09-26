@@ -596,6 +596,7 @@ Page({
     statusCopy: STATUS_COPY.saved,
     saveError: '',
     publishFeedback: '',
+    pendingDeleteSectionId: '',
     busy: false,
     uploadBusy: false,
     avatarCanvasOn: false,
@@ -1923,8 +1924,51 @@ Page({
     this.updateDraft({ sections: sections });
   },
 
+  /** 删除区块 · 对齐 App pendingDeleteSection：先二次确认再删，防误触 */
+  requestRemoveSection(e) {
+    var sIndex = Number(e.currentTarget.dataset.sindex);
+    var sections = (this._latestDraft && this._latestDraft.sections) || [];
+    var target = sections[sIndex];
+    if (!target || !target.id) return;
+    this.setData({ pendingDeleteSectionId: target.id });
+  },
+
+  cancelRemoveSection() {
+    this.setData({ pendingDeleteSectionId: '' });
+  },
+
+  confirmRemoveSection(e) {
+    var sIndex = Number(e.currentTarget.dataset.sindex);
+    this.setData({ pendingDeleteSectionId: '' });
+    this.removeSectionAt(sIndex);
+  },
+
   removeSection(e) {
     var sIndex = Number(e.currentTarget.dataset.sindex);
+    // 完整编辑器入口：统一走二次确认（showModal），与 linksOnly 脚栏一致
+    var self = this;
+    var sections = (this._latestDraft && this._latestDraft.sections) || [];
+    var target = sections[sIndex];
+    if (!target) return;
+    var count = collections.isLinkCollection(target)
+      ? collections.collectionMemberCount(target, sections)
+      : (target.items || []).length;
+    wx.showModal({
+      title: '删除这个区块？',
+      content:
+        count > 0
+          ? '删除后，其中 ' + count + ' 条内容也会移除，且无法撤销。'
+          : '删除后无法撤销。',
+      confirmText: '确认删除',
+      confirmColor: '#c45b5b',
+      cancelText: '取消',
+      success: function (res) {
+        if (res.confirm) self.removeSectionAt(sIndex);
+      },
+    });
+  },
+
+  removeSectionAt(sIndex) {
     var sections = cloneDraft(this._latestDraft).sections.slice();
     var target = sections[sIndex];
     if (!target) return;
@@ -1934,6 +1978,9 @@ Page({
       if (removeId && section.collection_id === removeId) return false;
       return true;
     });
+    if (this.data.pendingDeleteSectionId === removeId) {
+      this.setData({ pendingDeleteSectionId: '' });
+    }
     this.updateDraft({ sections: sections });
   },
 

@@ -3076,7 +3076,73 @@
   align-items: center;
   justify-content: space-between;
   gap: 16rpx;
-  padding: 8rpx 24rpx 24rpx;
+  padding: 8rpx 24rpx 28rpx;
+}
+/* 对齐 App .cardFoot .ghost / .danger：产品化脚栏按钮，非纯文字链 */
+.eh-scc-foot-btn {
+  margin: 0;
+  padding: 18rpx 28rpx;
+  border-radius: 28rpx;
+  font-size: 26rpx;
+  line-height: 1.35;
+  font-weight: 500;
+  background: var(--app-card, #fff);
+  color: var(--app-ink, #20232b);
+  border: 1rpx solid var(--app-line, #e5e8f0);
+  box-sizing: border-box;
+}
+.eh-scc-foot-btn::after {
+  border: none;
+}
+.eh-scc-foot-btn[disabled] {
+  opacity: 0.45;
+}
+.eh-scc-foot-btn-hover {
+  opacity: 0.88;
+}
+.eh-scc-foot-btn-add {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  color: var(--app-ink, #20232b);
+  background: #f4f6fb;
+  border-color: #e2e6f0;
+}
+.eh-scc-foot-btn-danger {
+  flex: none;
+  background: transparent;
+  border-color: transparent;
+  color: #c45b5b;
+  padding: 18rpx 24rpx;
+}
+.eh-scc-foot-btn-solid {
+  background: rgba(196, 91, 91, 0.1);
+  border-color: rgba(196, 91, 91, 0.28);
+}
+.eh-scc-foot-btn-danger-hover {
+  opacity: 0.82;
+  background: rgba(196, 91, 91, 0.08);
+}
+.eh-scc-foot-confirm {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  padding: 8rpx 0 0;
+}
+.eh-scc-foot-confirm-note {
+  font-size: 24rpx;
+  line-height: 1.55;
+  color: #69717b;
+}
+.eh-scc-foot-confirm-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16rpx;
+}
+.eh-scc-foot-confirm-actions .eh-scc-foot-btn {
+  flex: none;
 }
 
 .eh-col-summary {

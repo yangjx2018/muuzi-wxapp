@@ -24,6 +24,7 @@
 | 6 | 紧凑内容卡：标题 / URL / SVG 八格工具条 / 展开全字段 | `eh-scc` + `tool-*.svg` | ✅ |
 | 6a | 拖拽柄 + 类型 pill + ↑↓ + 开关 | `eh-scc-handle` / `eh-scc-type` | ✅ |
 | 6b | 整理内容 / 移到… | `eh-scc-dest` + `moveCollectionLink` | ✅ |
+| 6b2 | 卡片脚：＋添加一条 / 删除区块（产品化按钮 + 二次确认） | `eh-scc-foot-btn`；linksOnly 内联确认对齐 App `pendingDeleteSection` | ✅ |
 | 6f | 显示规则 → 查看规则设置 → 国家／地区规则弹层（预览未开通） | `eh-rules-dialog` 对齐 App ruleDialog | ✅ |
 | 6g | 定时展示 → 未开通徽标 + 开始/结束空框（disabled，不可点选） | `eh-scc-datetime-off` + `picker disabled` 对齐 App `datetime-local disabled` | ✅ |
 | 6h | 点击统计 → insightTabs（点击 / 流量来源未开通 / 国家地区未开通）+ 范围说明 + status | `eh-scc-insight-tabs` 对齐 App `.insightTabs` | ✅ |

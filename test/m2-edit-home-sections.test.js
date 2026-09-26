@@ -64,7 +64,9 @@ describe('edit-home section parity with App', () => {
     assert.match(wxml, /选择缩略图来源|上传自己的图片|Tabler/);
     assert.match(wxml, /eh-scc-unavail-radio|eh-scc-unavail-detail|当前：不重点展示|unavailableCurrent/);
     assert.match(wxml, /openRulesDialog|国家／地区规则|应用（未开通）|rulesDialogOpen/);
-    assert.match(wxml, /eh-scc-datetime|mode="date"|mode="time"|开始展示|结束展示|disabled="\{\{true\}\}"/);
+    assert.match(wxml, /eh-scc-foot-btn|requestRemoveSection|confirmRemoveSection|pendingDeleteSectionId/);
+    assert.match(js, /requestRemoveSection|confirmRemoveSection|cancelRemoveSection|removeSectionAt/);
+    assert.match(wxss, /\.eh-scc-foot-btn-add|\.eh-scc-foot-confirm/);
     assert.match(wxml, /eh-scc-datetime-off/);
     assert.doesNotMatch(
       wxml,

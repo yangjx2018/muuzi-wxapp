@@ -762,12 +762,40 @@
         </block>
 
         <view class="eh-scc-foot">
-          <button
-            class="eh-btn eh-btn-ghost"
-            data-sindex="{{sIndex}}"
-            bindtap="addLinkItem"
-          >＋ 添加一条</button>
-          <text class="eh-remove" data-sindex="{{sIndex}}" bindtap="removeSection">删除这个区块</text>
+          <block wx:if="{{pendingDeleteSectionId === section.id}}">
+            <view class="eh-scc-foot-confirm" role="group" aria-label="确认删除区块">
+              <text class="eh-scc-foot-confirm-note">删除后，其中 {{section.memberCount}} 条内容也会移除。</text>
+              <view class="eh-scc-foot-confirm-actions">
+                <button
+                  class="eh-scc-foot-btn"
+                  bindtap="cancelRemoveSection"
+                  hover-class="eh-scc-foot-btn-hover"
+                >取消</button>
+                <button
+                  class="eh-scc-foot-btn eh-scc-foot-btn-danger eh-scc-foot-btn-solid"
+                  data-sindex="{{sIndex}}"
+                  bindtap="confirmRemoveSection"
+                  hover-class="eh-scc-foot-btn-danger-hover"
+                >确认删除</button>
+              </view>
+            </view>
+          </block>
+          <block wx:else>
+            <button
+              class="eh-scc-foot-btn eh-scc-foot-btn-add"
+              data-sindex="{{sIndex}}"
+              bindtap="addLinkItem"
+              disabled="{{busy || section.memberCount >= 12}}"
+              hover-class="eh-scc-foot-btn-hover"
+            >＋ {{section.isLinkCollection ? '添加内容' : '添加一条'}}{{section.memberCount >= 12 ? '（最多 12 条）' : ''}}</button>
+            <button
+              class="eh-scc-foot-btn eh-scc-foot-btn-danger"
+              data-sindex="{{sIndex}}"
+              bindtap="requestRemoveSection"
+              disabled="{{busy}}"
+              hover-class="eh-scc-foot-btn-danger-hover"
+            >删除{{section.isLinkCollection ? '合集' : '这个区块'}}</button>
+          </block>
         </view>
       </view>
     </block>

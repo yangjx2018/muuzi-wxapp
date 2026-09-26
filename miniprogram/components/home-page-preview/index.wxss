@@ -667,6 +667,63 @@
   color: #316bfa;
 }
 
+/* —— carousel：对齐 .collection-carousel · flex 横滑 · 单卡 82% —— */
+.hpp-carousel {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.hpp-carousel-track {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 24rpx;
+  padding-bottom: 20rpx;
+  box-sizing: border-box;
+}
+
+.hpp-carousel-card {
+  flex: 0 0 82%;
+  width: 82%;
+  max-width: 82%;
+  min-width: 0;
+  border-radius: 40rpx;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  box-shadow: 0 4rpx 16rpx rgba(32, 35, 43, 0.06);
+  border: 1rpx solid rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
+}
+
+.hpp-carousel-media {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: rgba(21, 23, 30, 0.06);
+  flex: none;
+}
+
+.hpp-carousel-body {
+  position: relative;
+  padding: 28rpx 56rpx 36rpx 32rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  box-sizing: border-box;
+}
+
+.hpp-carousel-arrow {
+  position: absolute;
+  right: 28rpx;
+  bottom: 28rpx;
+  font-size: 28rpx;
+  line-height: 1;
+}
+
 /* —— showcase / grid bento：对齐 .collection-showcase —— */
 .hpp-bento {
   display: grid;

@@ -237,8 +237,76 @@ function metadataFromContent(content) {
   };
 }
 
+var COLLECTION_LAYOUTS = ['list', 'grid', 'carousel', 'showcase'];
+
 /**
- * 保留 section.type 与条目字段，对齐 App SECTION_RENDERERS。
+ * 单条内容映射 · 对齐 App SECTION_RENDERERS 条目字段。
+ * @returns {object|null}
+ */
+function mapContentItem(it, type, key) {
+  if (!it || it.setup === 'pending') return null;
+  var url = String(it.url || it.href || '').trim();
+  var title = it.title || it.label || it.name || '';
+  var note = it.note || it.body || it.description || it.desc || '';
+  var body = it.body || '';
+  var imageUrl = it.image_url || '';
+  var coverUrl = it.cover_url || '';
+  // 合集内 video/custom 等：封面图当作卡片图，对齐 SSR 合集格内展示
+  if (!imageUrl && coverUrl) imageUrl = coverUrl;
+  var mapped = {
+    key: key,
+    label: it.label || title || '链接',
+    title: title || it.label || '条目',
+    name: it.name || title || '',
+    note: note,
+    body: body,
+    desc: it.desc || note || '',
+    url: url,
+    image_url: imageUrl,
+    cover_url: coverUrl,
+    link_kind: it.link_kind || '',
+    link_label: it.link_label || '',
+    layout: it.layout === 'featured' ? 'featured' : 'classic',
+    featured: it.layout === 'featured',
+    color: it.color || '',
+    tintBg: CARD_TINT[it.color] || '#f4f6fa',
+    tintInk: CARD_TINT_INK[it.color] || '#20232b',
+    tintMuted:
+      it.color === 'ink' ? 'rgba(255,255,255,0.72)' : '#69717b',
+    price_text:
+      type === 'shop' && it.link_kind !== 'store'
+        ? formatPrice(it.price_minor, it.currency) || '询价'
+        : it.link_kind === 'store'
+          ? '访问店铺 →'
+          : '',
+    duration: it.duration || '',
+    directAudio: type === 'audio' && openLinkService.isDirectAudio(url),
+    card_kind: it.card_kind || '',
+    hasUrl: url.indexOf('https://') === 0 || url.indexOf('mailto:') === 0,
+    isFirst: false,
+  };
+  if (type === 'skills') {
+    if (!mapped.label) return null;
+  } else if (type === 'agents') {
+    if (!mapped.name) return null;
+    mapped.label = mapped.name;
+  } else if (type === 'custom') {
+    if (!mapped.title && !mapped.body && !mapped.hasUrl) return null;
+    if (!it.label) mapped.label = mapped.title || mapped.label;
+  } else if (type === 'shop') {
+    if (!mapped.title && !mapped.hasUrl) return null;
+  } else if (type === 'audio' || type === 'video') {
+    if (!mapped.title && !mapped.hasUrl) return null;
+    if (!it.label) mapped.label = mapped.title || mapped.label;
+  } else if (!mapped.hasUrl && !mapped.label) {
+    return null;
+  }
+  return mapped;
+}
+
+/**
+ * 保留 section.type 与条目字段，对齐 App SECTION_RENDERERS / renderSections。
+ * 有 collection_layout 时合并 collection_id 子段，四种布局标记交给预览组件渲染。
  */
 function sectionsFromContent(content) {
   var sections = (content && content.sections) || [];
@@ -250,62 +318,36 @@ function sectionsFromContent(content) {
     if (s.collection_id) continue;
     var type = String(s.type || 'links');
     var items = Array.isArray(s.items) ? s.items : [];
+    var layout =
+      COLLECTION_LAYOUTS.indexOf(s.collection_layout) >= 0
+        ? s.collection_layout
+        : '';
     var visibleItems = [];
     for (var j = 0; j < items.length; j++) {
-      var it = items[j] || {};
-      if (it.setup === 'pending') continue;
-      var url = String(it.url || it.href || '').trim();
-      var title = it.title || it.label || it.name || '';
-      var note = it.note || it.body || it.description || it.desc || '';
-      var body = it.body || '';
-      var mapped = {
-        key: (s.id || i) + '_' + j,
-        label: it.label || title || '链接',
-        title: title || it.label || '条目',
-        name: it.name || title || '',
-        note: note,
-        body: body,
-        desc: it.desc || note || '',
-        url: url,
-        image_url: it.image_url || '',
-        cover_url: it.cover_url || '',
-        link_kind: it.link_kind || '',
-        link_label: it.link_label || '',
-        layout: it.layout === 'featured' ? 'featured' : 'classic',
-        featured: it.layout === 'featured',
-        color: it.color || '',
-        tintBg: CARD_TINT[it.color] || '#f4f6fa',
-        tintInk: CARD_TINT_INK[it.color] || '#20232b',
-        tintMuted:
-          it.color === 'ink'
-            ? 'rgba(255,255,255,0.72)'
-            : '#69717b',
-        price_text:
-          type === 'shop' && it.link_kind !== 'store'
-            ? formatPrice(it.price_minor, it.currency) || '询价'
-            : it.link_kind === 'store'
-              ? '访问店铺 →'
-              : '',
-        duration: it.duration || '',
-        directAudio: type === 'audio' && openLinkService.isDirectAudio(url),
-        card_kind: it.card_kind || '',
-        hasUrl: url.indexOf('https://') === 0 || url.indexOf('mailto:') === 0,
-        isFirst: j === 0,
-      };
-      if (type === 'skills') {
-        if (!mapped.label) continue;
-      } else if (type === 'agents') {
-        if (!mapped.name) continue;
-      } else if (type === 'custom') {
-        if (!mapped.title && !mapped.body && !mapped.hasUrl) continue;
-      } else if (type === 'shop') {
-        if (!mapped.title && !mapped.hasUrl) continue;
-      } else if (type === 'audio' || type === 'video') {
-        if (!mapped.title && !mapped.hasUrl) continue;
-      } else if (!mapped.hasUrl && !mapped.label) {
-        continue;
+      var mapped = mapContentItem(items[j], type, (s.id || i) + '_' + j);
+      if (mapped) visibleItems.push(mapped);
+    }
+    // 对齐 render-page renderSections：合集格 = 自身 items + collection_id 子段
+    if (layout) {
+      for (var c = 0; c < sections.length; c++) {
+        var child = sections[c] || {};
+        if (child.collection_id !== s.id) continue;
+        if (child.visible === false) continue;
+        var childType = String(child.type || 'links');
+        var childItems = Array.isArray(child.items) ? child.items : [];
+        for (var k = 0; k < childItems.length; k++) {
+          var childMapped = mapContentItem(
+            childItems[k],
+            childType,
+            (child.id || 'c' + c) + '_' + k
+          );
+          if (childMapped) visibleItems.push(childMapped);
+        }
       }
-      visibleItems.push(mapped);
+    }
+    for (var m = 0; m < visibleItems.length; m++) {
+      visibleItems[m].isFirst = m === 0;
+      visibleItems[m].key = (s.id || i) + '_m_' + m;
     }
     if (!visibleItems.length && !s.title) continue;
 
@@ -322,13 +364,13 @@ function sectionsFromContent(content) {
       title: s.title || '',
       items: visibleItems,
       itemCount: String(visibleItems.length).padStart(2, '0'),
-      collection_layout: s.collection_layout || '',
-      isShowcase: s.collection_layout === 'showcase',
-      isGrid: s.collection_layout === 'grid',
-      isCarousel: s.collection_layout === 'carousel',
-      isBento:
-        s.collection_layout === 'showcase' ||
-        s.collection_layout === 'grid',
+      collection_layout: layout,
+      isShowcase: layout === 'showcase',
+      isGrid: layout === 'grid',
+      isCarousel: layout === 'carousel',
+      isList: layout === 'list' || !layout,
+      isBento: layout === 'showcase' || layout === 'grid',
+      isCollection: Boolean(layout),
       isVideo: type === 'video',
       isAudio: type === 'audio',
       isShop: type === 'shop',

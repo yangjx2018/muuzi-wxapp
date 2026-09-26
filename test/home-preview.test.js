@@ -3,7 +3,24 @@
  */
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const homePreview = require('../miniprogram/services/homePreview');
+
+const PREVIEW_WXML = fs.readFileSync(
+  path.join(
+    __dirname,
+    '../miniprogram/components/home-page-preview/index.wxml'
+  ),
+  'utf8'
+);
+const PREVIEW_WXSS = fs.readFileSync(
+  path.join(
+    __dirname,
+    '../miniprogram/components/home-page-preview/index.wxss'
+  ),
+  'utf8'
+);
 
 describe('homePreview viewModel', () => {
   const draft = {
@@ -127,6 +144,7 @@ describe('homePreview viewModel', () => {
     assert.equal(links.items[0].image_url, 'https://images.unsplash.com/photo-a.jpg');
     assert.equal(links.isShowcase, true);
     assert.equal(links.isBento, true);
+    assert.equal(links.isCarousel, false);
     assert.equal(links.items[0].tintBg, '#e7e2ff');
     assert.equal(links.items[0].isFirst, true);
 
@@ -143,5 +161,114 @@ describe('homePreview viewModel', () => {
     assert.equal(slots[0].url.indexOf('https://images.unsplash.com/'), 0);
     assert.equal(slots[1], null);
     assert.equal(slots[2], null);
+  });
+});
+
+describe('homePreview collection layouts · 对齐 App SSR', () => {
+  function collectionDraft(layout, extraSections) {
+    return {
+      display_name: '合集预览',
+      sections: [
+        {
+          id: 'col',
+          type: 'links',
+          title: '视觉 · 案例 · 交付入口',
+          visible: true,
+          collection_layout: layout,
+          items: [
+            {
+              label: 'AI 时尚大片变体',
+              url: 'https://www.muuzi.co/a',
+              note: '同一主体 · 12 套风格可控输出',
+              image_url: 'https://images.unsplash.com/photo-a.jpg',
+              layout: 'featured',
+              color: 'lilac',
+            },
+          ],
+        },
+      ].concat(extraSections || []),
+    };
+  }
+
+  it('marks list|grid|carousel|showcase flags for preview branching', () => {
+    for (const layout of ['list', 'grid', 'carousel', 'showcase']) {
+      const sec = homePreview.sectionsFromContent(collectionDraft(layout))[0];
+      assert.equal(sec.collection_layout, layout);
+      assert.equal(sec.isCarousel, layout === 'carousel');
+      assert.equal(sec.isGrid, layout === 'grid');
+      assert.equal(sec.isShowcase, layout === 'showcase');
+      assert.equal(sec.isBento, layout === 'grid' || layout === 'showcase');
+      assert.equal(sec.isCollection, true);
+      assert.equal(sec.items.length, 1);
+    }
+  });
+
+  it('merges collection_id children into parent items like renderSections', () => {
+    const draft = collectionDraft('carousel', [
+      {
+        id: 'child-custom',
+        type: 'custom',
+        collection_id: 'col',
+        visible: true,
+        items: [
+          {
+            title: '短剧主视觉海报',
+            body: '竖屏封面 CTR 导向构图',
+            url: 'https://www.muuzi.co/b',
+            image_url: 'https://images.unsplash.com/photo-b.jpg',
+            color: 'rose',
+          },
+        ],
+      },
+      {
+        id: 'child-video',
+        type: 'video',
+        collection_id: 'col',
+        visible: true,
+        items: [
+          {
+            title: '品牌 KV · 霓虹光影',
+            url: 'https://www.youtube.com/watch?v=x',
+            cover_url: 'https://images.unsplash.com/photo-c.jpg',
+          },
+        ],
+      },
+      {
+        id: 'orphan',
+        type: 'links',
+        collection_id: 'other',
+        visible: true,
+        items: [
+          {
+            label: '不应并入',
+            url: 'https://www.muuzi.co/z',
+          },
+        ],
+      },
+    ]);
+    const model = homePreview.viewModel(draft, { draft: true });
+    assert.equal(model.sections.length, 1, '子段不单独顶层渲染');
+    const col = model.sections[0];
+    assert.equal(col.isCarousel, true);
+    assert.equal(col.items.length, 3);
+    assert.equal(col.items[0].label, 'AI 时尚大片变体');
+    assert.equal(col.items[1].label, '短剧主视觉海报');
+    assert.equal(col.items[1].note, '竖屏封面 CTR 导向构图');
+    assert.equal(col.items[2].label, '品牌 KV · 霓虹光影');
+    assert.equal(
+      col.items[2].image_url,
+      'https://images.unsplash.com/photo-c.jpg',
+      'video cover_url 升为合集卡片图'
+    );
+    assert.equal(col.items[0].isFirst, true);
+    assert.equal(col.items[1].isFirst, false);
+  });
+
+  it('preview markup wires carousel scroll-x and layout branches', () => {
+    assert.match(PREVIEW_WXML, /section\.isCarousel/);
+    assert.match(PREVIEW_WXML, /scroll-x/);
+    assert.match(PREVIEW_WXML, /hpp-carousel/);
+    assert.match(PREVIEW_WXML, /section\.isBento/);
+    assert.match(PREVIEW_WXSS, /\.hpp-carousel-card\s*\{[^}]*82%/s);
   });
 });

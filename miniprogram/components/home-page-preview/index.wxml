@@ -19,7 +19,7 @@
     <view wx:else class="hpp-tools-mid"></view>
 
     <button
-      wx:if="{{shareOpenType}}"
+      wx:if="{{showShare && shareOpenType}}"
       class="hpp-share"
       open-type="share"
       bindtap="onShareTap"
@@ -34,7 +34,7 @@
       />
     </button>
     <view
-      wx:else
+      wx:elif="{{showShare}}"
       class="hpp-share"
       bindtap="onShareTap"
       aria-label="分享主页"
@@ -46,6 +46,7 @@
         aria-hidden="true"
       />
     </view>
+    <view wx:else class="hpp-tools-spacer" aria-hidden="true"></view>
   </view>
 
   <view class="hpp-cover" aria-hidden="true">
@@ -298,11 +299,62 @@
         </view>
       </block>
 
-      <!-- 链接 / 合集：showcase|grid = 网页 bento；list = 竖列表 -->
+      <!-- 链接 / 合集：对齐 App collection-list|grid|carousel|showcase -->
       <block wx:else>
-        <!-- 对齐 .collection-showcase / .collection-grid -->
+        <!-- 轮播 · .collection-carousel · 横滑 82% peek -->
+        <scroll-view
+          wx:if="{{section.isCarousel}}"
+          class="hpp-carousel"
+          scroll-x
+          enhanced
+          enable-flex
+          show-scrollbar="{{false}}"
+          aria-label="横向浏览内容合集"
+        >
+          <view class="hpp-carousel-track">
+            <view
+              wx:for="{{section.items}}"
+              wx:for-item="item"
+              wx:key="key"
+              class="hpp-carousel-card"
+              style="background: {{item.tintBg}};"
+              data-url="{{item.url}}"
+              data-title="{{item.label || item.title}}"
+              data-note="{{item.note}}"
+              bindtap="onOpenItem"
+            >
+              <view class="hpp-carousel-media">
+                <image
+                  wx:if="{{item.image_url}}"
+                  class="hpp-bento-img"
+                  src="{{item.image_url}}"
+                  mode="aspectFill"
+                />
+                <view wx:else class="hpp-bento-ph" aria-hidden="true"></view>
+              </view>
+              <view class="hpp-carousel-body">
+                <text
+                  class="hpp-bento-title"
+                  style="color: {{item.tintInk}};"
+                >{{item.label || item.title}}</text>
+                <text
+                  wx:if="{{item.note}}"
+                  class="hpp-bento-note"
+                  style="color: {{item.tintMuted}};"
+                >{{item.note}}</text>
+                <text
+                  class="hpp-carousel-arrow"
+                  style="color: {{item.tintInk}};"
+                  aria-hidden="true"
+                >↗</text>
+              </view>
+            </view>
+          </view>
+        </scroll-view>
+
+        <!-- 网格 / 重点 · .collection-grid / .collection-showcase -->
         <view
-          wx:if="{{section.isBento}}"
+          wx:elif="{{section.isBento}}"
           class="hpp-bento {{section.isShowcase ? 'hpp-bento-showcase' : 'hpp-bento-grid'}}"
         >
           <view
@@ -341,7 +393,7 @@
           </view>
         </view>
 
-        <!-- list / 默认：经典横卡 + featured 通栏图 -->
+        <!-- 列表 / 默认 · .collection-list：经典横卡 + featured 通栏图 -->
         <block wx:else>
           <view
             wx:for="{{section.items}}"

@@ -1236,7 +1236,8 @@
 .eh-preview-full {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  /* 必须高于 .eh-links-nav-wrap(100)，否则编辑顶栏「主页内容」会盖住预览标题 */
+  z-index: 200;
   background: var(--app-bg);
   display: flex;
   flex-direction: column;
@@ -1266,10 +1267,12 @@
 }
 
 .eh-preview-nav-title {
+  display: inline-block;
   font-size: 34rpx;
   font-weight: 700;
   color: var(--app-ink);
   line-height: 1.1;
+  white-space: nowrap;
 }
 
 .eh-preview-nav-sub {

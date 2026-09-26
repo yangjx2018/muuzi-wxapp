@@ -144,13 +144,29 @@ describe('open-home finished-product fallback', () => {
       path.join(root, 'miniprogram/pages/me/edit-home/index.wxml'),
       'utf8'
     );
+    const wxss = fs.readFileSync(
+      path.join(root, 'miniprogram/pages/me/edit-home/index.wxss'),
+      'utf8'
+    );
     const comp = fs.readFileSync(
       path.join(root, 'miniprogram/components/home-page-preview/index.wxml'),
       'utf8'
     );
+    const compJs = fs.readFileSync(
+      path.join(root, 'miniprogram/components/home-page-preview/index.js'),
+      'utf8'
+    );
     assert.match(wxml, /home-page-preview|previewModel/);
+    assert.match(wxml, /eh-preview-nav-title">主页预览</);
+    assert.match(wxml, /show-share="\{\{false\}\}"/);
+    const previewChunk = wxml.slice(wxml.indexOf('wx:if="{{previewOpen}}"'));
+    assert.doesNotMatch(previewChunk, /eh-links-nav-spacer/);
+    assert.doesNotMatch(previewChunk, /eh-links-share-bar|openLinksShare/);
+    assert.match(wxss, /\.eh-preview-nav-title[\s\S]*?white-space:\s*nowrap/s);
+    assert.match(wxss, /\.eh-preview-full[\s\S]*?z-index:\s*200/s);
     assert.match(comp, /hpp-brand[\s\S]*logo-muu\.png/);
     assert.match(comp, /hpp-share[\s\S]*icon-share-out\.png/);
+    assert.match(compJs, /showShare/);
     assert.doesNotMatch(wxml, /eh-preview-brand-m/);
     assert.doesNotMatch(comp, /eh-preview-brand-m/);
   });

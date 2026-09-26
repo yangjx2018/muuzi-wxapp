@@ -1766,7 +1766,7 @@
   </block>
 </view>
 
-<!-- 预览全屏：对 linksOnly 与完整「设计」编辑器共用 -->
+<!-- 预览全屏：对 linksOnly 与完整「设计」编辑器共用 · 对齐 App previewDialog（无分享） -->
 <view wx:if="{{previewOpen}}" class="eh-preview-full" catchtouchmove="noop">
   <view class="eh-preview-nav-wrap">
     <view
@@ -1774,7 +1774,7 @@
       style="padding-top: {{navPadTop}}px; padding-right: {{navPadRight}}px;"
     >
       <view class="eh-preview-nav-inner" style="height: {{navHeight}}px;">
-        <view class="eh-links-header-btn" bindtap="closePreview" aria-label="返回">
+        <view class="eh-links-header-btn" bindtap="closePreview" aria-label="返回编辑">
           <image
             class="eh-ico-back-img"
             src="/assets/icon-ui-back-ink.png"
@@ -1785,17 +1785,7 @@
         <view class="eh-preview-nav-titles">
           <text class="eh-preview-nav-title">主页预览</text>
         </view>
-        <view class="eh-links-header-btn eh-links-nav-spacer" aria-hidden="true"></view>
-      </view>
-    </view>
-    <view class="eh-links-share-bar" style="padding-right: {{sharePadRight}}px;">
-      <view class="eh-links-share-btn" bindtap="openLinksShare" aria-label="分享主页">
-        <image
-          class="eh-share-img"
-          src="/assets/icon-ui-share-ink.png"
-          mode="aspectFit"
-          aria-hidden="true"
-        />
+        <view class="eh-links-header-btn" aria-hidden="true"></view>
       </view>
     </view>
     <text class="eh-preview-nav-sub">草稿效果 · 尚未发布的修改仅自己可见</text>
@@ -1808,8 +1798,8 @@
       wx:if="{{previewModel}}"
       model="{{previewModel}}"
       show-draft-badge="{{true}}"
+      show-share="{{false}}"
       audio-playing-key="{{previewAudioKey}}"
-      bind:share="onPreviewShare"
       bind:openitem="onPreviewOpenItem"
       bind:audiotap="onPreviewAudioTap"
     />

@@ -3019,6 +3019,11 @@ Page({
     var self = this;
     if (!this._token || this.data.busy) return;
     this.stopPreviewAudio();
+    try {
+      wx.hideShareMenu({ menus: ['shareAppMessage', 'shareTimeline'] });
+    } catch (e) {
+      /* ignore older base lib */
+    }
     this.setData({
       previewOpen: true,
       previewBusy: true,
@@ -3088,6 +3093,11 @@ Page({
 
   closePreview() {
     this.stopPreviewAudio();
+    try {
+      wx.showShareMenu({ menus: ['shareAppMessage', 'shareTimeline'] });
+    } catch (e) {
+      /* ignore */
+    }
     this.setData({
       previewOpen: false,
       previewBusy: false,

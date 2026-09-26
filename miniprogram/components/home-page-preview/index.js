@@ -8,6 +8,8 @@ Component({
     audioPlayingKey: { type: String, value: '' },
     /** 草稿预览显示 DRAFT 角标；成品可不显示 */
     showDraftBadge: { type: Boolean, value: false },
+    /** 是否显示顶栏分享（编辑草稿预览关闭；公开打开主页开启） */
+    showShare: { type: Boolean, value: true },
     /** 顶栏分享按钮是否用 open-type=share */
     shareOpenType: { type: Boolean, value: false },
     /** 底部「登录 MuuZi」· 对齐公开页 home-entry（默认开） */

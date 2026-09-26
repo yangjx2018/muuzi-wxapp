@@ -275,7 +275,8 @@ page {
   box-sizing: border-box;
 }
 
-/* 密文外观：不用 password 属性，避免华为安全键盘；普通键盘 + CSS 圆点 */
+/* 密文外观：不用 password 属性，避免华为安全键盘；普通键盘 + CSS 圆点。
+   仅当 input 已有内容时挂 .is-masked（见 auth wxml）；空框挂 disc 会冒出一个幽灵圆点。 */
 .field-input-secure.is-masked {
   -webkit-text-security: disc;
   text-security: disc;

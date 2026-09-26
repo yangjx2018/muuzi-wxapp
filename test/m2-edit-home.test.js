@@ -56,11 +56,18 @@ describe('M2.3 edit-home / avatar / publish', () => {
       path.join(root, 'miniprogram/pages/me/edit-home/index.wxml'),
       'utf8'
     );
+    const wxss = fs.readFileSync(
+      path.join(root, 'miniprogram/pages/me/edit-home/index.wxss'),
+      'utf8'
+    );
     assert.match(js, /loadCreatorSession/);
     assert.match(js, /fetchPage/);
     assert.match(js, /registerSlug/);
     assert.match(js, /savePage/);
     assert.match(js, /publishPage/);
+    assert.match(js, /closePublishFeedback|_publishWatchdog/);
+    assert.match(wxml, /eh-publish-feedback|closePublishFeedback/);
+    assert.match(wxss, /\.eh-publish-feedback/);
     assert.match(js, /uploadImage/);
     assert.match(js, /pickPortrait|chooseMedia|chooseImage/);
     assert.match(js, /updateDraft/);
@@ -84,7 +91,23 @@ describe('M2.3 edit-home / avatar / publish', () => {
     assert.match(wxml, /让世界认识你/);
     assert.match(wxml, /显示 MuuZi 品牌/);
     assert.match(wxml, /eh-links-toolbar|添加内容/);
-    assert.match(wxml, /eh-links-share-bar|icon-ui-share-ink\.png/);
+    assert.match(wxml, /eh-links-nav|主页内容|icon-ui-back-ink\.png/);
+    assert.match(wxml, /eh-scc|eh-col-summary|toggleItemExpand|openCollection/);
+    assert.match(wxml, /eh-col-page|eh-col-more|移出合集|removeCollectionMember/);
+    assert.match(wxml, /eh-col-layout-icon|eh-ico-showcase|展示方式/);
+    assert.match(wxml, /eh-scc-toolbar|eh-scc-tool-stats|卡片布局/);
+    assert.match(wxml, /eh-scc-layout-select|eh-scc-item-tools/);
+    assert.match(wxml, /tool-thumbnail\.svg|tool-rules\.svg/);
+    assert.doesNotMatch(wxml, /field\.key !== item\.titleKey/);
+    assert.doesNotMatch(wxml, /eh-ico-thumb|eh-ico-schedule|eh-ico-lock/);
+    assert.match(wxml, /整理内容|eh-scc-dest|移到/);
+    assert.match(wxml, /eh-scc-handle|eh-scc-type/);
+    assert.match(js, /onCardTool|studioCardTools|moveCollectionLink|onMoveDestination/);
+    assert.match(js, /collections|isLinkCollection|toggleItemExpand|openCollection/);
+    assert.match(js, /removeFromCollection|removeCollectionMember|collectionMenuOpen/);
+    assert.match(js, /collection_layout|COLLECTION_LAYOUTS/);
+    assert.match(wxml, /主页封面|上下取景|pickCover/);
+    assert.match(wxml, /icon-ui-share-ink\.png/);
     assert.match(wxml, /eh-social-icon|social-instagram\.png|iconSrc/);
     assert.match(js, /socialIconSrc|social-instagram/);
     assert.match(wxml, /navPadTop|navHeight/);
@@ -102,9 +125,10 @@ describe('M2.3 edit-home / avatar / publish', () => {
     assert.match(wxml, /icon-ui-share-accent\.png/);
     assert.doesNotMatch(wxml, /eh-preview-back-pill/);
     assert.doesNotMatch(wxml, /eh-plane/);
-    assert.match(wxml, /在 MuuZi 上加入/);
-    assert.match(wxml, /eh-preview-footer|eh-preview-join/);
-    assert.match(wxml, /eh-preview-cover|eh-preview-page|eh-preview-brand/);
+    assert.match(wxml, /home-page-preview|previewModel|bind:openitem/);
+    assert.match(js, /homePreview\.viewModel|services\/homePreview/);
+    assert.match(js, /onPreviewOpenItem|onPreviewAudioTap/);
+    assert.doesNotMatch(wxml, /eh-preview-panel-a|eh-preview-page/);
     assert.doesNotMatch(wxml, /eh-preview-cta/);
     assert.match(wxml, /reloadCatalog|重新加载|addFormFields/);
     assert.match(wxml, /分享我的 MuuZi|添加到社交简介|主页二维码|数字名片|分享到/);
@@ -129,7 +153,8 @@ describe('M2.3 edit-home / avatar / publish', () => {
     assert.match(wxml, /bindtap="openFinishedProduct"|bindtap="sharePageLink"|bindtap="shareShortLink"/);
     assert.match(wxml, /eh-btn-publish|发布到|eh-share-picker|分享此地址/);
     assert.match(wxml, /模板、自定义域名、作品库在网页版 Studio 里/);
-    assert.doesNotMatch(wxml, /复制 Studio 链接|复制链接|刷新短链接|生成主页短链接|发布主页/);
+    assert.doesNotMatch(wxml, /复制 Studio 链接|刷新短链接|生成主页短链接|发布主页/);
+    assert.match(wxml, /aria-label="复制链接"/);
     assert.match(wxml, /添加链接区块|新建区块|addLinksSection|pickCatalogEntry|submitAddForm/);
     assert.match(wxml, /社交账号|LINKS · 社交链接|eh-social-row/);
   });

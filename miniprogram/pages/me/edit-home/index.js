@@ -12,6 +12,10 @@ const contentCatalog = require('../../../services/contentCatalog');
 const contentFields = require('../../../services/contentFields');
 const qrcodeDraw = require('../../../utils/qrcode-draw');
 const profileShare = require('../../../services/profileShare');
+const homePreview = require('../../../services/homePreview');
+const openLinkService = require('../../../services/openLink');
+const collections = require('../../../services/collections');
+const studioCardTools = require('../../../services/studioCardTools');
 
 var SOCIAL_KINDS = [
   ['wechat', '微信'],
@@ -160,9 +164,12 @@ function readCapsuleNav() {
     var sys = wx.getSystemInfoSync();
     var menu = wx.getMenuButtonBoundingClientRect();
     if (!menu || !menu.height) throw new Error('no menu');
+    var navPadTop = menu.top;
+    var navHeight = menu.height;
     return {
-      navPadTop: menu.top,
-      navHeight: menu.height,
+      navPadTop: navPadTop,
+      navHeight: navHeight,
+      navTotalHeight: navPadTop + navHeight,
       navPadRight: Math.max(sys.windowWidth - menu.left + 4, 96),
       sharePadRight: Math.max(sys.windowWidth - menu.right, 10),
     };
@@ -170,6 +177,7 @@ function readCapsuleNav() {
     return {
       navPadTop: 48,
       navHeight: 32,
+      navTotalHeight: 80,
       navPadRight: 100,
       sharePadRight: 16,
     };
@@ -203,27 +211,47 @@ function buildSocialShortcuts(draft) {
   });
   Object.keys(kinds).forEach(function (kind) {
     if (SOCIAL_SHORTCUT_DEFAULTS.some(function (d) { return d.kind === kind; })) return;
+    var iconKind = socialIconKind(kind);
     list.push({
       kind: kind,
       label: SOCIAL_LABEL[kind] || kind,
-      iconKind: 'link',
+      iconKind: iconKind,
       configured: !!configured[kind],
-      iconSrc: socialIconSrc('link', !!configured[kind]),
+      iconSrc: socialIconSrc(iconKind, !!configured[kind]),
     });
   });
   return list;
 }
 
-function socialIconSrc(kind, configured) {
-  var base = {
+/** Align App StudioSocialShortcuts / CreatorScreen SOCIAL_ICON asset keys. */
+function socialIconKind(kind) {
+  var map = {
     instagram: 'instagram',
     tiktok: 'tiktok',
     douyin: 'tiktok',
     youtube: 'youtube',
     email: 'email',
+    website: 'website',
+    github: 'github',
+    bilibili: 'bilibili',
+    xiaohongshu: 'xiaohongshu',
+    weibo: 'weibo',
+    wechat: 'wechat',
+    x: 'x',
+    facebook: 'facebook',
+    facebook_page: 'facebook_page',
+    messenger: 'messenger',
+    threads: 'threads',
+    spotify: 'spotify',
     link: 'link',
-  }[kind] || 'link';
-  if (configured && base !== 'link') {
+    other: 'link',
+  };
+  return map[kind] || 'link';
+}
+
+function socialIconSrc(kind, configured) {
+  var base = socialIconKind(kind);
+  if (configured) {
     return '/assets/social-' + base + '-on.png';
   }
   return '/assets/social-' + base + '.png';
@@ -274,18 +302,67 @@ function cloneDraft(draft) {
   return creator.mergeDraft(JSON.parse(JSON.stringify(draft || {})));
 }
 
-function decorateDraft(draft, media) {
+function decorateDraft(draft, media, expandedMap, toolPanel) {
+  media = media || {};
+  expandedMap = expandedMap || {};
+  toolPanel = toolPanel || null;
   var next = cloneDraft(draft);
   var ig = media && media.instagram;
   var tk = media && media.tiktok;
   var topLevel = 0;
-  next.sections = (next.sections || []).map(function (section) {
+  var allSections = next.sections || [];
+  var collectionTargets = allSections
+    .filter(function (s) {
+      return collections.isLinkCollection(s);
+    })
+    .map(function (s) {
+      return {
+        id: s.id,
+        label: s.title || '未命名合集',
+        disabled:
+          collections.collectionMemberCount(s, allSections) >= 12,
+      };
+    });
+  next.sections = allSections.map(function (section) {
     var type = section.type || 'links';
     var isChild = Boolean(section.collection_id);
     if (!isChild) topLevel += 1;
+    var linkCollection = collections.isLinkCollection(section);
+    var memberCount = linkCollection
+      ? collections.collectionMemberCount(section, allSections)
+      : (section.items || []).length;
     var fields = contentFields.fieldsForType(type);
-    var items = (section.items || []).map(function (item) {
+    var moveTargets = collectionTargets.filter(function (t) {
+      return t.id !== section.id && t.id !== section.collection_id;
+    });
+    var showDestination =
+      linkCollection ||
+      Boolean(section.collection_id) ||
+      moveTargets.length > 0;
+    var moveOptions = [{ value: '', label: '移到…' }];
+    if (linkCollection || section.collection_id) {
+      moveOptions.push({
+        value: 'standalone',
+        label: '移出合集，作为独立卡片',
+      });
+    }
+    moveTargets.forEach(function (t) {
+      moveOptions.push({
+        value: t.id,
+        label: t.label + (t.disabled ? '（已满）' : ''),
+        disabled: t.disabled,
+      });
+    });
+    var items = (section.items || []).map(function (item, itemIndex) {
       var decorated = Object.assign({}, item);
+      var titleKey =
+        type === 'agents' ? 'name' : type === 'links' || type === 'skills' ? 'label' : 'title';
+      var imageKey = type === 'video' ? 'cover_url' : 'image_url';
+      var expandKey = section.id + ':' + itemIndex;
+      var socialProvider = type === 'links' ? collections.providerFor(item) : '';
+      var toolBrand = collections.providerFor(item) || 'link';
+      var activeTool =
+        toolPanel && toolPanel.key === expandKey ? toolPanel.tool : '';
       if (type === 'links') {
         var url = item.url || '';
         var showTikTok = isTikTokProfile(url);
@@ -326,27 +403,102 @@ function decorateDraft(draft, media) {
             value = String(minor / 100);
           }
         }
+        var colorLabel = '';
+        if (kind === 'color') {
+          colorLabel = '默认';
+          var colorOpts = contentFields.COLOR_OPTIONS || [];
+          for (var ci = 0; ci < colorOpts.length; ci++) {
+            if (colorOpts[ci].value === (value == null ? '' : String(value))) {
+              colorLabel = colorOpts[ci].label;
+              break;
+            }
+          }
+        }
         return {
           key: field.key,
           label: field.label,
           placeholder: field.placeholder || '',
           value: value == null ? '' : String(value),
+          colorLabel: colorLabel,
           isMultiline: kind === 'multiline',
           isColor: kind === 'color',
-          isText: kind !== 'multiline' && kind !== 'color',
+          isImage: kind === 'image',
+          isText: kind !== 'multiline' && kind !== 'color' && kind !== 'image',
         };
       });
-      return Object.assign(decorated, { fieldRows: fieldRows });
+      var unavailable =
+        activeTool && studioCardTools.STUDIO_UNAVAILABLE_TOOLS[activeTool]
+          ? studioCardTools.STUDIO_UNAVAILABLE_TOOLS[activeTool]
+          : null;
+      return Object.assign(decorated, {
+        fieldRows: fieldRows,
+        displayTitle: collections.titleOfItem(item),
+        titleKey: titleKey,
+        titleValue: item[titleKey] || '',
+        imageKey: imageKey,
+        imageUrl: item[imageKey] || '',
+        expandKey: expandKey,
+        expanded: Boolean(expandedMap[expandKey]),
+        socialProvider: socialProvider,
+        isSocialCard: Boolean(socialProvider) && type === 'links',
+        layoutLabel: item.layout === 'featured' ? '大图展示' : '经典链接',
+        toolBrand: toolBrand,
+        toolBrandSrc: studioCardTools.brandIconSrc(toolBrand),
+        activeTool: activeTool,
+        toolStatus:
+          toolPanel && toolPanel.key === expandKey
+            ? toolPanel.status || ''
+            : '',
+        toolStatsBlocked:
+          toolPanel && toolPanel.key === expandKey && toolPanel.blocked
+            ? toolPanel.status || ''
+            : '',
+        unavailableTitle: unavailable ? unavailable.title : '',
+        unavailableDesc: unavailable ? unavailable.description : '',
+        unavailableControl: unavailable ? unavailable.control || 'checkbox' : '',
+        unavailableShowTopBadge: unavailable
+          ? unavailable.showTopBadge === true
+          : false,
+        unavailableCurrent: unavailable ? unavailable.currentCopy || '' : '',
+        unavailableOptions: unavailable
+          ? (unavailable.options || []).map(function (opt, optIndex) {
+              if (typeof opt === 'string') {
+                return { key: opt, label: opt, detail: '' };
+              }
+              return {
+                key: opt.label || String(optIndex),
+                label: opt.label || '',
+                detail: opt.detail || '',
+              };
+            })
+          : [],
+      });
     });
     return Object.assign({}, section, {
       type: type,
-      typeLabel: contentFields.SECTION_LABELS[type] || type,
+      typeLabel: linkCollection
+        ? '合集'
+        : contentFields.SECTION_LABELS[type] || type,
       isCollectionChild: isChild,
+      isLinkCollection: linkCollection,
+      memberCount: memberCount,
+      collectionLayout: section.collection_layout || 'list',
+      showDestination: showDestination,
+      moveOptions: moveOptions,
       items: items,
     });
   });
   next.topLevelSectionCount = topLevel;
   return next;
+}
+
+function refreshDecoratedDraft(page) {
+  return decorateDraft(
+    page._latestDraft,
+    page._media,
+    page._expandedItems,
+    page._toolPanel
+  );
 }
 
 function emptyItemForType(type) {
@@ -476,6 +628,8 @@ Page({
     previewBusy: false,
     previewError: '',
     previewBytes: 0,
+    previewModel: null,
+    previewAudioKey: '',
     addContentOpen: false,
     catalogBusy: false,
     catalogError: '',
@@ -510,8 +664,18 @@ Page({
     editingSocialUrl: '',
     navPadTop: 48,
     navHeight: 32,
+    navTotalHeight: 80,
     navPadRight: 100,
     sharePadRight: 16,
+    thumbWorks: [],
+    thumbWorksHint: '',
+    thumbSourceOpen: false,
+    thumbSourceSIndex: -1,
+    thumbSourceIIndex: -1,
+    thumbSourceKey: 'cover_url',
+    rulesDialogOpen: false,
+    rulesBelong: '属于',
+    rulesAction: '隐藏这条链接',
   },
 
   _alive: true,
@@ -523,6 +687,7 @@ Page({
   _saveQueue: Promise.resolve(),
   _portraitPending: false,
   _publishPending: false,
+  _publishWatchdog: 0,
   _sharePending: false,
   _sharePickerSource: '',
   _media: { instagram: null, tiktok: null },
@@ -531,6 +696,9 @@ Page({
 
   onLoad(query) {
     this._alive = true;
+    this._expandedItems = Object.create(null);
+    this._activeCollectionId = '';
+    this._toolPanel = null;
     var mode = (query && query.mode) || '';
     var section = (query && query.section) || '';
     var orgId = (query && query.org) || '';
@@ -552,8 +720,23 @@ Page({
       studioHost: studioLinks.displayHost(studioLinks.studioUrl()),
       navPadTop: nav.navPadTop,
       navHeight: nav.navHeight,
+      navTotalHeight: nav.navTotalHeight,
       navPadRight: nav.navPadRight,
       sharePadRight: nav.sharePadRight,
+      collectionOpen: false,
+      collectionId: '',
+      collectionTitle: '',
+      collectionLayout: 'list',
+      collectionVisible: true,
+      collectionMenuOpen: false,
+      collectionConfirmDelete: false,
+      collectionTitleFocus: false,
+      collectionLayouts: collections.COLLECTION_LAYOUTS.slice(),
+      collectionMembers: [],
+      layoutPicker: [
+        { id: 'classic', label: '经典链接' },
+        { id: 'featured', label: '大图展示' },
+      ],
     });
     if (isOrg) {
       try {
@@ -604,12 +787,19 @@ Page({
   },
 
   onHide() {
+    this.stopPreviewAudio();
     this.flushSaveOnLeave();
   },
 
   onUnload() {
     this._alive = false;
+    this.stopPreviewAudio();
     if (this._saveTimer) clearTimeout(this._saveTimer);
+    if (this._publishWatchdog) {
+      clearTimeout(this._publishWatchdog);
+      this._publishWatchdog = 0;
+    }
+    this._publishPending = false;
     this.flushSaveOnLeave();
   },
 
@@ -726,7 +916,7 @@ Page({
       phase: 'editing',
       token: this._token,
       slug: page.slug || '',
-      draft: decorateDraft(draft, this._media),
+      draft: refreshDecoratedDraft(this),
       meta: metaForView(draft.profile_metadata),
       languageOptions: syncLanguageOptions(draft.profile_metadata),
       socialShortcuts: buildSocialShortcuts(draft),
@@ -783,7 +973,7 @@ Page({
         }
       }
       self.setData({
-        draft: decorateDraft(self._latestDraft, self._media),
+        draft: refreshDecoratedDraft(self),
         meta: metaForView(self._latestDraft.profile_metadata),
         languageOptions: syncLanguageOptions(
           self._latestDraft.profile_metadata
@@ -892,7 +1082,7 @@ Page({
           /* ignore */
         }
         self.setData({
-          draft: decorateDraft(draft, self._media),
+          draft: refreshDecoratedDraft(self),
           meta: metaForView(draft.profile_metadata),
           languageOptions: syncLanguageOptions(draft.profile_metadata),
           socialShortcuts: buildSocialShortcuts(draft),
@@ -925,7 +1115,7 @@ Page({
     this._skinId = skinId;
     var revision = ++this._editRevision;
     this.setData({
-      draft: decorateDraft(next, this._media),
+      draft: refreshDecoratedDraft(this),
       meta: metaForView(next.profile_metadata),
       languageOptions: syncLanguageOptions(next.profile_metadata),
       socialShortcuts: buildSocialShortcuts(next),
@@ -1357,6 +1547,33 @@ Page({
     this.updateDraft({ sections: sections });
   },
 
+  onItemColor(e) {
+    var sIndex = Number(e.currentTarget.dataset.sindex);
+    var iIndex = Number(e.currentTarget.dataset.iindex);
+    var key = e.currentTarget.dataset.key || 'color';
+    var idx = Number(e.detail && e.detail.value);
+    var opt = (this.data.colorOptions || [])[idx];
+    var value = opt && opt.value != null ? opt.value : '';
+    this.patchItemField(sIndex, iIndex, key, value == null ? '' : String(value));
+  },
+
+  moveItem(e) {
+    var sIndex = Number(e.currentTarget.dataset.sindex);
+    var iIndex = Number(e.currentTarget.dataset.iindex);
+    var delta = Number(e.currentTarget.dataset.delta) || 0;
+    var sections = cloneDraft(this._latestDraft).sections.slice();
+    var section = sections[sIndex];
+    if (!section || !section.items) return;
+    var to = iIndex + delta;
+    if (to < 0 || to >= section.items.length) return;
+    var items = section.items.slice();
+    var tmp = items[iIndex];
+    items[iIndex] = items[to];
+    items[to] = tmp;
+    sections[sIndex] = Object.assign({}, section, { items: items });
+    this.updateDraft({ sections: sections });
+  },
+
   onTikTokDisplay(e) {
     var sIndex = Number(e.currentTarget.dataset.sindex);
     var iIndex = Number(e.currentTarget.dataset.iindex);
@@ -1753,20 +1970,40 @@ Page({
       this._saveTimer = 0;
     }
     var revision = this._editRevision;
+    var settled = false;
+    var settle = function (patch) {
+      if (settled) return;
+      settled = true;
+      if (self._publishWatchdog) {
+        clearTimeout(self._publishWatchdog);
+        self._publishWatchdog = 0;
+      }
+      self._publishPending = false;
+      if (!self._alive) return;
+      self.setData(Object.assign({ busy: false }, patch || {}));
+    };
+    // 防止保存队列/请求挂死时底栏永久「处理中」
+    this._publishWatchdog = setTimeout(function () {
+      settle({
+        saveError: '发布超时，请检查网络后重试',
+        publishFeedback: '暂未确认发布结果，请检查网络后重试。',
+      });
+      wx.showToast({ title: '发布超时，请重试', icon: 'none' });
+    }, 45000);
     this.persist(this._latestDraft, this._skinId, revision)
       .then(function (ok) {
+        if (settled) return null;
         if (!ok) {
-          if (self._alive) {
-            self.setData({ publishFeedback: '草稿未保存，发布未执行。' });
-          }
+          settle({
+            publishFeedback: '草稿未保存，发布未执行。',
+          });
+          wx.showToast({ title: '草稿未保存', icon: 'none' });
           return null;
         }
         if (revision !== self._editRevision) {
-          if (self._alive) {
-            self.setData({
-              publishFeedback: '保存期间有新修改，请再次发布。',
-            });
-          }
+          settle({
+            publishFeedback: '保存期间有新修改，请再次发布。',
+          });
           return null;
         }
         return self.data.isOrg && self.data.orgId
@@ -1774,15 +2011,16 @@ Page({
           : creator.publishPage(self._token);
       })
       .then(function (result) {
-        if (!result || !self._alive) return;
+        if (settled || !result || !self._alive) return;
         var slug = result.slug || self.data.slug;
         var publishedAt = result.published_at || new Date().toISOString();
         var url = creator.pageUrlFor(slug);
-        self.setData({
+        settle({
           slug: slug,
           publishedAt: publishedAt,
           publishedMetaCopy: publishedMetaText(publishedAt),
           pageUrl: url,
+          saveError: '',
           publishFeedback: self.data.isOrg
             ? '企业主页已发布，可使用分享按钮分享链接。'
             : '主页已发布，可使用分享按钮分享链接。',
@@ -1791,19 +2029,26 @@ Page({
         wx.showToast({ title: '已发布', icon: 'success' });
       })
       .catch(function (err) {
-        if (!self._alive) return;
+        if (settled || !self._alive) return;
         var network = err && err.code === 'NETWORK';
-        self.setData({
-          saveError: (err && err.message) || '发布失败',
+        var msg = (err && err.message) || '发布失败';
+        settle({
+          saveError: msg,
           publishFeedback: network
             ? '暂未确认发布结果，请检查网络后重试。'
             : '发布未完成，请检查错误后重试。',
         });
-      })
-      .then(function () {
-        self._publishPending = false;
-        if (self._alive) self.setData({ busy: false });
+        wx.showToast({
+          title: msg.length > 40 ? '发布失败，请重试' : msg,
+          icon: 'none',
+          duration: 2800,
+        });
       });
+  },
+
+  closePublishFeedback() {
+    if (this.data.busy) return;
+    this.setData({ publishFeedback: '' });
   },
 
   copyPageUrl() {
@@ -1851,6 +2096,548 @@ Page({
     this.setData({
       linksPanel: this.data.linksPanel === 'design' ? 'content' : 'design',
     });
+  },
+
+  /** 展开/收起紧凑内容卡 · 对齐 StudioContentCard */
+  toggleItemExpand(e) {
+    var key = (e.currentTarget.dataset && e.currentTarget.dataset.key) || '';
+    if (!key) return;
+    if (!this._expandedItems) this._expandedItems = Object.create(null);
+    this._expandedItems[key] = !this._expandedItems[key];
+    if (this._expandedItems[key] && this._toolPanel && this._toolPanel.key === key) {
+      this._toolPanel = null;
+    }
+    this.setData({
+      draft: refreshDecoratedDraft(this),
+    });
+  },
+
+  /** 紧凑卡工具条 · 对齐 StudioCardTools */
+  onCardTool(e) {
+    var ds = (e.currentTarget && e.currentTarget.dataset) || {};
+    var tool = ds.tool || '';
+    var key = ds.key || '';
+    var sIndex = Number(ds.sindex);
+    var iIndex = Number(ds.iindex);
+    var url = ds.url || '';
+    var imageKey = ds.imagekey || 'image_url';
+    if (!tool || !key) return;
+    var self = this;
+    if (tool === 'copy') {
+      this.copyItemUrl({ currentTarget: { dataset: { url: url } } });
+      return;
+    }
+    if (tool === 'settings') {
+      if (!this._expandedItems) this._expandedItems = Object.create(null);
+      this._expandedItems[key] = true;
+      this._toolPanel = null;
+      this.setData({ draft: refreshDecoratedDraft(this) });
+      return;
+    }
+    if (
+      this._toolPanel &&
+      this._toolPanel.key === key &&
+      this._toolPanel.tool === tool
+    ) {
+      this._toolPanel = null;
+      this.setData({ draft: refreshDecoratedDraft(this) });
+      return;
+    }
+    if (this._expandedItems) this._expandedItems[key] = false;
+    var status = tool === 'stats' ? '正在读取点击记录…' : '';
+    this._toolPanel = { key: key, tool: tool, status: status };
+    this.setData({ draft: refreshDecoratedDraft(this) });
+    if (tool === 'stats') {
+      var owner = this.ownerKey() || '';
+      var blocked = studioCardTools.statsBlockedReason(url, owner, this._token);
+      if (blocked) {
+        this._toolPanel = {
+          key: key,
+          tool: tool,
+          status: blocked,
+          blocked: true,
+        };
+        this.setData({ draft: refreshDecoratedDraft(this) });
+        return;
+      }
+      creator
+        .fetchStats(this._token)
+        .then(function (data) {
+          if (!self._alive || !self._toolPanel || self._toolPanel.key !== key) {
+            return;
+          }
+          self._toolPanel = {
+            key: key,
+            tool: 'stats',
+            status: studioCardTools.linkClickSummary(url, data || {}),
+            blocked: false,
+          };
+          self.setData({ draft: refreshDecoratedDraft(self) });
+        })
+        .catch(function () {
+          if (!self._alive || !self._toolPanel || self._toolPanel.key !== key) {
+            return;
+          }
+          self._toolPanel = {
+            key: key,
+            tool: 'stats',
+            status: '统计读取失败，请重新打开面板重试。',
+            blocked: false,
+          };
+          self.setData({ draft: refreshDecoratedDraft(self) });
+        });
+    }
+    if (tool === 'thumbnail') {
+      this.setData({
+        thumbWorks: [],
+        thumbWorksHint: '',
+        thumbSourceOpen: false,
+      });
+      if (!this._token) {
+        this.setData({
+          thumbWorksHint: '登录后可从素材库选择，仍可上传或填写图片链接。',
+        });
+        return;
+      }
+      creator
+        .fetchWorks(this._token, 'image', this.ownerKey() || undefined)
+        .then(function (data) {
+          if (!self._alive || !self._toolPanel || self._toolPanel.key !== key) {
+            return;
+          }
+          var works = (data && data.works) || [];
+          self.setData({
+            thumbWorks: works.map(function (w) {
+              return {
+                id: w.id,
+                url: w.url,
+                title: w.title || '未命名图片',
+              };
+            }),
+            thumbWorksHint: works.length
+              ? ''
+              : '素材库暂无图片，仍可上传或填写图片链接。',
+          });
+        })
+        .catch(function () {
+          if (!self._alive || !self._toolPanel || self._toolPanel.key !== key) {
+            return;
+          }
+          self.setData({
+            thumbWorks: [],
+            thumbWorksHint:
+              '素材库暂时无法读取，仍可上传或填写图片链接。',
+          });
+        });
+    }
+  },
+
+  closeCardTool() {
+    this._toolPanel = null;
+    this.setData({
+      draft: refreshDecoratedDraft(this),
+      thumbSourceOpen: false,
+      thumbWorks: [],
+      thumbWorksHint: '',
+      rulesDialogOpen: false,
+    });
+  },
+
+  openRulesDialog() {
+    this.setData({ rulesDialogOpen: true });
+  },
+
+  closeRulesDialog() {
+    this.setData({ rulesDialogOpen: false });
+  },
+
+  onRulesBelongPick(e) {
+    var opts = ['属于', '不属于'];
+    var pick = opts[Number(e.detail.value)];
+    if (pick) this.setData({ rulesBelong: pick });
+  },
+
+  onRulesActionPick(e) {
+    var opts = ['隐藏这条链接', '显示这条链接'];
+    var pick = opts[Number(e.detail.value)];
+    if (pick) this.setData({ rulesAction: pick });
+  },
+
+  openThumbSource(e) {
+    var ds = (e.currentTarget && e.currentTarget.dataset) || {};
+    this.setData({
+      thumbSourceOpen: true,
+      thumbSourceSIndex: Number(ds.sindex),
+      thumbSourceIIndex: Number(ds.iindex),
+      thumbSourceKey: ds.key || 'cover_url',
+    });
+  },
+
+  closeThumbSource() {
+    this.setData({ thumbSourceOpen: false });
+  },
+
+  pickThumbFromSource() {
+    var sIndex = this.data.thumbSourceSIndex;
+    var iIndex = this.data.thumbSourceIIndex;
+    var key = this.data.thumbSourceKey || 'cover_url';
+    this.setData({ thumbSourceOpen: false });
+    this.pickItemImage({
+      currentTarget: {
+        dataset: { sindex: sIndex, iindex: iIndex, key: key },
+      },
+    });
+  },
+
+  onThumbWorkPick(e) {
+    var ds = (e.currentTarget && e.currentTarget.dataset) || {};
+    var sIndex = Number(ds.sindex);
+    var iIndex = Number(ds.iindex);
+    var key = ds.key || 'cover_url';
+    var works = this.data.thumbWorks || [];
+    var pick = works[Number(e.detail.value)];
+    if (!pick || !pick.url) return;
+    this.patchItemField(sIndex, iIndex, key, pick.url);
+  },
+
+  onThumbUrlInput(e) {
+    var ds = (e.currentTarget && e.currentTarget.dataset) || {};
+    var sIndex = Number(ds.sindex);
+    var iIndex = Number(ds.iindex);
+    var key = ds.key || 'cover_url';
+    var value = (e.detail && e.detail.value) || '';
+    this.patchItemField(sIndex, iIndex, key, value);
+  },
+
+  onMoveDestination(e) {
+    var ds = (e.currentTarget && e.currentTarget.dataset) || {};
+    var sIndex = Number(ds.sindex);
+    var iIndex = Number(ds.iindex);
+    var sections = this._latestDraft.sections || [];
+    var section = sections[sIndex];
+    if (!section || !section.items || !section.items[iIndex]) return;
+    var decorated = (this.data.draft.sections || [])[sIndex];
+    var options = (decorated && decorated.moveOptions) || [];
+    var pick = options[Number(e.detail.value)];
+    if (!pick || !pick.value || pick.disabled) return;
+    var targetId = pick.value === 'standalone' ? null : pick.value;
+    try {
+      var next = collections.moveCollectionLink(
+        sections.slice(),
+        section.id,
+        iIndex,
+        targetId,
+        newId('sec_')
+      );
+      this.updateDraft({ sections: next });
+      wx.showToast({ title: '已整理', icon: 'success' });
+    } catch (err) {
+      wx.showToast({
+        title: (err && err.message) || '移动失败',
+        icon: 'none',
+      });
+    }
+  },
+
+  openCollection(e) {
+    var id = (e.currentTarget.dataset && e.currentTarget.dataset.id) || '';
+    if (!id) return;
+    var section = (this._latestDraft.sections || []).find(function (s) {
+      return s.id === id;
+    });
+    if (!section || !collections.isLinkCollection(section)) return;
+    this._activeCollectionId = id;
+    this.setData({
+      collectionOpen: true,
+      collectionId: id,
+      collectionTitle: section.title || '',
+      collectionLayout: section.collection_layout || 'list',
+      collectionVisible: section.visible !== false,
+      collectionMenuOpen: false,
+      collectionConfirmDelete: false,
+      collectionTitleFocus: false,
+      collectionLayouts: collections.COLLECTION_LAYOUTS.map(function (row) {
+        return Object.assign({}, row, {
+          selected: (section.collection_layout || 'list') === row.id,
+        });
+      }),
+      collectionMembers: this.buildCollectionMembers(section),
+      linksPanel: 'content',
+    });
+  },
+
+  closeCollection() {
+    this._activeCollectionId = '';
+    this.setData({
+      collectionOpen: false,
+      collectionId: '',
+      collectionMembers: [],
+      collectionMenuOpen: false,
+      collectionConfirmDelete: false,
+      collectionTitleFocus: false,
+    });
+  },
+
+  buildCollectionMembers(section) {
+    var sections = this._latestDraft.sections || [];
+    var members = [];
+    (section.items || []).forEach(function (item, index) {
+      members.push({
+        key: section.id + ':' + index,
+        sourceId: section.id,
+        index: index,
+        title: collections.titleOfItem(item),
+        desc: item.url || item.body || '内容卡片',
+        provider: collections.providerFor(item) || section.type || 'link',
+      });
+    });
+    sections.forEach(function (child) {
+      if (child.collection_id !== section.id) return;
+      (child.items || []).forEach(function (item, index) {
+        members.push({
+          key: child.id + ':' + index,
+          sourceId: child.id,
+          index: index,
+          title: collections.titleOfItem(item),
+          desc: item.url || item.body || '内容卡片',
+          provider: collections.providerFor(item) || child.type || 'link',
+        });
+      });
+    });
+    return members;
+  },
+
+  refreshCollectionPanel() {
+    var id = this.data.collectionId;
+    if (!id || !this.data.collectionOpen) return;
+    var section = (this._latestDraft.sections || []).find(function (s) {
+      return s.id === id;
+    });
+    if (!section) {
+      this.closeCollection();
+      return;
+    }
+    this.setData({
+      collectionTitle: section.title || '',
+      collectionLayout: section.collection_layout || 'list',
+      collectionVisible: section.visible !== false,
+      collectionLayouts: collections.COLLECTION_LAYOUTS.map(function (row) {
+        return Object.assign({}, row, {
+          selected: (section.collection_layout || 'list') === row.id,
+        });
+      }),
+      collectionMembers: this.buildCollectionMembers(section),
+    });
+  },
+
+  onCollectionTitle(e) {
+    var id = this.data.collectionId;
+    if (!id) return;
+    var title = (e.detail && e.detail.value) || '';
+    var sections = cloneDraft(this._latestDraft).sections.slice();
+    var idx = sections.findIndex(function (s) {
+      return s.id === id;
+    });
+    if (idx < 0) return;
+    sections[idx] = Object.assign({}, sections[idx], { title: title });
+    this.updateDraft({ sections: sections });
+    this.setData({ collectionTitle: title });
+  },
+
+  focusCollectionTitle() {
+    this.setData({ collectionTitleFocus: false });
+    var self = this;
+    setTimeout(function () {
+      if (self._alive) self.setData({ collectionTitleFocus: true });
+    }, 30);
+  },
+
+  onCollectionTitleBlur() {
+    this.setData({ collectionTitleFocus: false });
+  },
+
+  toggleCollectionMenu() {
+    this.setData({
+      collectionMenuOpen: !this.data.collectionMenuOpen,
+      collectionConfirmDelete: false,
+    });
+  },
+
+  pickCollectionLayout(e) {
+    var layout = (e.currentTarget.dataset && e.currentTarget.dataset.id) || 'list';
+    var id = this.data.collectionId;
+    if (!id) return;
+    var sections = cloneDraft(this._latestDraft).sections.slice();
+    var idx = sections.findIndex(function (s) {
+      return s.id === id;
+    });
+    if (idx < 0) return;
+    sections[idx] = Object.assign({}, sections[idx], {
+      collection_layout: layout,
+    });
+    this.updateDraft({ sections: sections });
+    this.setData({
+      collectionLayout: layout,
+      collectionLayouts: collections.COLLECTION_LAYOUTS.map(function (row) {
+        return Object.assign({}, row, { selected: layout === row.id });
+      }),
+    });
+  },
+
+  toggleCollectionVisible() {
+    var id = this.data.collectionId;
+    if (!id) return;
+    var sections = cloneDraft(this._latestDraft).sections.slice();
+    var idx = sections.findIndex(function (s) {
+      return s.id === id;
+    });
+    if (idx < 0) return;
+    var visible = sections[idx].visible === false;
+    sections[idx] = Object.assign({}, sections[idx], { visible: visible });
+    this.updateDraft({ sections: sections });
+    this.setData({
+      collectionVisible: visible,
+      collectionMenuOpen: false,
+    });
+  },
+
+  askDeleteCollection() {
+    this.setData({
+      collectionConfirmDelete: true,
+      collectionMenuOpen: false,
+    });
+  },
+
+  cancelDeleteCollection() {
+    this.setData({ collectionConfirmDelete: false });
+  },
+
+  deleteActiveCollection() {
+    var id = this.data.collectionId;
+    if (!id) return;
+    var sections = cloneDraft(this._latestDraft).sections.filter(function (s) {
+      return s.id !== id && s.collection_id !== id;
+    });
+    this.updateDraft({ sections: sections });
+    this.closeCollection();
+  },
+
+  addToCollection() {
+    this.setData({ collectionMenuOpen: false });
+    this.openAddContent();
+  },
+
+  editCollectionMember(e) {
+    var ds = (e.currentTarget && e.currentTarget.dataset) || {};
+    var sourceId = ds.source || '';
+    var index = Number(ds.index);
+    if (!sourceId || !Number.isInteger(index)) return;
+    var expandKey = sourceId + ':' + index;
+    if (!this._expandedItems) this._expandedItems = Object.create(null);
+    this._expandedItems[expandKey] = true;
+    this.closeCollection();
+    this.setData({
+      draft: refreshDecoratedDraft(this),
+      linksPanel: 'content',
+    });
+  },
+
+  removeCollectionMember(e) {
+    var ds = (e.currentTarget && e.currentTarget.dataset) || {};
+    var sourceId = ds.source || '';
+    var index = Number(ds.index);
+    if (!sourceId || !Number.isInteger(index)) return;
+    try {
+      var sections = collections.removeFromCollection(
+        cloneDraft(this._latestDraft).sections.slice(),
+        sourceId,
+        index,
+        newId('sec_')
+      );
+      this.updateDraft({ sections: sections });
+      this.refreshCollectionPanel();
+    } catch (err) {
+      wx.showToast({
+        title: (err && err.message) || '移出失败',
+        icon: 'none',
+      });
+    }
+  },
+
+  copyItemUrl(e) {
+    var url = (e.currentTarget.dataset && e.currentTarget.dataset.url) || '';
+    if (!url) {
+      wx.showToast({ title: '请先填写链接地址', icon: 'none' });
+      return;
+    }
+    wx.setClipboardData({
+      data: url,
+      success: function () {
+        wx.showToast({ title: '链接已复制', icon: 'success' });
+      },
+    });
+  },
+
+  pickItemImage(e) {
+    var ds = (e.currentTarget && e.currentTarget.dataset) || {};
+    var sIndex = Number(ds.sindex);
+    var iIndex = Number(ds.iindex);
+    var key = ds.key || 'image_url';
+    var self = this;
+    if (!this._token || this.data.busy) return;
+    this.setData({ busy: true });
+    pickFilePath()
+      .then(function (path) {
+        return creator.uploadImage(
+          self._token,
+          path,
+          'profile',
+          self.ownerKey() || undefined
+        );
+      })
+      .then(function (result) {
+        if (!self._alive) return;
+        self.setData({ busy: false });
+        if (!result || !result.url) return;
+        self.patchItemField(sIndex, iIndex, key, result.url);
+      })
+      .catch(function (err) {
+        if (!self._alive) return;
+        self.setData({ busy: false });
+        if (err && err.errMsg && /cancel/i.test(err.errMsg)) return;
+        wx.showToast({
+          title: (err && err.message) || '上传失败',
+          icon: 'none',
+        });
+      });
+  },
+
+  clearItemImage(e) {
+    var ds = (e.currentTarget && e.currentTarget.dataset) || {};
+    this.patchItemField(
+      Number(ds.sindex),
+      Number(ds.iindex),
+      ds.key || 'image_url',
+      ''
+    );
+  },
+
+  patchItemField(sIndex, iIndex, key, value) {
+    var sections = cloneDraft(this._latestDraft).sections.slice();
+    if (!sections[sIndex] || !sections[sIndex].items[iIndex]) return;
+    var items = sections[sIndex].items.slice();
+    var item = Object.assign({}, items[iIndex]);
+    item[key] = value;
+    items[iIndex] = item;
+    sections[sIndex] = Object.assign({}, sections[sIndex], { items: items });
+    this.updateDraft({ sections: sections });
+  },
+
+  onItemLayout(e) {
+    var ds = (e.currentTarget && e.currentTarget.dataset) || {};
+    var idx = Number(e.detail && e.detail.value);
+    var layout = idx === 1 ? 'featured' : 'classic';
+    this.patchItemField(Number(ds.sindex), Number(ds.iindex), 'layout', layout);
   },
 
   toggleBranding(e) {
@@ -2175,6 +2962,7 @@ Page({
       type: 'links',
       title: '合集',
       visible: true,
+      collection_layout: 'list',
       items: [],
     });
     this.updateDraft({ sections: sections });
@@ -2183,11 +2971,14 @@ Page({
   openPreview() {
     var self = this;
     if (!this._token || this.data.busy) return;
+    this.stopPreviewAudio();
     this.setData({
       previewOpen: true,
       previewBusy: true,
       previewError: '',
       previewBytes: 0,
+      previewModel: null,
+      previewAudioKey: '',
     });
     if (this._saveTimer) {
       clearTimeout(this._saveTimer);
@@ -2203,26 +2994,36 @@ Page({
         if (!ok) {
           throw new Error('草稿尚未保存，请返回编辑处理后重试。');
         }
-        // 拉取 SSR HTML 校验草稿可读；界面用本地可视化预览对齐 App
+        // App：存草稿后拉 SSR HTML 进 iframe。微信不能 srcDoc，
+        // 故用同一份草稿配置做原生所见即所得（对齐公开页 render-page）。
+        var model = homePreview.viewModel(self._latestDraft, {
+          slug: self.data.slug,
+          draft: true,
+        });
         return creator
           .fetchPreviewHtml(
             self._token,
             '',
             self.data.isOrg ? self.data.orgId : ''
           )
+          .then(function (html) {
+            return { model: model, html: html || '' };
+          })
           .catch(function (err) {
-          // 网络失败仍展示本地草稿预览，但标出错误
-          self.setData({
-            previewError: (err && err.message) || '',
+            return {
+              model: model,
+              html: '',
+              error: (err && err.message) || '',
+            };
           });
-          return '';
-        });
       })
-      .then(function (html) {
+      .then(function (bundle) {
         if (!self._alive) return;
         self.setData({
           previewBusy: false,
-          previewBytes: (html && html.length) || 0,
+          previewModel: bundle.model,
+          previewBytes: (bundle.html && bundle.html.length) || 0,
+          previewError: bundle.error || '',
         });
       })
       .catch(function (err) {
@@ -2230,12 +3031,101 @@ Page({
         self.setData({
           previewBusy: false,
           previewError: (err && err.message) || '预览载入失败',
+          previewModel: homePreview.viewModel(self._latestDraft, {
+            slug: self.data.slug,
+            draft: true,
+          }),
         });
       });
   },
 
   closePreview() {
-    this.setData({ previewOpen: false, previewBusy: false, previewError: '' });
+    this.stopPreviewAudio();
+    this.setData({
+      previewOpen: false,
+      previewBusy: false,
+      previewError: '',
+      previewModel: null,
+      previewAudioKey: '',
+    });
+  },
+
+  onPreviewShare() {
+    this.openLinksShare();
+  },
+
+  onPreviewOpenItem(e) {
+    var detail = (e && e.detail) || {};
+    var url = detail.url || '';
+    if (!url) return;
+    if (String(url).indexOf('mailto:') === 0) {
+      var mail = String(url).slice(7);
+      profileShare
+        .copyShareUrlFallback(mail, '邮箱已复制')
+        .then(function (msg) {
+          wx.showToast({ title: msg, icon: 'none' });
+        })
+        .catch(function () {
+          wx.showToast({ title: '复制失败', icon: 'none' });
+        });
+      return;
+    }
+    openLinkService.openHttps(url, {
+      title: detail.title || '',
+      note: detail.note || '',
+    });
+  },
+
+  onPreviewAudioTap(e) {
+    var detail = (e && e.detail) || {};
+    var key = detail.key || '';
+    var url = detail.url || '';
+    var title = detail.title || '';
+    if (!url) {
+      wx.showToast({ title: '音频不可用', icon: 'none' });
+      return;
+    }
+    if (!detail.direct) {
+      openLinkService.openHttps(url, { title: title, note: detail.note || '' });
+      return;
+    }
+    if (this.data.previewAudioKey === key) {
+      this.stopPreviewAudio();
+      return;
+    }
+    this.stopPreviewAudio();
+    var self = this;
+    try {
+      var audio = wx.createInnerAudioContext();
+      this._previewAudio = audio;
+      audio.src = url;
+      audio.onEnded(function () {
+        self.setData({ previewAudioKey: '' });
+      });
+      audio.onError(function () {
+        self.setData({ previewAudioKey: '' });
+        wx.showToast({ title: '播放失败', icon: 'none' });
+      });
+      audio.play();
+      this.setData({ previewAudioKey: key });
+    } catch (err) {
+      openLinkService.openHttps(url, { title: title });
+    }
+  },
+
+  stopPreviewAudio() {
+    if (this._previewAudio) {
+      try {
+        this._previewAudio.stop();
+        this._previewAudio.destroy();
+      } catch (e) {
+        /* ignore */
+      }
+      this._previewAudio = null;
+    }
+    if (this.data.previewAudioKey) {
+      this.setData({ previewAudioKey: '' });
+    }
   },
 
   noop() {},

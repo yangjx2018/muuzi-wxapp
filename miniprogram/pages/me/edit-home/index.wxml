@@ -1,4 +1,5 @@
 <app-banner
+  wx:if="{{!linksOnly}}"
   section="{{isOrg ? '编辑企业主页' : '编辑主页'}}"
   show-back
   auto-back="{{false}}"
@@ -7,17 +8,44 @@
   fallback-tab="{{!isOrg}}"
 />
 <view class="eh {{linksOnly ? 'eh-links-mode' : ''}}">
-  <!-- linksOnly：系统导航栏提供返回与标题；分享钮对齐胶囊下方 -->
-  <view wx:if="{{linksOnly}}" class="eh-links-share-bar" style="padding-right: {{sharePadRight}}px;">
-    <view class="eh-links-share-btn" bindtap="openLinksShare" aria-label="分享主页">
-      <image
-        class="eh-share-img"
-        src="/assets/icon-ui-share-ink.png"
-        mode="aspectFit"
-        aria-hidden="true"
-      />
+  <!-- linksOnly：对齐 App linksHeader · 主页内容（fixed，不随页滚） -->
+  <view
+    wx:if="{{linksOnly}}"
+    class="eh-links-nav-wrap"
+    style="padding-top: {{navPadTop}}px;"
+  >
+    <view class="eh-links-nav" style="height: {{navHeight}}px;">
+      <view class="eh-links-nav-inner" style="height: {{navHeight}}px;">
+        <view class="eh-links-header-btn" bindtap="goBack" aria-label="返回">
+          <image
+            class="eh-share-img"
+            src="/assets/icon-ui-back-ink.png"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
+        </view>
+        <text class="eh-links-title">主页内容</text>
+        <view
+          class="eh-links-header-btn"
+          bindtap="openLinksShare"
+          aria-label="分享主页"
+          style="margin-right: {{sharePadRight}}px;"
+        >
+          <image
+            class="eh-share-img"
+            src="/assets/icon-ui-share-ink.png"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
+        </view>
+      </view>
     </view>
   </view>
+  <view
+    wx:if="{{linksOnly}}"
+    class="eh-links-nav-spacer"
+    style="height: {{navTotalHeight}}px;"
+  />
 
   <view wx:if="{{phase === 'connecting'}}" class="eh-state" role="status">正在连接平台…</view>
 
@@ -144,6 +172,40 @@
     </view>
 
     <view wx:if="{{linksPanel === 'design'}}" class="eh-links-panel">
+      <view class="eh-section-label">主页封面</view>
+      <view class="eh-cover-box" bindtap="pickCover">
+        <image
+          wx:if="{{draft.cover_url}}"
+          class="eh-cover-img"
+          src="{{draft.cover_url}}"
+          mode="aspectFill"
+          style="object-position: center {{draft.cover_position || 50}}%;"
+        />
+        <text wx:else class="eh-cover-ph">添加一张代表你的封面</text>
+      </view>
+      <view class="eh-cover-actions">
+        <button class="eh-btn eh-btn-ghost eh-btn-inline" bindtap="pickCover" disabled="{{busy}}">
+          {{draft.cover_url ? '更换封面' : '上传封面'}}
+        </button>
+        <button
+          wx:if="{{draft.cover_url}}"
+          class="eh-btn eh-btn-ghost eh-btn-inline"
+          bindtap="removeCover"
+          disabled="{{busy}}"
+        >移除封面</button>
+      </view>
+      <view wx:if="{{draft.cover_url}}" class="eh-field">
+        <text class="eh-label">上下取景</text>
+        <slider
+          min="0"
+          max="100"
+          value="{{draft.cover_position || 50}}"
+          activeColor="#2f6df4"
+          block-size="20"
+          bindchanging="onCoverPosition"
+          bindchange="onCoverPosition"
+        />
+      </view>
       <view class="eh-section-label">主页配色</view>
       <view class="eh-skins">
         <view
@@ -187,16 +249,28 @@
     </view>
 
     <block wx:for="{{draft.sections}}" wx:key="id" wx:for-item="section" wx:for-index="sIndex">
-      <view wx:if="{{!section.isCollectionChild}}" class="eh-card eh-section-card">
-        <view class="eh-section-head">
-          <text class="eh-section-type">{{section.typeLabel}}</text>
-          <input
-            class="eh-input eh-section-title"
-            value="{{section.title}}"
-            placeholder="区块标题"
-            data-sindex="{{sIndex}}"
-            bindinput="onSectionTitle"
-          />
+      <!-- 合集摘要 · 对齐 MobileCollectionSummary -->
+      <view
+        wx:if="{{!section.isCollectionChild && section.isLinkCollection}}"
+        class="eh-col-summary {{section.visible === false ? 'eh-card-off' : ''}}"
+      >
+        <view class="eh-col-summary-head">
+          <view class="eh-scc-handle" aria-label="拖动卡片排序" aria-hidden="true">
+            <view class="eh-scc-handle-dot"></view>
+            <view class="eh-scc-handle-dot"></view>
+            <view class="eh-scc-handle-dot"></view>
+            <view class="eh-scc-handle-dot"></view>
+            <view class="eh-scc-handle-dot"></view>
+            <view class="eh-scc-handle-dot"></view>
+          </view>
+          <view
+            class="eh-col-summary-title"
+            data-id="{{section.id}}"
+            bindtap="openCollection"
+          >
+            <text class="eh-col-summary-name">{{section.title || '添加合集标题'}}</text>
+            <text class="eh-col-summary-meta">{{section.memberCount}} 张内容卡片{{section.visible === false ? ' · 已隐藏' : ''}}</text>
+          </view>
           <switch
             checked="{{section.visible !== false}}"
             color="#2f6df4"
@@ -204,54 +278,497 @@
             bindchange="toggleSectionVisible"
           />
         </view>
-        <view class="eh-section-tools">
-          <text data-sindex="{{sIndex}}" data-delta="-1" bindtap="moveSection">上移</text>
-          <text data-sindex="{{sIndex}}" data-delta="1" bindtap="moveSection">下移</text>
-          <text class="eh-remove" data-sindex="{{sIndex}}" bindtap="removeSection">删除这个区块</text>
-        </view>
         <view
+          class="eh-col-prompt"
+          data-id="{{section.id}}"
+          bindtap="openCollection"
+        >
+          <view class="eh-col-prompt-icon" aria-hidden="true">
+            <view class="eh-col-prompt-grid">
+              <view class="eh-col-prompt-cell"></view>
+              <view class="eh-col-prompt-cell"></view>
+              <view class="eh-col-prompt-cell"></view>
+              <view class="eh-col-prompt-cell"></view>
+            </view>
+          </view>
+          <text>{{section.memberCount ? '管理合集内容与布局' : '点此向合集添加内容'}}</text>
+          <text class="eh-col-prompt-chevron">›</text>
+        </view>
+      </view>
+
+      <!-- 普通区块 / 单卡 · 对齐 StudioContentCard compact + StudioCardTools -->
+      <view
+        wx:elif="{{!section.isCollectionChild}}"
+        class="eh-scc {{section.visible === false ? 'eh-card-off' : ''}}"
+      >
+        <view class="eh-scc-head">
+          <view class="eh-scc-handle" aria-label="拖动卡片排序" aria-hidden="true">
+            <view class="eh-scc-handle-dot"></view>
+            <view class="eh-scc-handle-dot"></view>
+            <view class="eh-scc-handle-dot"></view>
+            <view class="eh-scc-handle-dot"></view>
+            <view class="eh-scc-handle-dot"></view>
+            <view class="eh-scc-handle-dot"></view>
+          </view>
+          <text class="eh-scc-type">{{section.typeLabel}}</text>
+          <input
+            class="eh-scc-section-title"
+            value="{{section.title}}"
+            placeholder="区块标题"
+            maxlength="40"
+            data-sindex="{{sIndex}}"
+            bindinput="onSectionTitle"
+          />
+          <view class="eh-scc-tools">
+            <view
+              class="eh-scc-move"
+              data-sindex="{{sIndex}}"
+              data-delta="-1"
+              bindtap="moveSection"
+              aria-label="上移区块"
+            >↑</view>
+            <view
+              class="eh-scc-move"
+              data-sindex="{{sIndex}}"
+              data-delta="1"
+              bindtap="moveSection"
+              aria-label="下移区块"
+            >↓</view>
+            <switch
+              checked="{{section.visible !== false}}"
+              color="#2f6df4"
+              data-sindex="{{sIndex}}"
+              bindchange="toggleSectionVisible"
+            />
+          </view>
+        </view>
+
+        <block
           wx:for="{{section.items}}"
-          wx:key="index"
+          wx:key="expandKey"
           wx:for-item="item"
           wx:for-index="iIndex"
-          class="eh-item"
         >
-          <block wx:for="{{item.fieldRows}}" wx:key="key" wx:for-item="field">
-            <text class="eh-item-field-label">{{field.label}}</text>
-            <textarea
-              wx:if="{{field.isMultiline}}"
-              class="eh-textarea eh-item-field"
-              value="{{field.value}}"
-              placeholder="{{field.placeholder}}"
-              auto-height
-              data-sindex="{{sIndex}}"
-              data-iindex="{{iIndex}}"
-              data-key="{{field.key}}"
-              bindinput="onItemField"
-            />
+          <view class="eh-scc-card {{item.isSocialCard ? 'eh-scc-social' : ''}}">
+            <view class="eh-scc-title-row">
+              <input
+                class="eh-scc-title"
+                value="{{item.titleValue}}"
+                placeholder="添加标题"
+                maxlength="60"
+                data-sindex="{{sIndex}}"
+                data-iindex="{{iIndex}}"
+                data-key="{{item.titleKey}}"
+                bindinput="onItemField"
+              />
+              <view
+                class="eh-scc-expand"
+                data-key="{{item.expandKey}}"
+                bindtap="toggleItemExpand"
+                aria-label="{{item.expanded ? '收起内容设置' : '展开内容设置'}}"
+              >{{item.expanded ? '⌃' : '⌄'}}</view>
+            </view>
             <input
-              wx:elif="{{field.isText || field.isColor}}"
-              class="eh-input"
-              value="{{field.value}}"
-              placeholder="{{field.placeholder || (field.isColor ? '配色：rose / sky…' : '')}}"
+              wx:if="{{section.type !== 'skills'}}"
+              class="eh-scc-url"
+              value="{{item.url}}"
+              placeholder="添加 URL"
               data-sindex="{{sIndex}}"
               data-iindex="{{iIndex}}"
-              data-key="{{field.key}}"
+              data-key="url"
               bindinput="onItemField"
             />
-          </block>
-          <text
-            class="eh-remove"
+
+            <!-- StudioCardTools 八格工具条 · SVG 路径对齐 App StudioCardTools.tsx -->
+            <view wx:if="{{section.type !== 'skills'}}" class="eh-scc-toolbar" aria-label="卡片工具">
+              <view
+                class="eh-scc-tool eh-scc-tool-settings {{item.toolBrand ? 'eh-scc-brand-' + item.toolBrand : ''}} {{item.expanded && !item.activeTool ? 'eh-scc-tool-on' : ''}}"
+                data-tool="settings"
+                data-key="{{item.expandKey}}"
+                data-sindex="{{sIndex}}"
+                data-iindex="{{iIndex}}"
+                data-url="{{item.url}}"
+                data-brand="{{item.toolBrand}}"
+                bindtap="onCardTool"
+                aria-label="链接设置"
+              >
+                <image class="eh-scc-brand" src="{{item.toolBrandSrc}}" mode="aspectFit" />
+              </view>
+              <view
+                class="eh-scc-tool {{item.activeTool === 'thumbnail' ? 'eh-scc-tool-on' : ''}} {{item.imageUrl && item.activeTool !== 'thumbnail' ? 'eh-scc-tool-thumb' : ''}}"
+                data-tool="thumbnail"
+                data-key="{{item.expandKey}}"
+                data-sindex="{{sIndex}}"
+                data-iindex="{{iIndex}}"
+                data-imagekey="{{item.imageKey}}"
+                data-url="{{item.url}}"
+                bindtap="onCardTool"
+                aria-label="缩略图设置"
+              >
+                <image class="eh-scc-tool-ico" src="/assets/tool-thumbnail.svg" mode="aspectFit" aria-hidden="true" />
+              </view>
+              <view
+                class="eh-scc-tool {{item.activeTool === 'highlight' ? 'eh-scc-tool-on' : ''}}"
+                data-tool="highlight"
+                data-key="{{item.expandKey}}"
+                data-sindex="{{sIndex}}"
+                data-iindex="{{iIndex}}"
+                data-url="{{item.url}}"
+                bindtap="onCardTool"
+                aria-label="重点展示"
+              >
+                <image class="eh-scc-tool-ico" src="/assets/tool-highlight.svg" mode="aspectFit" aria-hidden="true" />
+              </view>
+              <view
+                class="eh-scc-tool {{item.activeTool === 'rules' ? 'eh-scc-tool-on' : ''}}"
+                data-tool="rules"
+                data-key="{{item.expandKey}}"
+                data-sindex="{{sIndex}}"
+                data-iindex="{{iIndex}}"
+                data-url="{{item.url}}"
+                bindtap="onCardTool"
+                aria-label="显示规则"
+              >
+                <image class="eh-scc-tool-ico" src="/assets/tool-rules.svg" mode="aspectFit" aria-hidden="true" />
+              </view>
+              <view
+                class="eh-scc-tool {{item.activeTool === 'schedule' ? 'eh-scc-tool-on' : ''}}"
+                data-tool="schedule"
+                data-key="{{item.expandKey}}"
+                data-sindex="{{sIndex}}"
+                data-iindex="{{iIndex}}"
+                data-url="{{item.url}}"
+                bindtap="onCardTool"
+                aria-label="定时展示"
+              >
+                <image class="eh-scc-tool-ico" src="/assets/tool-schedule.svg" mode="aspectFit" aria-hidden="true" />
+              </view>
+              <view
+                class="eh-scc-tool {{item.activeTool === 'access' ? 'eh-scc-tool-on' : ''}}"
+                data-tool="access"
+                data-key="{{item.expandKey}}"
+                data-sindex="{{sIndex}}"
+                data-iindex="{{iIndex}}"
+                data-url="{{item.url}}"
+                bindtap="onCardTool"
+                aria-label="访问限制"
+              >
+                <image class="eh-scc-tool-ico" src="/assets/tool-access.svg" mode="aspectFit" aria-hidden="true" />
+              </view>
+              <view
+                class="eh-scc-tool eh-scc-tool-stats {{item.activeTool === 'stats' ? 'eh-scc-tool-on' : ''}}"
+                data-tool="stats"
+                data-key="{{item.expandKey}}"
+                data-sindex="{{sIndex}}"
+                data-iindex="{{iIndex}}"
+                data-url="{{item.url}}"
+                bindtap="onCardTool"
+                aria-label="点击统计"
+              >
+                <image class="eh-scc-tool-ico" src="/assets/tool-stats.svg" mode="aspectFit" aria-hidden="true" />
+                <text>统计</text>
+              </view>
+              <view
+                class="eh-scc-tool"
+                data-tool="copy"
+                data-key="{{item.expandKey}}"
+                data-sindex="{{sIndex}}"
+                data-iindex="{{iIndex}}"
+                data-url="{{item.url}}"
+                bindtap="onCardTool"
+                aria-label="复制链接"
+              >
+                <image class="eh-scc-tool-ico" src="/assets/tool-copy.svg" mode="aspectFit" aria-hidden="true" />
+              </view>
+            </view>
+
+            <!-- 工具面板 -->
+            <view wx:if="{{item.activeTool}}" class="eh-scc-panel" aria-label="卡片工具面板">
+              <view class="eh-scc-panel-head">
+                <text class="eh-scc-panel-title">
+                  {{item.activeTool === 'thumbnail' ? '缩略图设置' : item.activeTool === 'stats' ? '点击统计' : item.unavailableTitle}}
+                </text>
+                <text class="eh-scc-panel-close" bindtap="closeCardTool" aria-label="收起卡片工具">×</text>
+              </view>
+
+              <block wx:if="{{item.activeTool === 'thumbnail'}}">
+                <text class="eh-scc-panel-desc">为这条链接添加图片或图标。</text>
+                <image
+                  wx:if="{{item.imageUrl}}"
+                  class="eh-scc-panel-thumb"
+                  src="{{item.imageUrl}}"
+                  mode="aspectFill"
+                />
+                <view
+                  class="eh-scc-panel-action"
+                  data-sindex="{{sIndex}}"
+                  data-iindex="{{iIndex}}"
+                  data-key="{{item.imageKey}}"
+                  bindtap="openThumbSource"
+                >{{busy ? '上传中…' : item.imageUrl ? '更换缩略图' : '设置缩略图'}}</view>
+                <view
+                  wx:if="{{item.imageUrl}}"
+                  class="eh-scc-panel-action"
+                  data-sindex="{{sIndex}}"
+                  data-iindex="{{iIndex}}"
+                  data-key="{{item.imageKey}}"
+                  bindtap="clearItemImage"
+                >移除缩略图</view>
+                <text wx:if="{{thumbWorksHint}}" class="eh-scc-panel-status" role="status">{{thumbWorksHint}}</text>
+                <view class="eh-scc-panel-field">
+                  <text class="eh-scc-panel-field-label">从素材库选择</text>
+                  <picker
+                    mode="selector"
+                    range="{{thumbWorks}}"
+                    range-key="title"
+                    disabled="{{!thumbWorks.length}}"
+                    data-sindex="{{sIndex}}"
+                    data-iindex="{{iIndex}}"
+                    data-key="{{item.imageKey}}"
+                    bindchange="onThumbWorkPick"
+                  >
+                    <view class="eh-scc-panel-select {{!thumbWorks.length ? 'eh-scc-panel-select-off' : ''}}">
+                      选择图片
+                    </view>
+                  </picker>
+                </view>
+                <view class="eh-scc-panel-field">
+                  <text class="eh-scc-panel-field-label">使用图片链接</text>
+                  <input
+                    class="eh-scc-panel-input"
+                    value="{{item.imageUrl}}"
+                    placeholder="https://"
+                    data-sindex="{{sIndex}}"
+                    data-iindex="{{iIndex}}"
+                    data-key="{{item.imageKey}}"
+                    bindinput="onThumbUrlInput"
+                  />
+                </view>
+              </block>
+
+              <block wx:elif="{{item.activeTool === 'stats'}}">
+                <!-- 对齐 App：blocked 文案在 tabs 前；insightTabs；范围说明；再 status -->
+                <text
+                  wx:if="{{item.toolStatsBlocked}}"
+                  class="eh-scc-panel-status"
+                  role="status"
+                >{{item.toolStatsBlocked}}</text>
+                <view class="eh-scc-insight-tabs" aria-label="统计维度">
+                  <text class="eh-scc-insight-tab eh-scc-insight-tab-on">点击</text>
+                  <text class="eh-scc-insight-tab">流量来源（未开通）</text>
+                  <text class="eh-scc-insight-tab">国家／地区（未开通）</text>
+                </view>
+                <text class="eh-scc-panel-desc">统计范围：最近 30 天（UTC）。相同目标地址合并统计，不区分查询参数。</text>
+                <text
+                  wx:if="{{item.toolStatus && !item.toolStatsBlocked}}"
+                  class="eh-scc-panel-status"
+                  role="status"
+                >{{item.toolStatus}}</text>
+              </block>
+
+              <block wx:elif="{{item.unavailableTitle}}">
+                <text class="eh-scc-panel-desc">{{item.unavailableDesc}}</text>
+                <text
+                  wx:if="{{item.unavailableShowTopBadge}}"
+                  class="eh-scc-unavailable"
+                >未开通</text>
+
+                <!-- 重点展示 / 访问限制 · 对齐 App option 行 -->
+                <block wx:if="{{item.unavailableControl === 'radio' || item.unavailableControl === 'checkbox'}}">
+                  <view
+                    wx:for="{{item.unavailableOptions}}"
+                    wx:key="key"
+                    wx:for-item="opt"
+                    class="eh-scc-unavail-opt"
+                  >
+                    <view
+                      class="eh-scc-unavail-check {{item.unavailableControl === 'radio' ? 'eh-scc-unavail-radio' : ''}}"
+                      aria-hidden="true"
+                    ></view>
+                    <view class="eh-scc-unavail-copy">
+                      <text class="eh-scc-unavail-label">{{opt.label}}</text>
+                      <text wx:if="{{opt.detail}}" class="eh-scc-unavail-detail">{{opt.detail}}</text>
+                    </view>
+                    <text class="eh-scc-unavailable">未开通</text>
+                  </view>
+                </block>
+
+                <!-- 定时展示 · 对齐 App disabled datetime-local：未开通不可点选 -->
+                <block wx:elif="{{item.unavailableControl === 'schedule'}}">
+                  <view class="eh-scc-panel-field">
+                    <text class="eh-scc-panel-field-label">开始展示</text>
+                    <view class="eh-scc-datetime eh-scc-datetime-off" aria-label="开始展示日期时间（未开通）">
+                      <picker mode="date" disabled="{{true}}">
+                        <view class="eh-scc-datetime-slot eh-scc-datetime-empty"></view>
+                      </picker>
+                      <picker mode="time" disabled="{{true}}">
+                        <view class="eh-scc-datetime-slot eh-scc-datetime-empty"></view>
+                      </picker>
+                      <text class="eh-scc-datetime-chevron" aria-hidden="true">▾</text>
+                    </view>
+                  </view>
+                  <view class="eh-scc-panel-field">
+                    <text class="eh-scc-panel-field-label">结束展示</text>
+                    <view class="eh-scc-datetime eh-scc-datetime-off" aria-label="结束展示日期时间（未开通）">
+                      <picker mode="date" disabled="{{true}}">
+                        <view class="eh-scc-datetime-slot eh-scc-datetime-empty"></view>
+                      </picker>
+                      <picker mode="time" disabled="{{true}}">
+                        <view class="eh-scc-datetime-slot eh-scc-datetime-empty"></view>
+                      </picker>
+                      <text class="eh-scc-datetime-chevron" aria-hidden="true">▾</text>
+                    </view>
+                  </view>
+                </block>
+
+                <!-- 显示规则 · 对齐 App 查看规则设置 → 国家／地区规则 dialog -->
+                <block wx:elif="{{item.unavailableControl === 'rules'}}">
+                  <view class="eh-scc-panel-action" bindtap="openRulesDialog">查看规则设置</view>
+                </block>
+
+                <text
+                  wx:if="{{item.unavailableCurrent}}"
+                  class="eh-scc-panel-status"
+                >{{item.unavailableCurrent}}</text>
+              </block>
+            </view>
+
+            <!-- 展开体 · 对齐 App EditHomeScreen itemFields + itemTools -->
+            <view wx:if="{{item.expanded}}" class="eh-scc-body">
+              <view class="eh-scc-item">
+                <view class="eh-scc-item-fields">
+                  <block wx:for="{{item.fieldRows}}" wx:key="key" wx:for-item="field">
+                    <view class="eh-scc-field">
+                      <text class="eh-scc-field-label">{{field.label}}</text>
+                      <view wx:if="{{field.isImage}}" class="eh-scc-image-row">
+                        <image
+                          wx:if="{{field.value}}"
+                          class="eh-scc-thumb"
+                          src="{{field.value}}"
+                          mode="aspectFill"
+                        />
+                        <view wx:else class="eh-scc-thumb eh-scc-thumb-empty"></view>
+                        <button
+                          class="eh-btn eh-btn-ghost eh-btn-inline"
+                          data-sindex="{{sIndex}}"
+                          data-iindex="{{iIndex}}"
+                          data-key="{{field.key}}"
+                          bindtap="pickItemImage"
+                        >{{field.value ? '换一张' : '上传'}}</button>
+                        <text
+                          wx:if="{{field.value}}"
+                          class="eh-scc-img-clear"
+                          data-sindex="{{sIndex}}"
+                          data-iindex="{{iIndex}}"
+                          data-key="{{field.key}}"
+                          bindtap="clearItemImage"
+                          aria-label="去掉图片"
+                        >×</text>
+                      </view>
+                      <picker
+                        wx:elif="{{field.isColor}}"
+                        mode="selector"
+                        range="{{colorOptions}}"
+                        range-key="label"
+                        data-sindex="{{sIndex}}"
+                        data-iindex="{{iIndex}}"
+                        data-key="{{field.key}}"
+                        bindchange="onItemColor"
+                      >
+                        <view class="eh-scc-field-input">{{field.colorLabel || field.value || '默认'}}</view>
+                      </picker>
+                      <textarea
+                        wx:elif="{{field.isMultiline}}"
+                        class="eh-scc-field-textarea"
+                        value="{{field.value}}"
+                        placeholder="{{field.placeholder}}"
+                        auto-height
+                        maxlength="400"
+                        data-sindex="{{sIndex}}"
+                        data-iindex="{{iIndex}}"
+                        data-key="{{field.key}}"
+                        bindinput="onItemField"
+                      />
+                      <input
+                        wx:else
+                        class="eh-scc-field-input"
+                        value="{{field.value}}"
+                        placeholder="{{field.placeholder}}"
+                        data-sindex="{{sIndex}}"
+                        data-iindex="{{iIndex}}"
+                        data-key="{{field.key}}"
+                        bindinput="onItemField"
+                      />
+                    </view>
+                  </block>
+                </view>
+                <view class="eh-scc-item-tools">
+                  <view
+                    class="eh-scc-item-tool {{iIndex === 0 ? 'eh-scc-item-tool-off' : ''}}"
+                    data-sindex="{{sIndex}}"
+                    data-iindex="{{iIndex}}"
+                    data-delta="-1"
+                    bindtap="moveItem"
+                    aria-label="上移"
+                  >↑</view>
+                  <view
+                    class="eh-scc-item-tool {{iIndex === section.items.length - 1 ? 'eh-scc-item-tool-off' : ''}}"
+                    data-sindex="{{sIndex}}"
+                    data-iindex="{{iIndex}}"
+                    data-delta="1"
+                    bindtap="moveItem"
+                    aria-label="下移"
+                  >↓</view>
+                  <view
+                    class="eh-scc-item-tool eh-scc-item-tool-remove"
+                    data-sindex="{{sIndex}}"
+                    data-iindex="{{iIndex}}"
+                    bindtap="removeLinkItem"
+                    aria-label="删除这一条"
+                  >×</view>
+                </view>
+              </view>
+              <!-- 卡片布局 · 对齐 App StudioContentCard label.layout（body 内、item 外） -->
+              <view wx:if="{{section.type !== 'skills'}}" class="eh-scc-layout">
+                <text class="eh-scc-layout-label">卡片布局</text>
+                <picker
+                  mode="selector"
+                  range="{{layoutPicker}}"
+                  range-key="label"
+                  data-sindex="{{sIndex}}"
+                  data-iindex="{{iIndex}}"
+                  bindchange="onItemLayout"
+                >
+                  <view class="eh-scc-layout-select">{{item.layoutLabel}}</view>
+                </picker>
+              </view>
+            </view>
+          </view>
+
+          <!-- 整理内容 · 对齐 CollectionDestination -->
+          <view wx:if="{{section.showDestination}}" class="eh-scc-dest">
+            <text class="eh-scc-dest-label">整理内容</text>
+            <picker
+              mode="selector"
+              range="{{section.moveOptions}}"
+              range-key="label"
+              data-sindex="{{sIndex}}"
+              data-iindex="{{iIndex}}"
+              bindchange="onMoveDestination"
+            >
+              <view class="eh-scc-dest-select">移到…</view>
+            </picker>
+          </view>
+        </block>
+
+        <view class="eh-scc-foot">
+          <button
+            class="eh-btn eh-btn-ghost"
             data-sindex="{{sIndex}}"
-            data-iindex="{{iIndex}}"
-            bindtap="removeLinkItem"
-          >删除条目</text>
+            bindtap="addLinkItem"
+          >＋ 添加一条</button>
+          <text class="eh-remove" data-sindex="{{sIndex}}" bindtap="removeSection">删除这个区块</text>
         </view>
-        <button
-          class="eh-btn eh-btn-ghost"
-          data-sindex="{{sIndex}}"
-          bindtap="addLinkItem"
-        >＋ 添加一条</button>
       </view>
     </block>
 
@@ -270,8 +787,148 @@
 
     <view class="eh-links-footnote">草稿自动保存 · 发布后访客可见</view>
 
+    <!-- 合集编辑器 · 对齐 App MobileCollectionEditor（图2）全屏 -->
+    <view
+      wx:if="{{collectionOpen}}"
+      class="eh-col-page"
+      catchtouchmove="noop"
+    >
+      <view class="eh-col-page-safe" style="padding-top: {{navPadTop}}px;">
+        <view class="eh-col-page-head" style="height: {{navHeight}}px;">
+          <view class="eh-col-done" bindtap="closeCollection">完成</view>
+          <text class="eh-col-status">{{statusCopy}}</text>
+          <view
+            class="eh-col-more"
+            bindtap="toggleCollectionMenu"
+            aria-label="合集更多操作"
+            aria-expanded="{{collectionMenuOpen}}"
+          >•••</view>
+        </view>
+      </view>
+
+      <scroll-view scroll-y class="eh-col-page-scroll" enhanced show-scrollbar="{{false}}">
+        <view class="eh-col-intro">
+          <view class="eh-col-title-row">
+            <input
+              class="eh-col-title-input"
+              value="{{collectionTitle}}"
+              placeholder="添加合集标题（可选）"
+              maxlength="40"
+              focus="{{collectionTitleFocus}}"
+              bindinput="onCollectionTitle"
+              bindblur="onCollectionTitleBlur"
+            />
+            <view
+              class="eh-col-title-edit"
+              bindtap="focusCollectionTitle"
+              aria-label="编辑合集标题"
+            >✎</view>
+          </view>
+          <text class="eh-col-count">{{collectionMembers.length}} 张内容卡片</text>
+
+          <view wx:if="{{collectionMenuOpen}}" class="eh-col-menu">
+            <view class="eh-col-menu-btn" bindtap="toggleCollectionVisible">
+              {{collectionVisible ? '在主页隐藏合集' : '在主页显示合集'}}
+            </view>
+            <view class="eh-col-menu-btn eh-col-menu-danger" bindtap="askDeleteCollection">
+              删除合集
+            </view>
+          </view>
+          <view wx:if="{{collectionConfirmDelete}}" class="eh-col-confirm" role="group" aria-label="确认删除合集">
+            <text class="eh-col-confirm-text">删除合集会同时移除其中 {{collectionMembers.length}} 张内容卡片。</text>
+            <view class="eh-col-confirm-row">
+              <view class="eh-col-confirm-btn" bindtap="cancelDeleteCollection">取消</view>
+              <view class="eh-col-confirm-btn eh-col-menu-danger" bindtap="deleteActiveCollection">确认删除</view>
+            </view>
+          </view>
+
+          <text class="eh-col-h3">展示方式</text>
+          <view class="eh-col-layouts" aria-label="合集布局">
+            <view
+              wx:for="{{collectionLayouts}}"
+              wx:key="id"
+              class="eh-col-layout {{item.selected ? 'eh-col-layout-on' : ''}}"
+              data-id="{{item.id}}"
+              bindtap="pickCollectionLayout"
+            >
+              <view class="eh-col-layout-icon eh-col-ico-{{item.icon}}" aria-hidden="true">
+                <view wx:if="{{item.icon === 'list'}}" class="eh-ico-list">
+                  <view class="eh-ico-bar"></view>
+                  <view class="eh-ico-bar"></view>
+                </view>
+                <view wx:elif="{{item.icon === 'grid'}}" class="eh-ico-grid">
+                  <view class="eh-ico-cell"></view>
+                  <view class="eh-ico-cell"></view>
+                  <view class="eh-ico-cell"></view>
+                  <view class="eh-ico-cell"></view>
+                </view>
+                <view wx:elif="{{item.icon === 'carousel'}}" class="eh-ico-carousel">
+                  <view class="eh-ico-side"></view>
+                  <view class="eh-ico-center"></view>
+                  <view class="eh-ico-side"></view>
+                </view>
+                <view wx:else class="eh-ico-showcase">
+                  <view class="eh-ico-frame"></view>
+                  <view class="eh-ico-corner eh-ico-tl"></view>
+                  <view class="eh-ico-corner eh-ico-tr"></view>
+                  <view class="eh-ico-corner eh-ico-bl"></view>
+                  <view class="eh-ico-corner eh-ico-br"></view>
+                </view>
+              </view>
+              <text class="eh-col-layout-label">{{item.label}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="eh-col-contents">
+          <view class="eh-col-contents-head">
+            <text class="eh-col-h3">内容卡片</text>
+            <view class="eh-col-add" bindtap="addToCollection">＋ 添加</view>
+          </view>
+
+          <view
+            wx:if="{{!collectionMembers.length}}"
+            class="eh-col-empty"
+            bindtap="addToCollection"
+          >向合集添加第一张内容卡片</view>
+
+          <view
+            wx:for="{{collectionMembers}}"
+            wx:key="key"
+            class="eh-col-member"
+          >
+            <view
+              class="eh-col-member-main"
+              data-source="{{item.sourceId}}"
+              data-index="{{item.index}}"
+              bindtap="editCollectionMember"
+            >
+              <view class="eh-col-member-icon" aria-hidden="true">
+                <image
+                  class="eh-col-member-ico"
+                  src="/assets/catalog-link.png"
+                  mode="aspectFit"
+                />
+              </view>
+              <view class="eh-col-member-text">
+                <text class="eh-col-member-title">{{item.title}}</text>
+                <text class="eh-col-member-desc">{{item.desc}}</text>
+              </view>
+              <text class="eh-col-member-chevron" aria-hidden="true">›</text>
+            </view>
+            <view
+              class="eh-col-member-remove"
+              data-source="{{item.sourceId}}"
+              data-index="{{item.index}}"
+              bindtap="removeCollectionMember"
+            >移出合集</view>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+
     <!-- 底栏：添加 / 预览 / 设计 / 发布 -->
-    <view class="eh-links-toolbar" aria-label="主页编辑工具">
+    <view wx:if="{{!collectionOpen}}" class="eh-links-toolbar" aria-label="主页编辑工具">
       <view class="eh-toolbar-btn" bindtap="openAddContent">
         <image class="eh-tb-ico" src="/assets/icon-ui-plus-ink.png" mode="aspectFit" aria-hidden="true" />
         <text>添加</text>
@@ -284,7 +941,11 @@
         <image class="eh-tb-ico" src="/assets/icon-ui-list-ink.png" mode="aspectFit" aria-hidden="true" />
         <text>设计</text>
       </view>
-      <view class="eh-toolbar-btn eh-toolbar-on" bindtap="publish">
+      <view
+        class="eh-toolbar-btn eh-toolbar-on {{busy ? 'eh-toolbar-busy' : ''}}"
+        bindtap="publish"
+        aria-busy="{{busy}}"
+      >
         <image class="eh-tb-ico" src="/assets/icon-ui-share-ink.png" mode="aspectFit" aria-hidden="true" />
         <text>{{busy ? '处理中' : '发布'}}</text>
       </view>
@@ -917,8 +1578,31 @@
           >
             <block wx:for="{{item.fieldRows}}" wx:key="key" wx:for-item="field">
               <text class="eh-item-field-label">{{field.label}}</text>
+              <view wx:if="{{field.isImage}}" class="eh-scc-image-row">
+                <image
+                  wx:if="{{field.value}}"
+                  class="eh-scc-thumb"
+                  src="{{field.value}}"
+                  mode="aspectFill"
+                />
+                <button
+                  class="eh-ghost"
+                  data-sindex="{{sIndex}}"
+                  data-iindex="{{iIndex}}"
+                  data-key="{{field.key}}"
+                  bindtap="pickItemImage"
+                >{{field.value ? '换一张' : '上传'}}</button>
+                <text
+                  wx:if="{{field.value}}"
+                  class="eh-remove"
+                  data-sindex="{{sIndex}}"
+                  data-iindex="{{iIndex}}"
+                  data-key="{{field.key}}"
+                  bindtap="clearItemImage"
+                >×</text>
+              </view>
               <textarea
-                wx:if="{{field.isMultiline}}"
+                wx:elif="{{field.isMultiline}}"
                 class="eh-control eh-control-area eh-item-field"
                 value="{{field.value}}"
                 placeholder="{{field.placeholder}}"
@@ -987,7 +1671,6 @@
     </block>
 
     <view wx:if="{{saveError}}" class="eh-error" role="alert">{{saveError}}</view>
-    <view wx:if="{{publishFeedback}}" class="eh-feedback">{{publishFeedback}}</view>
 
     <!-- 8. 预览草稿 -->
     <view class="eh-preview-draft-row">
@@ -1093,82 +1776,15 @@
   <view wx:if="{{previewBusy}}" class="eh-state">正在载入预览…</view>
   <scroll-view wx:else scroll-y class="eh-preview-scroll">
     <view wx:if="{{previewError}}" class="eh-error eh-preview-warn" role="alert">{{previewError}}</view>
-    <view class="eh-preview-page">
-      <view class="eh-preview-tools">
-        <view
-          wx:if="{{draft.show_branding !== false}}"
-          class="eh-preview-brand"
-          aria-label="MuuZi"
-        >
-          <image
-            class="eh-preview-brand-img"
-            src="/assets/logo-muu.png"
-            mode="aspectFit"
-            aria-hidden="true"
-          />
-        </view>
-        <view wx:else class="eh-preview-tools-spacer"></view>
-        <view class="eh-draft-badge">DRAFT · 仅你可见</view>
-        <view class="eh-preview-share-mini" bindtap="openLinksShare" aria-label="分享">
-          <image
-            class="eh-share-img-sm"
-            src="/assets/icon-share-out.png"
-            mode="aspectFit"
-            aria-hidden="true"
-          />
-        </view>
-      </view>
-
-      <view class="eh-preview-cover" aria-hidden="true">
-        <view class="eh-preview-panel eh-preview-panel-a"></view>
-        <view class="eh-preview-panel eh-preview-panel-b"></view>
-        <view class="eh-preview-panel eh-preview-panel-c"></view>
-      </view>
-
-      <view class="eh-preview-hero">
-        <view class="eh-preview-avatar">
-          <image
-            wx:if="{{draft.portrait_url}}"
-            class="eh-preview-avatar-img"
-            src="{{draft.portrait_url}}"
-            mode="aspectFill"
-          />
-          <view wx:else class="eh-preview-avatar-img eh-portrait-fallback">{{portraitLetter}}</view>
-        </view>
-        <text class="eh-preview-name">{{draft.display_name || slug || '我的主页'}}</text>
-        <text wx:if="{{draft.headline || draft.bio}}" class="eh-preview-bio">{{draft.headline || draft.bio}}</text>
-      </view>
-
-      <block wx:for="{{draft.sections}}" wx:key="id" wx:for-item="section">
-        <view wx:if="{{section.visible !== false && section.items && section.items.length}}" class="eh-preview-section">
-          <text wx:if="{{section.title}}" class="eh-preview-section-title">{{section.title}}</text>
-          <view
-            wx:for="{{section.items}}"
-            wx:key="index"
-            wx:for-item="item"
-            class="eh-preview-link-card"
-          >
-            <view class="eh-preview-link-text">
-              <text class="eh-preview-link-label">{{item.label || item.title || item.name || '链接'}}</text>
-              <text wx:if="{{item.note || item.body}}" class="eh-preview-link-note">{{item.note || item.body}}</text>
-            </view>
-            <text class="eh-preview-link-arrow">↗</text>
-          </view>
-        </view>
-      </block>
-
-      <view class="eh-preview-footer">
-        <view
-          wx:if="{{draft.show_branding !== false}}"
-          class="eh-preview-join"
-        >在 MuuZi 上加入 {{draft.display_name || slug || '我'}}</view>
-        <text class="eh-preview-legal">条款 · 举报 · 隐私</text>
-        <text
-          wx:if="{{draft.show_branding !== false}}"
-          class="eh-preview-more"
-        >来自 MuuZi 的更多内容</text>
-      </view>
-    </view>
+    <home-page-preview
+      wx:if="{{previewModel}}"
+      model="{{previewModel}}"
+      show-draft-badge="{{true}}"
+      audio-playing-key="{{previewAudioKey}}"
+      bind:share="onPreviewShare"
+      bind:openitem="onPreviewOpenItem"
+      bind:audiotap="onPreviewAudioTap"
+    />
   </scroll-view>
 </view>
 
@@ -1210,4 +1826,100 @@
       </button>
     </view>
   </view>
+</view>
+
+<!-- 对齐 App StudioCardTools 选择缩略图来源 dialog -->
+<view
+  wx:if="{{thumbSourceOpen}}"
+  class="eh-overlay eh-overlay-center"
+  catchtouchmove="noop"
+  bindtap="closeThumbSource"
+  aria-label="选择缩略图来源"
+>
+  <view class="eh-thumb-source" catchtap="noop">
+    <view class="eh-thumb-source-head">
+      <text class="eh-thumb-source-title">选择缩略图来源</text>
+      <text class="eh-thumb-source-close" bindtap="closeThumbSource" aria-label="关闭缩略图来源">×</text>
+    </view>
+    <view class="eh-thumb-source-list">
+      <view class="eh-thumb-source-row" bindtap="pickThumbFromSource">
+        <text>上传自己的图片</text>
+        <text class="eh-thumb-source-chevron">›</text>
+      </view>
+      <view class="eh-thumb-source-row eh-thumb-source-off">
+        <text>从 Tabler 图标中选择</text>
+        <text class="eh-scc-unavailable">未开通</text>
+      </view>
+      <view class="eh-thumb-source-row eh-thumb-source-off">
+        <text>用 AI 生成缩略图</text>
+        <text class="eh-scc-unavailable">未开通</text>
+      </view>
+      <view class="eh-thumb-source-row eh-thumb-source-off">
+        <text>使用 Canva 设计</text>
+        <text class="eh-scc-unavailable">未开通</text>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 对齐 App StudioCardTools 国家／地区规则 dialog -->
+<view
+  wx:if="{{rulesDialogOpen}}"
+  class="eh-overlay eh-overlay-center"
+  catchtouchmove="noop"
+  bindtap="closeRulesDialog"
+  aria-label="国家／地区规则"
+>
+  <view class="eh-rules-dialog" catchtap="noop">
+    <view class="eh-rules-dialog-head">
+      <text class="eh-rules-dialog-title">国家／地区规则</text>
+      <text class="eh-rules-dialog-close" bindtap="closeRulesDialog" aria-label="关闭地区规则">×</text>
+    </view>
+    <text class="eh-rules-dialog-note">未开通 · 以下为功能预览，不会保存或影响访客看到的内容。</text>
+    <view class="eh-rules-dialog-field">
+      <text class="eh-rules-dialog-label">如果访客所在国家／地区</text>
+      <picker
+        mode="selector"
+        range="{{['属于','不属于']}}"
+        bindchange="onRulesBelongPick"
+      >
+        <view class="eh-rules-dialog-select">{{rulesBelong}}</view>
+      </picker>
+    </view>
+    <view class="eh-rules-dialog-field">
+      <text class="eh-rules-dialog-label">国家／地区</text>
+      <view class="eh-rules-dialog-select eh-rules-dialog-select-off">国家／地区列表未开通</view>
+    </view>
+    <view class="eh-rules-dialog-field">
+      <text class="eh-rules-dialog-label">那么</text>
+      <picker
+        mode="selector"
+        range="{{['隐藏这条链接','显示这条链接']}}"
+        bindchange="onRulesActionPick"
+      >
+        <view class="eh-rules-dialog-select">{{rulesAction}}</view>
+      </picker>
+    </view>
+    <view class="eh-rules-dialog-foot">
+      <text class="eh-rules-dialog-cancel" bindtap="closeRulesDialog">取消</text>
+      <text class="eh-rules-dialog-apply eh-rules-dialog-apply-off">应用（未开通）</text>
+    </view>
+  </view>
+</view>
+
+<!-- 对齐 App publishFeedback：全模式固定底提示（含 linksOnly），失败时附带 saveError -->
+<view
+  wx:if="{{publishFeedback}}"
+  class="eh-publish-feedback"
+  role="status"
+>
+  <text class="eh-publish-feedback-text">
+    {{publishFeedback}}<block wx:if="{{!busy && saveError}}"> {{saveError}}</block>
+  </text>
+  <text
+    wx:if="{{!busy}}"
+    class="eh-publish-feedback-close"
+    bindtap="closePublishFeedback"
+    aria-label="关闭发布提示"
+  >关闭</text>
 </view>

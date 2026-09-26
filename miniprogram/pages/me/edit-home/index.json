@@ -4,7 +4,8 @@
   "navigationBarTextStyle": "black",
   "backgroundColor": "#f4f5f8",
   "usingComponents": {
-    "app-banner": "/components/app-banner/index"
+    "app-banner": "/components/app-banner/index",
+    "home-page-preview": "/components/home-page-preview/index"
   },
   "navigationStyle": "custom"
 }

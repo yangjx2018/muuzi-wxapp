@@ -17,6 +17,7 @@ var ITEM_FIELDS = {
     { key: 'label', label: '标题', placeholder: '我的作品集' },
     { key: 'url', label: '网址', kind: 'url', placeholder: 'https://' },
     { key: 'note', label: '说明（可空）', placeholder: '一句话' },
+    { key: 'image_url', label: '缩略图（可空）', kind: 'image' },
     { key: 'color', label: '卡片配色', kind: 'color' },
   ],
   custom: [
@@ -27,6 +28,7 @@ var ITEM_FIELDS = {
       kind: 'multiline',
       placeholder: '先说清楚交付物，再谈价…',
     },
+    { key: 'image_url', label: '图片（可空）', kind: 'image' },
     { key: 'url', label: '链接（可空）', kind: 'url', placeholder: 'https://' },
     { key: 'link_label', label: '按钮文字（可空）', placeholder: '看流程' },
     { key: 'color', label: '卡片配色', kind: 'color' },
@@ -39,6 +41,7 @@ var ITEM_FIELDS = {
       kind: 'url',
       placeholder: 'https://youtu.be/…',
     },
+    { key: 'cover_url', label: '封面', kind: 'image' },
     { key: 'duration', label: '时长（可空）', placeholder: '3:08' },
   ],
   audio: [
@@ -66,6 +69,7 @@ var ITEM_FIELDS = {
       kind: 'price',
       placeholder: '29',
     },
+    { key: 'image_url', label: '商品图', kind: 'image' },
     { key: 'note', label: '说明（可空）', placeholder: '一句话' },
   ],
 };
@@ -110,6 +114,7 @@ function buildFormFields(type, values) {
       isMultiline: kind === 'multiline',
       isColor: kind === 'color',
       isPrice: kind === 'price',
+      isImage: kind === 'image',
       isText: kind === 'text' || kind === 'url' || kind === 'price',
     };
   });

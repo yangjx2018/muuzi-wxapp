@@ -63,7 +63,7 @@ function sleep(ms) {
     }
     ok('打开登录页', page.path);
 
-    await page.setData({ showPassword: false });
+    await page.setData({ showPassword: false, password: '' });
     await sleep(200);
 
     var inputs = await page.$$('input.field-input-secure');
@@ -74,7 +74,7 @@ function sleep(ms) {
       var el = inputs[0];
       var type = await el.attribute('type');
       var passwordAttr = await el.attribute('password');
-      var cls = await el.attribute('class');
+      var clsEmpty = await el.attribute('class');
       if (String(type || '') === 'text') ok('type=text 普通键盘', type);
       else fail('type=text 普通键盘', type);
       if (String(type || '') === 'safe-password') {
@@ -88,10 +88,10 @@ function sleep(ms) {
       } else {
         ok('无 password=true', String(passwordAttr));
       }
-      if (String(cls || '').indexOf('is-masked') >= 0) {
-        ok('密文 CSS is-masked', cls);
+      if (String(clsEmpty || '').indexOf('is-masked') < 0) {
+        ok('空密码不挂 is-masked（防幽灵圆点）', clsEmpty);
       } else {
-        fail('密文 CSS is-masked', cls);
+        fail('空密码不挂 is-masked（防幽灵圆点）', clsEmpty);
       }
     }
 
@@ -105,6 +105,15 @@ function sleep(ms) {
       ok('密文态可写入', 'len=' + data.password.length);
     } else {
       fail('密文态可写入', 'password=' + data.password);
+    }
+    inputs = await page.$$('input.field-input-secure');
+    if (inputs && inputs[0]) {
+      var clsFilled = await inputs[0].attribute('class');
+      if (String(clsFilled || '').indexOf('is-masked') >= 0) {
+        ok('有内容时挂 is-masked', clsFilled);
+      } else {
+        fail('有内容时挂 is-masked', clsFilled);
+      }
     }
 
     await page.callMethod('togglePassword');

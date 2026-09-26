@@ -6,8 +6,10 @@
  * 现行约定：
  * 1. 禁止 password 属性、禁止 type="safe-password"
  * 2. 仅用 type="text" + CSS -webkit-text-security（is-masked）
- * 3. 输入回调一次 setData 合并 value + ready（禁止再调 refreshReady）
- * 4. 禁止 focus="{{passwordFocus}}" / pulseFocus：focus=false 在部分机型会锁死输入框
+ * 3. is-masked 仅在「有内容且非明文」时挂上：空值挂 disc 会在微信里画出幽灵圆点
+ *    正确写法：class="… {{!showPassword && password ? 'is-masked' : ''}}"
+ * 4. 输入回调一次 setData 合并 value + ready（禁止再调 refreshReady）
+ * 5. 禁止 focus="{{passwordFocus}}" / pulseFocus：focus=false 在部分机型会锁死输入框
  *
  * 本文件保留仅为文档与防止误引用；auth 页不得再 require。
  */

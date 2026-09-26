@@ -48,11 +48,13 @@ describe('password field keyboard wake (auth)', () => {
     assert.doesNotMatch(onPwd, /refreshReady\(/);
 
     assert.match(wxml, /type="text"/);
-    assert.match(wxml, /is-masked/);
+    assert.match(wxml, /!showPassword && password \? 'is-masked'/);
     assert.match(wxml, /hold-keyboard="\{\{true\}\}"/);
     assert.match(wxml, /always-embed="\{\{true\}\}"/);
     assert.doesNotMatch(wxml, /type="safe-password"/);
     assert.doesNotMatch(wxml, /password="\{\{!showPassword\}\}"/);
+    // 禁止空值也挂 is-masked：微信会画幽灵圆点
+    assert.doesNotMatch(wxml, /\{\{showPassword \? '' : 'is-masked'\}\}/);
     assert.ok(!hasNativePasswordAttr(wxml), 'login wxml must not use native password attr');
 
     assert.match(appWxss, /-webkit-text-security:\s*disc/);
@@ -79,8 +81,10 @@ describe('password field keyboard wake (auth)', () => {
 
       assert.match(wxml, /type="text"/, base);
       assert.match(wxml, /is-masked/, base);
+      assert.match(wxml, /!showPassword && password \? 'is-masked'/, base);
       assert.match(wxml, /hold-keyboard="\{\{true\}\}"/, base);
       assert.doesNotMatch(wxml, /type="safe-password"/, base);
+      assert.doesNotMatch(wxml, /\{\{showPassword \? '' : 'is-masked'\}\}/, base);
       assert.ok(!hasNativePasswordAttr(wxml), base + ' must not use native password attr');
     }
   });

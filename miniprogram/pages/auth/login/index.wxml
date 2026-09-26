@@ -49,8 +49,10 @@
       <text class="field-label">密码</text>
       <view class="field-secure">
           <input
-            class="field-input field-input-secure {{showPassword ? '' : 'is-masked'}}"
+            class="field-input field-input-secure {{!showPassword && password ? 'is-masked' : ''}}"
             type="text"
+            placeholder="请输入密码"
+            placeholder-class="field-input-placeholder"
             value="{{password}}"
             hold-keyboard="{{true}}"
             always-embed="{{true}}"
@@ -149,7 +151,7 @@
           <text class="field-label">密码</text>
           <view class="field-secure">
             <input
-              class="field-input field-input-secure {{showBindPassword ? '' : 'is-masked'}}"
+              class="field-input field-input-secure {{!showBindPassword && bindPassword ? 'is-masked' : ''}}"
               type="text"
               placeholder="请输入密码"
               placeholder-class="field-input-placeholder"

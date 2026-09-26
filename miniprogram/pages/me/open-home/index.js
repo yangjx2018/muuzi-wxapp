@@ -9,139 +9,7 @@ const creator = require('../../../services/creator');
 const pageAddress = require('../../../services/pageAddress');
 const profileShare = require('../../../services/profileShare');
 const openLinkService = require('../../../services/openLink');
-
-var SOCIAL_ICON_BY_KIND = {
-  instagram: '/assets/social-instagram.png',
-  youtube: '/assets/social-youtube.png',
-  tiktok: '/assets/social-tiktok.png',
-  douyin: '/assets/social-tiktok.png',
-  x: '/assets/icon-ui-x-social.png',
-  email: '/assets/social-email.png',
-  website: '/assets/social-link.png',
-  link: '/assets/social-link.png',
-};
-
-var SOCIAL_LABEL_BY_KIND = {
-  instagram: 'Instagram',
-  youtube: 'YouTube',
-  tiktok: 'TikTok',
-  douyin: '抖音',
-  x: 'X',
-  email: '邮箱',
-  website: '网站',
-  link: '链接',
-};
-
-function letterOf(name, slug) {
-  var raw = String(name || slug || 'M').trim();
-  return raw ? raw.charAt(0).toUpperCase() : 'M';
-}
-
-function formatPrice(priceMinor, currency) {
-  var n = Number(priceMinor);
-  if (!n || n <= 0) return '询价';
-  var yuan = (n / 100).toFixed(2).replace(/\.00$/, '');
-  var cur = String(currency || 'CNY').toUpperCase();
-  if (cur === 'CNY' || cur === 'RMB') return '¥' + yuan;
-  return yuan + ' ' + cur;
-}
-
-function socialsFromPublished(published) {
-  var socials = (published && published.socials) || [];
-  if (!Array.isArray(socials)) return [];
-  var out = [];
-  for (var i = 0; i < socials.length; i++) {
-    var s = socials[i] || {};
-    var raw = String(s.url || '').trim();
-    if (!raw) continue;
-    var kind = String(s.kind || 'link').toLowerCase();
-    var url = raw;
-    if (kind === 'email') {
-      if (raw.indexOf('mailto:') === 0) {
-        url = raw;
-      } else if (raw.indexOf('@') > 0 && raw.indexOf('https://') !== 0) {
-        url = 'mailto:' + raw;
-      } else if (raw.indexOf('https://') !== 0) {
-        continue;
-      }
-    } else if (url.indexOf('https://') !== 0) {
-      continue;
-    }
-    out.push({
-      kind: kind + '_' + i,
-      label: s.label || SOCIAL_LABEL_BY_KIND[kind] || kind,
-      url: url,
-      icon: SOCIAL_ICON_BY_KIND[kind] || '/assets/social-link.png',
-    });
-    if (out.length >= 12) break;
-  }
-  return out;
-}
-
-/**
- * 保留 section.type 与条目字段，对齐 App SECTION_RENDERERS。
- */
-function sectionsFromPublished(published) {
-  var sections = (published && published.sections) || [];
-  if (!Array.isArray(sections)) return [];
-  var out = [];
-  for (var i = 0; i < sections.length; i++) {
-    var s = sections[i] || {};
-    if (s.visible === false) continue;
-    if (s.collection_id) continue;
-    var type = String(s.type || 'links');
-    var items = Array.isArray(s.items) ? s.items : [];
-    var visibleItems = [];
-    for (var j = 0; j < items.length; j++) {
-      var it = items[j] || {};
-      if (it.setup === 'pending') continue;
-      var url = String(it.url || it.href || '').trim();
-      var title = it.title || it.label || it.name || '';
-      var note = it.note || it.body || it.description || it.desc || '';
-      var body = it.body || '';
-      var mapped = {
-        key: (s.id || i) + '_' + j,
-        label: it.label || title || '链接',
-        title: title || it.label || '条目',
-        note: note,
-        body: body,
-        url: url,
-        image_url: it.image_url || '',
-        cover_url: it.cover_url || '',
-        link_kind: it.link_kind || '',
-        link_label: it.link_label || '',
-        price_text:
-          type === 'shop' && it.link_kind !== 'store'
-            ? formatPrice(it.price_minor, it.currency)
-            : it.link_kind === 'store'
-              ? '访问店铺 →'
-              : '',
-        duration: it.duration || '',
-        directAudio: type === 'audio' && openLinkService.isDirectAudio(url),
-        card_kind: it.card_kind || '',
-        hasUrl: url.indexOf('https://') === 0,
-      };
-      if (type === 'custom') {
-        if (!mapped.title && !mapped.body && !mapped.hasUrl) continue;
-      } else if (type === 'shop') {
-        if (!mapped.title && !mapped.hasUrl) continue;
-      } else if (type === 'audio') {
-        if (!mapped.title && !mapped.hasUrl) continue;
-      } else if (!mapped.hasUrl && !mapped.label) {
-        continue;
-      }
-      visibleItems.push(mapped);
-    }
-    if (!visibleItems.length && !s.title) continue;
-    out.push({
-      id: s.id || 'sec_' + i,
-      type: type,
-      title: s.title || '',
-      items: visibleItems,
-    });
-  }
-  return out;
-}
+const homePreview = require('../../../services/homePreview');
 
 Page({
   data: {
@@ -154,14 +22,9 @@ Page({
     title: '成品主页',
     hint: '',
     previewReady: false,
+    previewModel: null,
     previewName: '',
-    previewHeadline: '',
-    previewBio: '',
     previewPortrait: '',
-    previewLetter: 'M',
-    previewSections: [],
-    previewSocials: [],
-    previewShowBranding: true,
     previewSlug: '',
     copied: false,
     shareBusy: false,
@@ -294,7 +157,7 @@ Page({
       profileShare.slugFromShareUrl(href || '') ||
       '';
     if (!slug) {
-      this.setData({ previewReady: false });
+      this.setData({ previewReady: false, previewModel: null });
       return;
     }
     creator
@@ -302,26 +165,24 @@ Page({
       .then(function (publicPage) {
         var page = publicPage && publicPage.page;
         if (!page || !page.published) {
-          self.setData({ previewReady: false });
+          self.setData({ previewReady: false, previewModel: null });
           return;
         }
         var p = page.published;
-        var name = p.display_name || page.slug || slug;
+        var model = homePreview.viewModel(p, {
+          slug: page.slug || slug,
+          draft: false,
+        });
         self.setData({
           previewReady: true,
-          previewName: name,
-          previewHeadline: p.headline || '',
-          previewBio: p.bio || '',
-          previewPortrait: p.portrait_url || '',
-          previewLetter: letterOf(name, page.slug || slug),
-          previewSections: sectionsFromPublished(p),
-          previewSocials: socialsFromPublished(p),
-          previewShowBranding: p.show_branding !== false,
+          previewModel: model,
+          previewName: model.name,
+          previewPortrait: model.portrait || '',
           previewSlug: page.slug || slug,
         });
       })
       .catch(function () {
-        self.setData({ previewReady: false });
+        self.setData({ previewReady: false, previewModel: null });
       });
   },
 
@@ -402,6 +263,35 @@ Page({
       slug: slug,
       url: url,
       imageUrl: this.data.previewPortrait || '',
+    });
+  },
+
+  /** 组件事件：打开条目 */
+  onPreviewOpenItem(e) {
+    var detail = (e && e.detail) || {};
+    this.openLink({
+      currentTarget: {
+        dataset: {
+          url: detail.url || '',
+          title: detail.title || '',
+          note: detail.note || '',
+        },
+      },
+    });
+  },
+
+  onPreviewAudioTap(e) {
+    var detail = (e && e.detail) || {};
+    this.onAudioTap({
+      currentTarget: {
+        dataset: {
+          key: detail.key || '',
+          url: detail.url || '',
+          title: detail.title || '',
+          direct: detail.direct,
+          note: detail.note || '',
+        },
+      },
     });
   },
 

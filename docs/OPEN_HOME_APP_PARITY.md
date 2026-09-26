@@ -49,11 +49,15 @@
 **策略（写死）：**
 
 1. **主页整页**：主机在白名单 → 挂整页 `web-view`（页内所有 `<a>` 与 App SSR 一致）= 最强 1:1。  
-2. **原生预览**（未配业务域名时）：必须按 section 类型渲染；点击走 `openLink`：  
-   - 可 embed → `pages/me/open-link` 挂该 URL 的 web-view；  
-   - 音频直链 → 本页播放；  
+2. **原生预览**（未配业务域名时）：必须按 section 类型渲染；点击走 `openLink.openHttps`：  
+   - **直链图片**（扩展名或 Unsplash 等图床）→ `wx.previewImage` 全屏查看（不依赖业务域名）；失败进 open-link 页内预览。  
+   - **直链视频 / 音频文件** → `pages/me/open-media` 原生播放；失败可复制到浏览器。  
+   - 可 embed 的普通网页 → `pages/me/open-link` 挂 web-view；  
+   - 音频区直链 → 本页 InnerAudio 播放（与 open-media 并存）；  
    - custom 无 url → 只展示正文，不复制；  
-   - 不可 embed → 进入 `open-link` **查看页**（标题/说明/预览），**禁止**一上来 Toast「条目链接已复制」；仅在用户点「复制到浏览器打开」时才复制。
+   - 不可 embed 的网页 → 进入 `open-link` **查看页**（标题/说明/预览），**禁止**一上来 Toast「条目链接已复制」；仅在用户点「复制到浏览器打开」时才复制。
+
+> 生产环境：图片/音视频 CDN 主机还需登记到微信 **downloadFile 合法域名**（与业务域名是两套白名单）。开发者工具可关「校验合法域名」联调。
 
 ---
 
@@ -63,15 +67,17 @@
 
 ### T2 — `services/openLink.js`
 
-- `isDirectAudio(url)`  
+- `isDirectAudio(url)` / `isDirectImage(url)` / `isDirectVideo(url)` / `classifyMedia(url)`  
 - `canEmbedUrl(url)`（复用 `profileShare.canEmbedHomeUrl`）  
-- `openHttps(url, opts)` → `navigateTo /pages/me/open-link/index?...`  
+- `openHttps(url, opts)`：图 → `previewImage`；音视频直链 → `open-media`；否则 → `open-link`  
 - 禁止默认 `copyShareUrlFallback`
 
-### T3 — `pages/me/open-link`
+### T3 — `pages/me/open-link` / `pages/me/open-media`
 
 - embed 模式：`<web-view src>`  
-- view 模式：展示 title/note/url + 主按钮「复制并到浏览器打开」（次要）+ 若可 embed 自动切 embed
+- 图片回退：页内 `<image>` +「全屏查看」  
+- `open-media`：`<video>` / InnerAudio  
+- view 模式：展示 title/note/url +「复制并到浏览器打开」（次要）
 
 ### T4 — 重写 `open-home` section 模型与 UI
 
@@ -89,13 +95,15 @@
 ## 4. 验收勾选
 
 - [x] links：点开进入打开页或 web-view，不立即复制 Toast（代码路径已改；待真机点验）
+- [x] **直链图片**：`previewImage` 全屏（Unsplash / 常见扩展名）
+- [x] **直链视频/音频文件**：`open-media` 原生播放
 - [x] audio 直链：本页可播可停（InnerAudioContext）
 - [x] custom：正文可见；无 url 不触发复制
 - [x] shop：双列图+价；点击打开
 - [x] 分享按钮仍分享主页（回归）
 - [x] 品牌 logo 仍在（回归）
 - [x] 未配业务域名时不挂非法 web-view（回归「无法打开该页面」）
-- [x] 单测 `test/m2-open-home.test.js` 覆盖打开路径 / open-link / 禁止「条目链接已复制」
+- [x] 单测 `test/m2-open-home.test.js` 覆盖打开路径 / open-link / open-media / 禁止「条目链接已复制」
 
 ---
 
@@ -111,8 +119,9 @@
 | 文件 | 作用 |
 |------|------|
 | `docs/OPEN_HOME_APP_PARITY.md` | 本对照真值 |
-| `miniprogram/services/openLink.js` | 打开 https（不默认复制） |
-| `miniprogram/pages/me/open-link/*` | 内嵌 web-view 或查看页 |
+| `miniprogram/services/openLink.js` | 打开 https：图预览 / 音视频播放 / web-view / 查看页（不默认复制） |
+| `miniprogram/pages/me/open-link/*` | 内嵌 web-view、图片预览或查看页 |
+| `miniprogram/pages/me/open-media/*` | 直链视频 / 音频原生播放 |
 | `miniprogram/pages/me/open-home/*` | 按 type 渲染 + 打开/播放 |
 | `miniprogram/app.json` | 注册 open-link |
 | `test/m2-open-home.test.js` | 回归断言 |

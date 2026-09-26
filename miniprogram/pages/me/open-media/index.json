@@ -1,0 +1,6 @@
+{
+  "usingComponents": {
+    "app-banner": "/components/app-banner/index"
+  },
+  "navigationStyle": "custom"
+}

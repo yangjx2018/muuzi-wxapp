@@ -1,0 +1,35 @@
+<app-banner section="媒体" show-back />
+
+<scroll-view scroll-y class="om-page" enhanced show-scrollbar="{{false}}">
+  <view class="om-card">
+    <view class="om-eyebrow">{{kind === 'audio' ? 'AUDIO · 播放' : 'VIDEO · 播放'}}</view>
+    <view class="om-title">{{title || (kind === 'audio' ? '音频' : '视频')}}</view>
+    <view wx:if="{{note}}" class="om-note">{{note}}</view>
+
+    <block wx:if="{{href && kind === 'video'}}">
+      <video
+        class="om-video"
+        src="{{href}}"
+        controls
+        show-center-play-btn
+        enable-play-gesture
+        object-fit="contain"
+        binderror="onVideoError"
+      />
+    </block>
+
+    <block wx:elif="{{href && kind === 'audio'}}">
+      <view class="om-audio-box">
+        <button class="om-audio-btn" bindtap="toggleAudio">
+          {{playing ? '暂停' : '播放'}}
+        </button>
+      </view>
+    </block>
+
+    <view wx:if="{{displayUrl}}" class="om-url">{{displayUrl}}</view>
+    <view wx:if="{{errorHint}}" class="om-hint" role="alert">{{errorHint}}</view>
+    <view wx:else class="om-hint">与网页版打开同一媒体地址；播放失败时可复制到浏览器。</view>
+
+    <button class="om-btn" bindtap="copyForBrowser">复制并到浏览器打开</button>
+  </view>
+</scroll-view>

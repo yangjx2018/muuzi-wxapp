@@ -29,15 +29,21 @@ describe('open-home finished-product fallback', () => {
     assert.match(wxml, /embedAllowed && homeUrl/);
     assert.match(wxml, /binderror="onWebViewError"/);
     assert.match(wxml, /复制主页链接/);
-    assert.match(wxml, /oh-preview/);
-    assert.match(wxml, /oh-preview-panel-a/);
-    assert.match(wxml, /oh-preview-footer/);
-    assert.match(wxml, /在 MuuZi 上加入/);
-    assert.match(wxml, /logo-muu\.png/);
-    assert.match(wxml, /icon-share-out\.png/);
-    assert.match(wxml, /open-type="share"/);
+    assert.match(wxml, /oh-preview|home-page-preview|previewModel/);
+    assert.match(wxml, /previewModel|home-page-preview/);
+    const comp = fs.readFileSync(
+      path.join(root, 'miniprogram/components/home-page-preview/index.wxml'),
+      'utf8'
+    );
+    assert.match(comp, /hpp-footer|在 MuuZi 上加入|hpp-join/);
+    assert.match(comp, /hpp-home-login|登录 MuuZi/);
+    assert.match(comp, /logo-muu\.png/);
+    assert.match(comp, /icon-share-out\.png/);
+    assert.match(comp, /hpp-cover/);
+    assert.match(wxml, /open-type="share"|share-open-type/);
     assert.match(js, /onShareAppMessage/);
     assert.match(js, /friendShareMessage/);
+    assert.match(js, /homePreview|sectionsFromContent|viewModel/);
     assert.doesNotMatch(wxml, /LIVE · 已发布/);
     assert.doesNotMatch(wxml, /oh-preview-brand-m/);
     assert.doesNotMatch(wxml, /wx:if="\{\{homeUrl\}\}"/);
@@ -52,21 +58,24 @@ describe('open-home finished-product fallback', () => {
       path.join(root, 'miniprogram/pages/me/open-home/index.wxml'),
       'utf8'
     );
+    const comp = fs.readFileSync(
+      path.join(root, 'miniprogram/components/home-page-preview/index.wxml'),
+      'utf8'
+    );
     assert.match(js, /openLink\.openHttps|require\('\.\.\/\.\.\/\.\.\/services\/openLink'\)/);
-    assert.match(js, /sectionsFromPublished/);
-    assert.match(js, /type === 'shop'|type === \"shop\"|section\.type/);
-    assert.match(js, /directAudio|isDirectAudio/);
-    assert.match(js, /createInnerAudioContext|playAudio/);
-    assert.match(js, /function openLink|openLink\(e\)/);
-    // 点击路径不得再把「复制」当打开；允许注释/文档提及反例时用更严断言
+    assert.match(js, /homePreview|viewModel/);
+    assert.match(js, /directAudio|isDirectAudio|createInnerAudioContext|playAudio/);
+    assert.match(js, /function openLink|openLink\(e\)|onPreviewOpenItem/);
     assert.doesNotMatch(js, /copyShareUrlFallback\([^)]*条目/);
-    assert.match(wxml, /bindtap="openLink"/);
-    assert.match(wxml, /bindtap="onAudioTap"/);
-    assert.match(wxml, /oh-shop-grid|oh-product/);
-    assert.match(wxml, /oh-audio-card/);
-    assert.match(wxml, /oh-note-card/);
-    assert.match(wxml, /section\.type === 'shop'/);
-    assert.match(wxml, /section\.type === 'custom'/);
+    assert.match(wxml, /bind:openitem|bind:audiotap|home-page-preview/);
+    assert.match(comp, /bindtap="onOpenItem"|bindtap="onAudioTap"/);
+    assert.match(comp, /hpp-shop-grid|hpp-product|section\.isShop|isShop/);
+    assert.match(comp, /hpp-audio-card|isAudio/);
+    assert.match(comp, /hpp-note-card|isCustom/);
+    assert.match(comp, /hpp-film-hero|isVideo/);
+    assert.match(comp, /hpp-tags|isSkills/);
+    assert.match(comp, /hpp-agent|isAgents/);
+    assert.match(comp, /hpp-bento|isBento|isShowcase/);
   });
 
   it('openLink service prefers navigate over copy', () => {
@@ -75,10 +84,24 @@ describe('open-home finished-product fallback', () => {
       'utf8'
     );
     assert.match(src, /pages\/me\/open-link\/index/);
+    assert.match(src, /pages\/me\/open-media\/index/);
     assert.match(src, /isDirectAudio/);
+    assert.match(src, /isDirectImage/);
+    assert.match(src, /isDirectVideo/);
+    assert.match(src, /previewImage/);
     assert.doesNotMatch(src, /copyShareUrlFallback/);
     assert.equal(openLink.isDirectAudio('https://cdn.example.com/a.mp3'), true);
     assert.equal(openLink.isDirectAudio('https://tiktok.com/@x'), false);
+    assert.equal(
+      openLink.isDirectImage(
+        'https://images.unsplash.com/photo-1?auto=format&fit=crop&w=800'
+      ),
+      true
+    );
+    assert.equal(openLink.isDirectImage('https://cdn.example.com/a.jpg'), true);
+    assert.equal(openLink.isDirectVideo('https://cdn.example.com/a.mp4'), true);
+    assert.equal(openLink.classifyMedia('https://cdn.example.com/a.mp4'), 'video');
+    assert.equal(openLink.classifyMedia('https://www.muuzi.co/join'), 'page');
   });
 
   it('open-link page exists and embeds only when allowed', () => {
@@ -92,9 +115,27 @@ describe('open-home finished-product fallback', () => {
     );
     const appJson = fs.readFileSync(path.join(root, 'miniprogram/app.json'), 'utf8');
     assert.match(appJson, /pages\/me\/open-link\/index/);
+    assert.match(appJson, /pages\/me\/open-media\/index/);
     assert.match(wxml, /web-view/);
     assert.match(wxml, /copyForBrowser/);
+    assert.match(wxml, /previewFull|ol-preview/);
     assert.match(js, /canEmbedUrl|canEmbedHomeUrl/);
+    assert.match(js, /isImage|previewImage/);
+    assert.doesNotMatch(js, /条目链接已复制/);
+  });
+
+  it('open-media page plays direct video/audio', () => {
+    const js = fs.readFileSync(
+      path.join(root, 'miniprogram/pages/me/open-media/index.js'),
+      'utf8'
+    );
+    const wxml = fs.readFileSync(
+      path.join(root, 'miniprogram/pages/me/open-media/index.wxml'),
+      'utf8'
+    );
+    assert.match(wxml, /<video|kind === 'video'/);
+    assert.match(wxml, /toggleAudio|kind === 'audio'/);
+    assert.match(js, /createInnerAudioContext|onVideoError/);
     assert.doesNotMatch(js, /条目链接已复制/);
   });
 
@@ -103,9 +144,15 @@ describe('open-home finished-product fallback', () => {
       path.join(root, 'miniprogram/pages/me/edit-home/index.wxml'),
       'utf8'
     );
-    assert.match(wxml, /eh-preview-brand[\s\S]*logo-muu\.png/);
-    assert.match(wxml, /eh-preview-share-mini[\s\S]*icon-share-out\.png/);
+    const comp = fs.readFileSync(
+      path.join(root, 'miniprogram/components/home-page-preview/index.wxml'),
+      'utf8'
+    );
+    assert.match(wxml, /home-page-preview|previewModel/);
+    assert.match(comp, /hpp-brand[\s\S]*logo-muu\.png/);
+    assert.match(comp, /hpp-share[\s\S]*icon-share-out\.png/);
     assert.doesNotMatch(wxml, /eh-preview-brand-m/);
+    assert.doesNotMatch(comp, /eh-preview-brand-m/);
   });
 
   it('openHomePage forces copy when host not in WEBVIEW_BUSINESS_HOSTS', () => {

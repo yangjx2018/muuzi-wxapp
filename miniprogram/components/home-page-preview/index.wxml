@@ -1,0 +1,414 @@
+<!-- 对齐公开页 SSR hero-profile · services/homePreview.js -->
+<view wx:if="{{model}}" class="hpp">
+  <view class="hpp-tools">
+    <view
+      wx:if="{{model.showBranding}}"
+      class="hpp-brand"
+      aria-label="MuuZi"
+    >
+      <image
+        class="hpp-brand-img"
+        src="/assets/logo-muu.png"
+        mode="aspectFit"
+        aria-hidden="true"
+      />
+    </view>
+    <view wx:else class="hpp-tools-spacer"></view>
+
+    <view wx:if="{{showDraftBadge || model.draft}}" class="hpp-draft-badge">DRAFT · 仅你可见</view>
+    <view wx:else class="hpp-tools-mid"></view>
+
+    <button
+      wx:if="{{shareOpenType}}"
+      class="hpp-share"
+      open-type="share"
+      bindtap="onShareTap"
+      aria-label="分享主页"
+      hover-class="hpp-share-hover"
+    >
+      <image
+        class="hpp-share-img"
+        src="/assets/icon-share-out.png"
+        mode="aspectFit"
+        aria-hidden="true"
+      />
+    </button>
+    <view
+      wx:else
+      class="hpp-share"
+      bindtap="onShareTap"
+      aria-label="分享主页"
+    >
+      <image
+        class="hpp-share-img"
+        src="/assets/icon-share-out.png"
+        mode="aspectFit"
+        aria-hidden="true"
+      />
+    </view>
+  </view>
+
+  <view class="hpp-cover" aria-hidden="true">
+    <block wx:for="{{model.covers}}" wx:key="index" wx:for-item="slot">
+      <image
+        wx:if="{{slot && slot.url}}"
+        class="hpp-cover-img"
+        src="{{slot.url}}"
+        mode="aspectFill"
+        style="object-position: center {{slot.position}}%;"
+      />
+      <view
+        wx:else
+        class="hpp-cover-light hpp-cover-light-{{index}}"
+      ></view>
+    </block>
+  </view>
+
+  <view class="hpp-hero">
+    <view class="hpp-avatar">
+      <image
+        wx:if="{{model.portrait}}"
+        class="hpp-avatar-img"
+        src="{{model.portrait}}"
+        mode="aspectFill"
+      />
+      <view wx:else class="hpp-avatar-img hpp-portrait-fallback">{{model.letter}}</view>
+    </view>
+    <text class="hpp-name">{{model.name}}</text>
+    <text wx:if="{{model.headline}}" class="hpp-kicker">{{model.headline}}</text>
+    <text wx:if="{{model.bio}}" class="hpp-bio">{{model.bio}}</text>
+    <view wx:if="{{model.socials.length}}" class="hpp-socials">
+      <view
+        wx:for="{{model.socials}}"
+        wx:key="kind"
+        class="hpp-social"
+        data-url="{{item.url}}"
+        data-title="{{item.label}}"
+        bindtap="onOpenItem"
+        aria-label="{{item.label}}"
+      >
+        <image
+          class="hpp-social-img"
+          src="{{item.icon}}"
+          mode="aspectFit"
+          aria-hidden="true"
+        />
+      </view>
+    </view>
+  </view>
+
+  <!-- 合作信息 · 对齐 renderProfileMetadata -->
+  <view wx:if="{{model.meta && model.meta.hasAny}}" class="hpp-meta">
+    <view wx:if="{{model.meta.location}}" class="hpp-meta-block">
+      <text class="hpp-meta-label">所在地</text>
+      <text class="hpp-meta-text">{{model.meta.location}}</text>
+    </view>
+    <view wx:if="{{model.meta.languagesText}}" class="hpp-meta-block">
+      <text class="hpp-meta-label">沟通语言</text>
+      <text class="hpp-meta-text">{{model.meta.languagesText}}</text>
+    </view>
+    <block wx:if="{{model.meta.offers.length}}">
+      <text class="hpp-meta-heading">我能提供</text>
+      <view
+        wx:for="{{model.meta.offers}}"
+        wx:key="key"
+        class="hpp-coop-card"
+      >
+        <text class="hpp-coop-name">{{item.label}}</text>
+        <text wx:if="{{item.meta}}" class="hpp-coop-meta">{{item.meta}}</text>
+      </view>
+      <text class="hpp-meta-note">报价由作者填写</text>
+    </block>
+    <block wx:if="{{model.meta.wants.length}}">
+      <text class="hpp-meta-heading">我在寻找</text>
+      <view
+        wx:for="{{model.meta.wants}}"
+        wx:key="key"
+        class="hpp-coop-card"
+      >
+        <text class="hpp-coop-name">{{item.label}}</text>
+      </view>
+    </block>
+  </view>
+
+  <block wx:for="{{model.sections}}" wx:key="id" wx:for-item="section">
+    <view wx:if="{{section.items.length}}" class="hpp-section">
+      <view wx:if="{{section.title}}" class="hpp-section-head">
+        <text class="hpp-section-title">{{section.title}}</text>
+        <text wx:if="{{section.isVideo}}" class="hpp-section-count">{{section.itemCount}}</text>
+      </view>
+
+      <!-- 技能标签 · 对齐 .tags -->
+      <view wx:if="{{section.isSkills}}" class="hpp-tags">
+        <view
+          wx:for="{{section.items}}"
+          wx:for-item="item"
+          wx:key="key"
+          class="hpp-tag {{item.hasUrl ? 'hpp-tag-link' : ''}}"
+          data-url="{{item.url}}"
+          data-title="{{item.label}}"
+          bindtap="onSkillTap"
+        >{{item.label}}</view>
+      </view>
+
+      <!-- Agents · 对齐 .agent -->
+      <block wx:elif="{{section.isAgents}}">
+        <view
+          wx:for="{{section.items}}"
+          wx:for-item="item"
+          wx:key="key"
+          class="hpp-agent"
+          data-url="{{item.url}}"
+          data-title="{{item.name}}"
+          data-note="{{item.desc}}"
+          bindtap="{{item.hasUrl ? 'onOpenItem' : ''}}"
+        >
+          <view class="hpp-agent-head">
+            <text class="hpp-agent-name">{{item.name}}</text>
+            <text wx:if="{{item.hasUrl}}" class="hpp-agent-try">试用 →</text>
+          </view>
+          <text wx:if="{{item.desc}}" class="hpp-agent-desc">{{item.desc}}</text>
+        </view>
+      </block>
+
+      <!-- 视频：大封面 + 三宫格 · 对齐 .film-hero / .film-grid -->
+      <block wx:elif="{{section.isVideo}}">
+        <view
+          wx:if="{{section.videoHero}}"
+          class="hpp-film-hero"
+          data-url="{{section.videoHero.url}}"
+          data-title="{{section.videoHero.title}}"
+          bindtap="onOpenItem"
+        >
+          <image
+            wx:if="{{section.videoHero.cover_url || section.videoHero.image_url}}"
+            class="hpp-film-hero-img"
+            src="{{section.videoHero.cover_url || section.videoHero.image_url}}"
+            mode="aspectFill"
+          />
+          <view wx:else class="hpp-film-empty">视频封面</view>
+          <view class="hpp-film-play"><text class="hpp-film-play-dot">▶</text></view>
+          <view class="hpp-film-caption">
+            《{{section.videoHero.title}}》
+            <text wx:if="{{section.videoHero.duration}}"> · {{section.videoHero.duration}}</text>
+          </view>
+        </view>
+        <view wx:if="{{section.videoRest.length}}" class="hpp-film-grid">
+          <view
+            wx:for="{{section.videoRest}}"
+            wx:for-item="item"
+            wx:key="key"
+            class="hpp-film-thumb"
+            data-url="{{item.url}}"
+            data-title="{{item.title}}"
+            bindtap="onOpenItem"
+          >
+            <image
+              wx:if="{{item.cover_url || item.image_url}}"
+              class="hpp-film-thumb-img"
+              src="{{item.cover_url || item.image_url}}"
+              mode="aspectFill"
+            />
+            <text class="hpp-film-thumb-title">{{item.title}}</text>
+          </view>
+        </view>
+      </block>
+
+      <!-- 店铺 -->
+      <view wx:elif="{{section.isShop}}" class="hpp-shop-grid">
+        <view
+          wx:for="{{section.items}}"
+          wx:for-item="item"
+          wx:key="key"
+          class="hpp-product"
+          data-url="{{item.url}}"
+          data-title="{{item.title}}"
+          data-note="{{item.note}}"
+          bindtap="onOpenItem"
+        >
+          <view class="hpp-product-img">
+            <image
+              wx:if="{{item.image_url}}"
+              class="hpp-product-img-el"
+              src="{{item.image_url}}"
+              mode="aspectFill"
+            />
+            <text wx:else class="hpp-product-ph">商品</text>
+          </view>
+          <view class="hpp-product-body">
+            <text class="hpp-product-title">{{item.title}}</text>
+            <text wx:if="{{item.note}}" class="hpp-product-note">{{item.note}}</text>
+            <view class="hpp-product-price">
+              <text>{{item.price_text || '询价'}}</text>
+              <text wx:if="{{item.link_kind !== 'store'}}" class="hpp-product-buy">购买 →</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 音频 -->
+      <block wx:elif="{{section.isAudio}}">
+        <view
+          wx:for="{{section.items}}"
+          wx:for-item="item"
+          wx:key="key"
+          class="hpp-audio-card {{audioPlayingKey === item.key ? 'hpp-audio-playing' : ''}}"
+          data-key="{{item.key}}"
+          data-url="{{item.url}}"
+          data-title="{{item.title}}"
+          data-direct="{{item.directAudio}}"
+          data-note="{{item.note}}"
+          bindtap="onAudioTap"
+        >
+          <view class="hpp-audio-play">{{audioPlayingKey === item.key ? '❚❚' : '▶'}}</view>
+          <view class="hpp-audio-body">
+            <text class="hpp-audio-title">{{item.title}}</text>
+            <text class="hpp-audio-meta">
+              {{item.directAudio ? (audioPlayingKey === item.key ? '播放中 · 再点暂停' : '点击播放') : '打开试听页'}}
+              <text wx:if="{{item.duration}}"> · {{item.duration}}</text>
+            </text>
+          </view>
+        </view>
+      </block>
+
+      <!-- 自定义笔记 -->
+      <block wx:elif="{{section.isCustom}}">
+        <view
+          wx:for="{{section.items}}"
+          wx:for-item="item"
+          wx:key="key"
+          class="hpp-note-card"
+        >
+          <image
+            wx:if="{{item.image_url}}"
+            class="hpp-note-img"
+            src="{{item.image_url}}"
+            mode="widthFix"
+          />
+          <text class="hpp-note-title">{{item.title}}</text>
+          <text wx:if="{{item.body || item.note}}" class="hpp-note-body">{{item.body || item.note}}</text>
+          <view
+            wx:if="{{item.hasUrl}}"
+            class="hpp-note-cta"
+            data-url="{{item.url}}"
+            data-title="{{item.title}}"
+            data-note="{{item.note}}"
+            bindtap="onOpenItem"
+          >{{item.link_label || '打开'}} →</view>
+        </view>
+      </block>
+
+      <!-- 链接 / 合集：showcase|grid = 网页 bento；list = 竖列表 -->
+      <block wx:else>
+        <!-- 对齐 .collection-showcase / .collection-grid -->
+        <view
+          wx:if="{{section.isBento}}"
+          class="hpp-bento {{section.isShowcase ? 'hpp-bento-showcase' : 'hpp-bento-grid'}}"
+        >
+          <view
+            wx:for="{{section.items}}"
+            wx:for-item="item"
+            wx:key="key"
+            class="hpp-bento-card {{item.isFirst && section.isShowcase ? 'hpp-bento-hero' : ''}}"
+            style="background: {{item.tintBg}};"
+            data-url="{{item.url}}"
+            data-title="{{item.label || item.title}}"
+            data-note="{{item.note}}"
+            bindtap="onOpenItem"
+          >
+            <view
+              class="hpp-bento-media {{item.isFirst && section.isShowcase ? 'hpp-bento-media-hero' : ''}}"
+            >
+              <image
+                wx:if="{{item.image_url}}"
+                class="hpp-bento-img"
+                src="{{item.image_url}}"
+                mode="aspectFill"
+              />
+              <view wx:else class="hpp-bento-ph" aria-hidden="true"></view>
+            </view>
+            <view class="hpp-bento-body">
+              <text
+                class="hpp-bento-title"
+                style="color: {{item.tintInk}};"
+              >{{item.label || item.title}}</text>
+              <text
+                wx:if="{{item.note}}"
+                class="hpp-bento-note"
+                style="color: {{item.tintMuted}};"
+              >{{item.note}}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- list / 默认：经典横卡 + featured 通栏图 -->
+        <block wx:else>
+          <view
+            wx:for="{{section.items}}"
+            wx:for-item="item"
+            wx:key="key"
+            class="hpp-link-card {{item.featured ? 'hpp-link-featured' : ''}}"
+            style="background: {{item.tintBg}};"
+            data-url="{{item.url}}"
+            data-title="{{item.label || item.title}}"
+            data-note="{{item.note}}"
+            bindtap="onOpenItem"
+          >
+            <image
+              wx:if="{{item.image_url && item.featured}}"
+              class="hpp-link-hero-img"
+              src="{{item.image_url}}"
+              mode="aspectFill"
+            />
+            <view class="hpp-link-row">
+              <image
+                wx:if="{{item.image_url && !item.featured}}"
+                class="hpp-link-thumb"
+                src="{{item.image_url}}"
+                mode="aspectFill"
+              />
+              <view class="hpp-link-text">
+                <text
+                  class="hpp-link-label"
+                  style="color: {{item.tintInk}};"
+                >{{item.label || item.title}}</text>
+                <text
+                  wx:if="{{item.note}}"
+                  class="hpp-link-note"
+                  style="color: {{item.tintMuted}};"
+                >{{item.note}}</text>
+              </view>
+              <text class="hpp-link-arrow" style="color: {{item.tintInk}};">↗</text>
+            </view>
+          </view>
+        </block>
+      </block>
+    </view>
+  </block>
+
+  <view class="hpp-footer">
+    <view
+      wx:if="{{model.showBranding}}"
+      class="hpp-join"
+      bindtap="onJoinTap"
+    >在 MuuZi 上加入 {{model.name}}</view>
+    <view class="hpp-legal-block">
+      <text class="hpp-legal">条款 · 举报 · 隐私</text>
+      <text
+        wx:if="{{model.showBranding}}"
+        class="hpp-more"
+      >来自 MuuZi 的更多内容</text>
+    </view>
+  </view>
+
+  <!-- 对齐公开页 .home-entry / .home-login · 图2「登录 MuuZi →」 -->
+  <view
+    wx:if="{{model.showBranding && showLogin}}"
+    class="hpp-home-entry"
+  >
+    <view class="hpp-home-login" bindtap="onLoginTap" aria-label="登录 MuuZi">
+      <text class="hpp-home-login-text">登录 MuuZi</text>
+      <text class="hpp-home-login-arrow" aria-hidden="true">→</text>
+    </view>
+  </view>
+</view>

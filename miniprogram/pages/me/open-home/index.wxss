@@ -262,12 +262,17 @@
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
+  flex: none;
+  overflow: hidden;
 }
 
 .oh-preview-social-img {
   width: 36rpx;
   height: 36rpx;
   display: block;
+  flex: none;
+  margin: 0;
+  padding: 0;
 }
 
 .oh-preview-section {
